@@ -1,0 +1,403 @@
+# MStargetR
+
+[![license](https://img.shields.io/github/license/MStargetR/MStargetR.svg?color=%23A31F34)](https://mstargetr.github.io/MStargetR/LICENSE)
+[![semantic-release](https://img.shields.io/badge/semantic--release-angular-E10079.svg?logo=semantic-release&logoColor=%23E10079)](https://github.com/semantic-release/semantic-release)
+[![doi-zenodo](https://img.shields.io/badge/zenodo-10.5281/zenodo.18476537-blue.svg?logo=doi&logoColor=blue)](https://doi.org/10.5281/zenodo.18476537)
+[![codecov](https://codecov.io/gh/MStargetR/MStargetR/branch/main/graph/badge.svg)](https://codecov.io/gh/MStargetR/MStargetR)
+\## Overview
+
+MStargetR provides a complete, end-to-end pipeline for processing
+targeted multiple reaction monitoring (MRM) liquid chromatography–mass
+spectrometry (LC-MS) data. It takes raw vendor files as input and
+produces quality-controlled, batch-corrected concentration data ready
+for downstream statistical analysis. The package is designed for
+metabolomics researchers who need a reproducible, automated workflow
+that handles multi-plate and multi-method experiments.
+
+Cross-platform support is achieved through Docker, which encapsulates
+the vendor file conversion and peak integration steps so that the same
+workflow runs on Windows, macOS, and Linux. An interactive Shiny
+application is also included for users who prefer a graphical interface
+over scripting.
+
+The core pipeline consists of three stages: (1) conversion of
+proprietary vendor files to open mzML format via ProteoWizard, (2)
+retention time optimisation and peak picking/integration via Skyline,
+and (3) quality control assessment with batch and signal drift
+correction. Each stage is exposed as an independent function that can be
+used on its own or combined into a single script.
+
+## Key Features
+
+- **Vendor file conversion** –
+  [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+  converts proprietary instrument files (SCIEX .wiff, Bruker .d, Thermo
+  .raw, Waters .raw, and others) to open mzML format using ProteoWizard
+  msConvert through Docker.
+- **Peak picking and integration** –
+  [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+  performs QC-based retention time optimisation, peak boundary
+  refinement, and peak integration via Skyline in Docker. Supports
+  multi-method and multi-plate projects.
+- **Quality control and reporting** –
+  [`qcCheckR()`](https://mstargetr.github.io/MStargetR/reference/qcCheckR.md)
+  performs missing value imputation, batch and signal drift correction,
+  sample and feature filtering, and generates HTML and Excel reports
+  with interactive PCA and control chart visualisations.
+- **Standalone batch correction** –
+  [`batchCorrectR()`](https://mstargetr.github.io/MStargetR/reference/batchCorrectR.md)
+  provides independent QC-based signal drift and interbatch correction
+  using random forest (QCRFSC) or empirical Bayes (ComBat) methods. It
+  accepts a simple data.frame and can be used outside the main MStargetR
+  pipeline.
+- **Interactive Shiny application** –
+  [`launchMStargetR()`](https://mstargetr.github.io/MStargetR/reference/launchMStargetR.md)
+  launches a GUI for running the full pipeline without writing code.
+- **Transition list validation** –
+  [`transition_checkR()`](https://mstargetr.github.io/MStargetR/reference/transition_checkR.md)
+  verifies that all MRM transitions are unique, and
+  [`compare_mrm_template_with_guide()`](https://mstargetr.github.io/MStargetR/reference/compare_mrm_template_with_guide.md)
+  confirms that internal standards in the transition list match the
+  concentration guide.
+- **Multi-method and multi-plate support** – All pipeline functions
+  handle projects spanning multiple analytical methods and instrument
+  plates, combining results where common long-term reference samples and
+  consistent metabolite naming conventions are used.
+
+## Requirements
+
+- **R** \>= 4.1.0
+- **Docker Desktop** – required for
+  [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+  and
+  [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md).
+  Download from <https://www.docker.com/get-started/>. Ensure Docker is
+  running in the background before calling these functions.
+- **Bioconductor dependencies** – the packages `mzR`, `ropls`, and
+  `statTarget` are installed automatically when using the helper
+  installation function below.
+- **Minimum 8 GB RAM** recommended for processing large datasets.
+
+**Apple Silicon limitation:** Devices with Apple silicon (M1, M2, M3,
+M4) are currently unable to run
+[`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+or
+[`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+(with method set to Skyline) due to Docker image architecture
+constraints on ARM processors.
+
+## Installation
+
+### Windows installer (recommended for GUI users)
+
+Download `MStargetR_Setup.exe` from the [GitHub
+Releases](https://github.com/MStargetR/MStargetR/releases) page and run
+it. The installer will:
+
+1.  Check for R and offer to download it if not found.
+2.  Check for Docker Desktop (optional – only needed for file conversion
+    and peak integration).
+3.  Install all R package dependencies and MStargetR itself.
+4.  Create a desktop shortcut that launches the Shiny GUI.
+
+No R knowledge is required – just double-click the desktop shortcut
+after installation.
+
+### From R: helper function
+
+The quickest way to install MStargetR from an R session is with the
+bundled helper function:
+
+``` r
+source("https://raw.githubusercontent.com/MStargetR/MStargetR/main/R/install.R")
+install_MStargetR()
+rm(install_MStargetR)
+library(MStargetR)
+```
+
+### From R: manual installation
+
+If you prefer to manage dependencies yourself:
+
+``` r
+# Install Bioconductor dependencies first
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(c("mzR", "ropls", "statTarget"))
+
+# Install MStargetR from GitHub
+if (!requireNamespace("remotes", quietly = TRUE))
+    install.packages("remotes")
+remotes::install_github("MStargetR/MStargetR")
+```
+
+## Quick Start
+
+### 1. Set up the project directory
+
+Create a project folder with a `raw_data` subfolder containing your
+vendor files:
+
+``` R
+MyProject/
+  raw_data/
+    plate1_sample1.wiff
+    plate1_sample1.wiff.scan
+    plate1_sample2.wiff
+    ...
+```
+
+### 2. Convert vendor files to mzML
+
+``` r
+library(MStargetR)
+
+msConvertR(
+  input_directory  = "C:/Users/me/Desktop/MyProject/raw_data",
+  output_directory = "C:/Users/me/Desktop/MyProject"
+)
+```
+
+### 3. Peak picking and integration
+
+``` r
+PeakForgeR(
+  user_name         = "jdoe",
+  project_directory = "C:/Users/me/Desktop/MyProject",
+  mrm_template_list = list("C:/Users/me/templates/lipid_mrm_v1.tsv"),
+  QC_sample_label   = "LTR"
+)
+```
+
+### 4. Quality control and reporting
+
+``` r
+# Using QCRFSC (default, requires QC samples)
+qcCheckR(
+  user_name         = "jdoe",
+  project_directory = "C:/Users/me/Desktop/MyProject",
+  mrm_template_list = list(
+    v1 = list(
+      SIL_guide  = "C:/Users/me/templates/lipid_mrm_v1.tsv",
+      conc_guide = "C:/Users/me/templates/SIL_conc_guide_v1.tsv"
+    )
+  ),
+  QC_sample_label   = "LTR",
+  sample_tags       = c("sample", "control", "blank", "qc"),
+  mv_threshold      = 50,
+  batch_method      = "QCRFSC"
+)
+
+# Using ComBat (does not require QC samples)
+qcCheckR(
+  user_name         = "jdoe",
+  project_directory = "C:/Users/me/Desktop/MyProject",
+  mrm_template_list = list(
+    v1 = list(
+      SIL_guide  = "C:/Users/me/templates/lipid_mrm_v1.tsv",
+      conc_guide = "C:/Users/me/templates/SIL_conc_guide_v1.tsv"
+    )
+  ),
+  QC_sample_label   = "LTR",
+  sample_tags       = c("sample", "control", "blank", "qc"),
+  mv_threshold      = 50,
+  batch_method      = "ComBat"
+)
+```
+
+## Shiny Application
+
+For an interactive, code-free experience, launch the built-in Shiny GUI:
+
+``` r
+library(MStargetR)
+launchMStargetR()
+```
+
+The GUI requires additional packages (`shiny`, `bslib`, `DT`,
+`shinyWidgets`, `htmltools`). If any are missing,
+[`launchMStargetR()`](https://mstargetr.github.io/MStargetR/reference/launchMStargetR.md)
+will display installation instructions.
+
+## Standalone Batch Correction
+
+[`batchCorrectR()`](https://mstargetr.github.io/MStargetR/reference/batchCorrectR.md)
+can be used independently of the main pipeline to apply QC-based signal
+drift and interbatch correction to any targeted LC-MS dataset. It
+accepts a data.frame with columns `sample_name`, `batch`, `sample_type`,
+`run_order`, and one or more numeric metabolite columns:
+
+``` r
+result <- batchCorrectR(
+  data   = my_data,
+  method = "QCRFSC",
+  plot   = TRUE,
+  report = TRUE
+)
+
+# Access corrected data
+corrected <- result$corrected_data
+
+# View per-metabolite RSD improvement
+result$correction_summary
+```
+
+Two correction methods are available: `QCRFSC` (random forest, default)
+and `ComBat` (empirical Bayes). See
+[`?batchCorrectR`](https://mstargetr.github.io/MStargetR/reference/batchCorrectR.md)
+for full parameter documentation.
+
+## Project Directory Structure
+
+After running the full pipeline, the project directory will have the
+following structure:
+
+``` R
+MyProject/
+  Archive/                          # Archived vendor files and logs per plate
+  ALL/
+    data/
+      batch_correction/             # Batch and signal drift correction outputs
+      rda/                          # Saved R data objects from qcCheckR
+    html_report/                    # HTML report with PCA and control charts
+    xlsx_report/                    # Excel files for downstream analysis
+  PLATE_NAME/                       # One folder per plate
+    data/
+      mzml/                         # Converted mzML files
+      rda/                          # Saved R data objects from PeakForgeR
+      raw_data/                     # Original vendor files
+      PeakForgeR/                   # Peak picking input and output files
+```
+
+## Documentation
+
+- **Vignette:** A detailed user guide is available at
+  <https://mstargetr.github.io/MStargetR/MStargetR-vignette.html>
+- **Function reference:** Use
+  [`?msConvertR`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md),
+  [`?PeakForgeR`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md),
+  [`?qcCheckR`](https://mstargetr.github.io/MStargetR/reference/qcCheckR.md),
+  [`?batchCorrectR`](https://mstargetr.github.io/MStargetR/reference/batchCorrectR.md),
+  [`?launchMStargetR`](https://mstargetr.github.io/MStargetR/reference/launchMStargetR.md),
+  [`?transition_checkR`](https://mstargetr.github.io/MStargetR/reference/transition_checkR.md),
+  or
+  [`?compare_mrm_template_with_guide`](https://mstargetr.github.io/MStargetR/reference/compare_mrm_template_with_guide.md)
+  for full parameter documentation.
+
+## Troubleshooting
+
+- **Run R as administrator** on Windows to ensure Docker communication
+  works correctly.
+- **Verify Docker is installed and running.** Both
+  [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+  and
+  [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+  require Docker Desktop to be active in the background.
+- **Keep software up to date.** Ensure R, RStudio, and all package
+  dependencies are current.
+- **Check for file corruption.** Corrupted vendor files or incomplete
+  mzML conversions can cause processing failures.
+- **Ensure sufficient disk space.** Conversion and peak picking generate
+  intermediate files that require additional storage.
+- **Minimum 8 GB RAM** is required. Large multi-plate datasets benefit
+  from processing plate-by-plate, which the pipeline handles
+  automatically.
+
+## Citation
+
+If you use MStargetR in your work, please cite:
+
+> Szemray, H., Nambiar, V., Lawler, N., Wist, J., Lodge, S., & Whiley,
+> L. (2025). *MStargetR* \[Computer software\]. Zenodo.
+> <https://doi.org/10.5281/zenodo.18476537>
+
+## License
+
+MStargetR is released under the MIT License. See the
+[LICENSE](https://mstargetr.github.io/MStargetR/LICENSE) file for
+details.
+
+## Support
+
+For bug reports, feature requests, or technical assistance, please open
+an issue on GitHub: <https://github.com/MStargetR/MStargetR/issues>
+
+# Package index
+
+## Pipeline Functions
+
+Core LC-MS data processing pipeline
+
+- [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+  : Convert Vendor Mass Spectrometry Files to mzML Format
+- [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+  : Peak Picking and Integration via Skyline in Docker
+- [`qcCheckR()`](https://mstargetr.github.io/MStargetR/reference/qcCheckR.md)
+  : QC Assessment and Batch Correction for Targeted LC-MS Data
+
+## Batch Correction
+
+Signal drift and batch correction methods
+
+- [`batchCorrectR()`](https://mstargetr.github.io/MStargetR/reference/batchCorrectR.md)
+  : Standalone Interbatch Correction for Targeted LC-MS Data
+
+## Shiny Application
+
+Interactive GUI for MStargetR
+
+- [`launchMStargetR()`](https://mstargetr.github.io/MStargetR/reference/launchMStargetR.md)
+  : Launch MStargetR Shiny Application
+
+## Workflows
+
+Pre-configured pipeline templates
+
+- [`use_workflow()`](https://mstargetr.github.io/MStargetR/reference/use_workflow.md)
+  : Use an MStargetR Workflow Template
+
+## Utilities
+
+Helper and validation functions
+
+- [`transition_checkR()`](https://mstargetr.github.io/MStargetR/reference/transition_checkR.md)
+  : Check MRM Transition List for Unique Q1/Q3 Pairs
+- [`compare_mrm_template_with_guide()`](https://mstargetr.github.io/MStargetR/reference/compare_mrm_template_with_guide.md)
+  : Compare MRM Template Internal Standards Against Concentration Guide
+- [`install_MStargetR()`](https://mstargetr.github.io/MStargetR/reference/install_MStargetR.md)
+  : Install or Update MStargetR and Its Dependencies
+
+## Other
+
+- [`MStargetR-package`](https://mstargetr.github.io/MStargetR/reference/MStargetR-package.md)
+  [`MStargetR`](https://mstargetr.github.io/MStargetR/reference/MStargetR-package.md)
+  : MStargetR: Targeted MRM Mass Spectrometry Data Processing and
+  Quality Control
+- [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+  : Peak Picking and Integration via Skyline in Docker
+- [`batchCorrectR()`](https://mstargetr.github.io/MStargetR/reference/batchCorrectR.md)
+  : Standalone Interbatch Correction for Targeted LC-MS Data
+- [`bc_export_html_report()`](https://mstargetr.github.io/MStargetR/reference/bc_export_html_report.md)
+  : Export batchCorrectR HTML Report
+- [`compare_mrm_template_with_guide()`](https://mstargetr.github.io/MStargetR/reference/compare_mrm_template_with_guide.md)
+  : Compare MRM Template Internal Standards Against Concentration Guide
+- [`install_MStargetR()`](https://mstargetr.github.io/MStargetR/reference/install_MStargetR.md)
+  : Install or Update MStargetR and Its Dependencies
+- [`launchMStargetR()`](https://mstargetr.github.io/MStargetR/reference/launchMStargetR.md)
+  : Launch MStargetR Shiny Application
+- [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+  : Convert Vendor Mass Spectrometry Files to mzML Format
+- [`qcCheckR()`](https://mstargetr.github.io/MStargetR/reference/qcCheckR.md)
+  : QC Assessment and Batch Correction for Targeted LC-MS Data
+- [`transition_checkR()`](https://mstargetr.github.io/MStargetR/reference/transition_checkR.md)
+  : Check MRM Transition List for Unique Q1/Q3 Pairs
+- [`use_workflow()`](https://mstargetr.github.io/MStargetR/reference/use_workflow.md)
+  : Use an MStargetR Workflow Template
+
+# Articles
+
+### Getting Started
+
+- [MStargetR \<img src='man/figures/logo.png' style='float: right;
+  height:100px;'
+  /\>](https://mstargetr.github.io/MStargetR/articles/MStargetR-vignette.md):
