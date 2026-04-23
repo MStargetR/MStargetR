@@ -19,6 +19,7 @@ batchCorrectR(
   combat_par.prior = TRUE,
   combat_mean.only = FALSE,
   combat_ref.batch = NULL,
+  sample_tags = NULL,
   output_dir = tempdir(),
   project_dir = NULL,
   plot = TRUE,
@@ -88,6 +89,17 @@ batchCorrectR(
   Optional character string. If provided, use this batch as the
   reference for ComBat adjustment. Default is NULL. Only used when
   `method = "ComBat"`.
+
+- sample_tags:
+
+  Optional character vector of sample-type labels to include in the
+  correction (in addition to the QC label). Matched case-insensitively
+  against `sample_type_factor` when present, otherwise `sample_type`.
+  Rows whose type does not match either `qc_label` or any of
+  `sample_tags` are dropped before correction – useful for excluding
+  blanks, double blanks, or other low-signal sample types that would
+  otherwise distort the QCRFSC model. Default is `NULL` (no filtering;
+  every row is kept).
 
 - output_dir:
 

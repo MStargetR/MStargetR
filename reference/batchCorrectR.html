@@ -64,6 +64,7 @@ data.frame input that any user can prepare.</p>
 <span>  combat_par.prior <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  combat_mean.only <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  combat_ref.batch <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  sample_tags <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  project_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  plot <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -137,6 +138,17 @@ effect (no scale/variance adjustment). Default is FALSE. Only used when
 <dd><p>Optional character string. If provided, use this
 batch as the reference for ComBat adjustment. Default is NULL. Only used
 when <code>method = "ComBat"</code>.</p></dd>
+
+
+<dt id="arg-sample-tags">sample_tags<a class="anchor" aria-label="anchor" href="#arg-sample-tags"></a></dt>
+<dd><p>Optional character vector of sample-type labels to
+include in the correction (in addition to the QC label). Matched
+case-insensitively against <code>sample_type_factor</code> when present,
+otherwise <code>sample_type</code>. Rows whose type does not match either
+<code>qc_label</code> or any of <code>sample_tags</code> are dropped before
+correction – useful for excluding blanks, double blanks, or other
+low-signal sample types that would otherwise distort the QCRFSC model.
+Default is <code>NULL</code> (no filtering; every row is kept).</p></dd>
 
 
 <dt id="arg-output-dir">output_dir<a class="anchor" aria-label="anchor" href="#arg-output-dir"></a></dt>
