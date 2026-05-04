@@ -23,7 +23,8 @@ successful completion.
 ## Details
 
 This function moves raw files (wiff and mzML) to an archive directory
-after processing is complete.
+after processing is complete. Note: `msConvert_mzml_output` is
+intentionally not archived; it is retained in place for downstream use.
 
 ## Examples
 

@@ -4,11 +4,13 @@ This function performs peak picking and integration via Skyline in a
 Docker image. Allowing for usage across all major OS systems.
 
 We strongly recommend checking your mrm transition list using
-MStargetR::TransitionCheckR prior to using it in PeakForgeR
+MStargetR::transition_checkR prior to using it in PeakForgeR
 
 If the user has not used MStargetR::msConvertR to convert vendor files
-please ensure you create a project folder containing sub folder
-"msConvert_mzml_output" with mzml files for the project.
+please ensure each plate folder exists under the project directory with
+mzML files located at `<project_directory>/<plateID>/data/mzml/*.mzML`.
+The `plateID_outputs` parameter must be supplied to identify the plate
+folders.
 
 ## Usage
 
@@ -108,7 +110,7 @@ Skyline exports.
 if (FALSE) { # \dontrun{
 #Load example mrm_guide
   file_path <- system.file("extdata", "LGW_lipid_mrm_template_v1.tsv", package = "MStargetR")
-  example_mrm_template <- read_tsv(file_path)
+  example_mrm_template <- readr::read_tsv(file_path)
 
 #Run PeakForgeR function
 PeakForgeR(user_name = "Mad_max",

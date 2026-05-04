@@ -9,7 +9,7 @@ directory structure.
 ## Usage
 
 ``` r
-msConvertR(input_directory, output_directory)
+msConvertR(input_directory, output_directory, ...)
 ```
 
 ## Arguments
@@ -23,6 +23,11 @@ msConvertR(input_directory, output_directory)
 
   A character string specifying the path to the directory where the
   converted `.mzML` files and project structure will be created.
+
+- ...:
+
+  Reserved for forward compatibility. Any unrecognised named arguments
+  trigger a warning and are otherwise ignored.
 
 ## Value
 

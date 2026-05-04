@@ -29,7 +29,7 @@ msConvertR_restructure_directory(
 
 ## Value
 
-The updated master list object with mzML file paths.
+`invisible(NULL)`. Called for its side effects.
 
 ## Examples
 

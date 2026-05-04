@@ -9,7 +9,7 @@ It reshapes the data, cleans sample names, converts values to numeric, and store
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -66,7 +66,11 @@ It reshapes the data, cleans sample names, converts values to numeric, and store
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="fu">qcCheckR_transpose_data</span><span class="op">(</span><span class="va">master_list</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># master_list must first be built by qcCheckR_setup_project():</span></span></span>
+<span class="r-in"><span><span class="co"># master_list &lt;- qcCheckR_setup_project(user_name, project_directory,</span></span></span>
+<span class="r-in"><span><span class="co">#                                        mrm_template_list, QC_sample_label,</span></span></span>
+<span class="r-in"><span><span class="co">#                                        sample_tags, mv_threshold)</span></span></span>
+<span class="r-in"><span><span class="va">master_list</span> <span class="op">&lt;-</span> <span class="fu">qcCheckR_transpose_data</span><span class="op">(</span><span class="va">master_list</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

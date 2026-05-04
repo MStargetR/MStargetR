@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,7 +44,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">qcCheckR_export_all</span><span class="op">(</span><span class="va">master_list</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">qcCheckR_export_all</span><span class="op">(</span><span class="va">master_list</span>, write_rda <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -53,6 +53,15 @@
 
 <dl><dt id="arg-master-list">master_list<a class="anchor" aria-label="anchor" href="#arg-master-list"></a></dt>
 <dd><p>A list containing project details and data.</p></dd>
+
+
+<dt id="arg-write-rda">write_rda<a class="anchor" aria-label="anchor" href="#arg-write-rda"></a></dt>
+<dd><p>Logical. When <code>TRUE</code> (default) the master_list RDA file is
+written synchronously as part of the export step. Set to <code>FALSE</code> when the
+caller intends to write the RDA out-of-band (e.g. the Shiny GUI fires a
+detached background save so results can render before the slow RDA write
+completes). When <code>FALSE</code>, callers are responsible for invoking
+<code><a href="export_master_list_rda.html">export_master_list_rda()</a></code> themselves.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,8 +57,21 @@
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>The updated <code>master_list</code> with PCA models, scores, and ggplot objects.</p>
-    </div>
+    <p>The updated <code>master_list</code>. The <code>pca</code> slot is populated with:</p><dl><dt><code>pca$models</code></dt>
+<dd><p>Named list of <code><a href="https://rdrr.io/pkg/ropls/man/opls.html" class="external-link">ropls::opls</a></code> model objects, one per
+source/key/preprocessed combination (e.g. <code>"peakArea.imputed.raw"</code>,
+<code>"concentration.statTargetProcessed.preprocessed"</code>).</p></dd>
+
+<dt><code>pca$scores</code></dt>
+<dd><p>Named list of score data frames (one per model),
+retaining all <code>sample_*</code> metadata columns alongside PC coordinates.</p></dd>
+
+<dt><code>pca$plot</code></dt>
+<dd><p>Named list of two <code>ggplot</code> objects, keyed by
+<code>"sample_type_factor"</code> and <code>"sample_plate_id"</code>.</p></dd>
+
+
+</dl></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

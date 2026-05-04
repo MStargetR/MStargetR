@@ -58,9 +58,14 @@ batchCorrectR(
 
 - coCV:
 
-  Numeric. Coefficient of variation cutoff (percentage, 1–100) for
-  feature filtering inside statTarget. Features with QC CV above this
-  threshold are removed. Default is `100` (effectively no filtering).
+  Numeric. Maximum percent RSD (coefficient of variation) cutoff passed
+  to
+  [`statTarget::shiftCor`](https://rdrr.io/pkg/statTarget/man/shiftCor.html).
+  Features whose QC RSD exceeds this cutoff are dropped by statTarget;
+  those features are then reverted to their original uncorrected values
+  and a message is emitted listing them. Default is `100`, meaning
+  features with QC RSD greater than 100\\ Use `Inf` for truly no
+  filtering (no features will be dropped).
 
 - Frule:
 
@@ -155,6 +160,10 @@ A named list with the following elements:
 
   A list of ggplot objects (only if `plot = TRUE`).
 
+- report:
+
+  Logical indicating whether an HTML report was requested.
+
 - report_path:
 
   Path to the rendered HTML report (only if `report = TRUE` and
@@ -168,28 +177,36 @@ The correction pipeline proceeds as follows:
     data is numeric, and QC samples are present in each batch.
 
 2.  **Metabolite detection**: Identifies all numeric columns that are
-    not metadata (`sample_name`, `batch`, `sample_type`, `run_order`) as
-    metabolite features.
+    not metadata columns as metabolite features. Excluded metadata
+    columns are defined in `.METADATA_COLS` (see
+    `R/batchCorrectR_Utils.R`) and include `sample_name`, `batch`,
+    `sample_type`, `run_order`, `sample_plate_id`, `sample_timestamp`,
+    `sample_matrix`, `synthetic_qc`, and others.
 
-3.  **QC flagging**: Flags QC injections where total signal is less than
+3.  **Row filtering**: If `sample_tags` is supplied, rows whose
+    `sample_type` does not match `qc_label` or any of the provided tags
+    are dropped before correction. This step runs before QC flagging and
+    affects both the correction model and the returned `corrected_data`.
+
+4.  **QC flagging**: Flags QC injections where total signal is less than
     10 percent of the batch median, reclassifying them as regular
     samples to prevent them from distorting the correction model.
 
-4.  **File preparation**: Creates PhenoFile.csv and ProfileFile.csv in
+5.  **File preparation**: Creates PhenoFile.csv and ProfileFile.csv in
     the format required by
     [`statTarget::shiftCor`](https://rdrr.io/pkg/statTarget/man/shiftCor.html),
     ensuring QC samples bookend each batch.
 
-5.  **Signal correction**: Runs
+6.  **Signal correction**: Runs
     [`statTarget::shiftCor`](https://rdrr.io/pkg/statTarget/man/shiftCor.html)
     with the specified method to model and remove systematic signal
     drift.
 
-6.  **Post-correction adjustment**: Adjusts corrected values so that QC
+7.  **Post-correction adjustment**: Adjusts corrected values so that QC
     means match their original pre-correction scale, preserving
     biological interpretation of absolute values.
 
-7.  **Reporting**: Optionally generates before/after RSD comparison
+8.  **Reporting**: Optionally generates before/after RSD comparison
     tables and visualisations including run-order plots and PCA.
 
 `QCRFSC` (QC-based Random Forest Signal Correction) fits a random forest

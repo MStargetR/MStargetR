@@ -32,3 +32,14 @@ comes from passing arguments as a vector to
 a shell), not from this sanitizer — spaces and parentheses are
 deliberately preserved here so human-readable identifiers round-trip
 through filenames.
+
+The exact allowed character set after sanitization is:
+`[A-Za-z0-9_.()@ -]` (alphanumeric, underscore, hyphen, dot,
+parentheses, at-sign, and ASCII space). Any character outside this set
+is replaced with an underscore. Path traversal sequences (`..`) and path
+separators (`/`, `\`) are rejected outright rather than silently
+stripped. Callers that pass the result to a Windows filesystem API
+should be aware that Windows silently strips trailing spaces and that
+parentheses may require quoting in some shell contexts; always use
+`system2(args = vector)` rather than string interpolation when passing
+sanitized values to external commands.

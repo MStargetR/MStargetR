@@ -8,7 +8,14 @@ against the sample run index.
 ## Usage
 
 ``` r
-plot_control_chart(master_list, metabolite, plate_boundaries)
+plot_control_chart(
+  master_list,
+  metabolite,
+  plate_boundaries,
+  area_imp = NULL,
+  conc_imp = NULL,
+  conc_st = NULL
+)
 ```
 
 ## Arguments
@@ -24,6 +31,21 @@ plot_control_chart(master_list, metabolite, plate_boundaries)
 - plate_boundaries:
 
   A vector of plate boundaries for vertical lines in the plot.
+
+- area_imp:
+
+  Pre-bound peak area imputed tibble (optional; computed internally if
+  NULL).
+
+- conc_imp:
+
+  Pre-bound concentration imputed tibble (optional; computed internally
+  if NULL).
+
+- conc_st:
+
+  Pre-bound statTargetProcessed concentration tibble (optional; computed
+  internally if NULL).
 
 ## Value
 

@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -66,7 +66,7 @@
                         <h4 data-toc-skip class="author">Harrison
 Szemray</h4>
             
-            <h4 data-toc-skip class="date">2026-04-23</h4>
+            <h4 data-toc-skip class="date">2026-05-04</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/MStargetR/MStargetR/blob/main/vignettes/MStargetR-vignette.Rmd" class="external-link"><code>vignettes/MStargetR-vignette.Rmd</code></a></small>
       <div class="d-none name"><code>MStargetR-vignette.Rmd</code></div>
@@ -364,29 +364,21 @@ several example templates. The required columns are:</p>
 <span>  <span class="st">"extdata"</span>, <span class="st">"LGW_lipid_mrm_template_v1.tsv"</span>,</span>
 <span>  package <span class="op">=</span> <span class="st">"MStargetR"</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">mrm_template</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="va">mrm_template_path</span>, check.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">mrm_template</span> <span class="op">&lt;-</span> <span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">read_tsv</a></span><span class="op">(</span><span class="va">mrm_template_path</span>, show_col_types <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>                                name_repair <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mrm_template</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   Molecule List Name Precursor Name Precursor Mz Precursor Charge Product Mz</span></span>
-<span><span class="co">#&gt; 1                 CE       CE(14:0)        614.6                1      369.4</span></span>
-<span><span class="co">#&gt; 2                 CE       CE(16:0)        642.6                1      369.4</span></span>
-<span><span class="co">#&gt; 3                 CE       CE(16:1)        640.6                1      369.4</span></span>
-<span><span class="co">#&gt; 4                 CE       CE(18:0)        670.6                1      369.4</span></span>
-<span><span class="co">#&gt; 5                 CE       CE(18:1)        668.6                1      369.4</span></span>
-<span><span class="co">#&gt; 6                 CE       CE(18:2)        666.6                1      369.4</span></span>
-<span><span class="co">#&gt;   Product Charge Explicit Retention Time Explicit Retention Time Window</span></span>
-<span><span class="co">#&gt; 1              1                  11.600                            0.5</span></span>
-<span><span class="co">#&gt; 2              1                  12.295                            0.5</span></span>
-<span><span class="co">#&gt; 3              1                  11.615                            0.5</span></span>
-<span><span class="co">#&gt; 4              1                  12.845                            0.5</span></span>
-<span><span class="co">#&gt; 5              1                  12.310                            0.5</span></span>
-<span><span class="co">#&gt; 6              1                  11.685                            0.5</span></span>
-<span><span class="co">#&gt;                        Note control_chart</span></span>
-<span><span class="co">#&gt; 1 SIL_CE(16:0)_d7_Lipidyzer         FALSE</span></span>
-<span><span class="co">#&gt; 2 SIL_CE(16:0)_d7_Lipidyzer          TRUE</span></span>
-<span><span class="co">#&gt; 3 SIL_CE(16:1)_d7_Lipidyzer          TRUE</span></span>
-<span><span class="co">#&gt; 4 SIL_CE(18:1)_d7_Lipidyzer         FALSE</span></span>
-<span><span class="co">#&gt; 5 SIL_CE(18:1)_d7_Lipidyzer          TRUE</span></span>
-<span><span class="co">#&gt; 6 SIL_CE(18:2)_d7_Lipidyzer          TRUE</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 10</span></span></span>
+<span><span class="co">#&gt;   `Molecule List Name` `Precursor Name` `Precursor Mz` `Precursor Charge`</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CE                   CE(14:0)                   615.                  1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> CE                   CE(16:0)                   643.                  1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> CE                   CE(16:1)                   641.                  1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> CE                   CE(18:0)                   671.                  1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> CE                   CE(18:1)                   669.                  1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> CE                   CE(18:2)                   667.                  1</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 6 more variables: `Product Mz` &lt;dbl&gt;, `Product Charge` &lt;dbl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   `Explicit Retention Time` &lt;dbl&gt;, `Explicit Retention Time Window` &lt;dbl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   Note &lt;chr&gt;, control_chart &lt;lgl&gt;</span></span></span></code></pre></div>
 <p>Key columns include <code>Precursor Name</code>,
 <code>Precursor Mz</code>, <code>Product Mz</code>,
 <code>Explicit Retention Time</code>, and <code>Note</code> (which links
@@ -783,10 +775,28 @@ applies when <code>method = "ComBat"</code>.</td>
 when <code>method = "ComBat"</code>.</td>
 </tr>
 <tr class="odd">
+<td align="left"><code>sample_tags</code></td>
+<td align="left">Character vector or NULL</td>
+<td align="left"><code>NULL</code></td>
+<td align="left">Optional sample-type labels to include in correction
+(in addition to QC). Rows whose type does not match
+<code>qc_label</code> or any of <code>sample_tags</code> are dropped
+before correction. Useful for excluding blanks or other low-signal
+types.</td>
+</tr>
+<tr class="even">
 <td align="left"><code>output_dir</code></td>
 <td align="left">Character</td>
 <td align="left"><code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code></td>
 <td align="left">Directory for statTarget intermediate files.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>project_dir</code></td>
+<td align="left">Character or NULL</td>
+<td align="left"><code>NULL</code></td>
+<td align="left">If provided, the corrected data CSV and correction
+summary are saved into a <code>batch_correction</code> subfolder inside
+this directory.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>plot</code></td>
@@ -847,6 +857,12 @@ failed QC injections (signal &lt; 10% of batch median).</li>
 <li>
 <code>plots</code> – A list of ggplot objects (only if
 <code>plot = TRUE</code>).</li>
+<li>
+<code>report</code> – Logical indicating whether an HTML report was
+requested.</li>
+<li>
+<code>report_path</code> – Path to the rendered HTML report (only if
+<code>report = TRUE</code> and rendering succeeds).</li>
 </ul>
 </div>
 <div class="section level3">
@@ -1438,7 +1454,7 @@ error about missing packages.</p>
 </h2>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; R version 4.5.3 (2026-03-11)</span></span>
+<span><span class="co">#&gt; R version 4.6.0 (2026-04-24)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>
 <span><span class="co">#&gt; Running under: Ubuntu 24.04.4 LTS</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -1459,13 +1475,17 @@ error about missing packages.</p>
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
-<span><span class="co">#&gt;  [1] digest_0.6.39     desc_1.4.3        R6_2.6.1          fastmap_1.2.0    </span></span>
-<span><span class="co">#&gt;  [5] xfun_0.57         cachem_1.1.0      knitr_1.51        htmltools_0.5.9  </span></span>
-<span><span class="co">#&gt;  [9] rmarkdown_2.31    lifecycle_1.0.5   cli_3.6.6         sass_0.4.10      </span></span>
-<span><span class="co">#&gt; [13] pkgdown_2.2.0     textshaping_1.0.5 jquerylib_0.1.4   systemfonts_1.3.2</span></span>
-<span><span class="co">#&gt; [17] compiler_4.5.3    tools_4.5.3       ragg_1.5.2        bslib_0.10.0     </span></span>
-<span><span class="co">#&gt; [21] evaluate_1.0.5    yaml_2.3.12       otel_0.2.0        jsonlite_2.0.0   </span></span>
-<span><span class="co">#&gt; [25] rlang_1.2.0       fs_2.1.0          htmlwidgets_1.6.4</span></span></code></pre></div>
+<span><span class="co">#&gt;  [1] bit_4.6.0         jsonlite_2.0.0    compiler_4.6.0    crayon_1.5.3     </span></span>
+<span><span class="co">#&gt;  [5] tidyselect_1.2.1  parallel_4.6.0    jquerylib_0.1.4   systemfonts_1.3.2</span></span>
+<span><span class="co">#&gt;  [9] textshaping_1.0.5 yaml_2.3.12       fastmap_1.2.0     readr_2.2.0      </span></span>
+<span><span class="co">#&gt; [13] R6_2.6.1          knitr_1.51        htmlwidgets_1.6.4 tibble_3.3.1     </span></span>
+<span><span class="co">#&gt; [17] desc_1.4.3        bslib_0.10.0      pillar_1.11.1     tzdb_0.5.0       </span></span>
+<span><span class="co">#&gt; [21] rlang_1.2.0       utf8_1.2.6        cachem_1.1.0      xfun_0.57        </span></span>
+<span><span class="co">#&gt; [25] fs_2.1.0          sass_0.4.10       bit64_4.8.0       otel_0.2.0       </span></span>
+<span><span class="co">#&gt; [29] cli_3.6.6         pkgdown_2.2.0     magrittr_2.0.5    digest_0.6.39    </span></span>
+<span><span class="co">#&gt; [33] vroom_1.7.1       hms_1.1.4         lifecycle_1.0.5   vctrs_0.7.3      </span></span>
+<span><span class="co">#&gt; [37] evaluate_1.0.5    glue_1.8.1        ragg_1.5.2        rmarkdown_2.31   </span></span>
+<span><span class="co">#&gt; [41] tools_4.6.0       pkgconfig_2.0.3   htmltools_0.5.9</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

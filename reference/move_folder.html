@@ -9,7 +9,7 @@ This function moves a folder from the source directory to the destination direct
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -63,11 +63,14 @@ This function moves a folder from the source directory to the destination direct
 
 
 <dt id="arg-max-wait">max_wait<a class="anchor" aria-label="anchor" href="#arg-max-wait"></a></dt>
-<dd><p>Maximum wait time (in seconds) for the system prior to deleting the moved folder.</p></dd>
+<dd><p>Maximum wait time in seconds before giving up on a locked file.
+The function stops as soon as <em>either</em> <code>max_wait</code> seconds have elapsed <em>or</em>
+<code>max_retries</code> attempts have been made (whichever comes first).
+With the default 0.5 s sleep, <code>max_retries = 30</code> trips at ~15 s.</p></dd>
 
 
 <dt id="arg-max-retries">max_retries<a class="anchor" aria-label="anchor" href="#arg-max-retries"></a></dt>
-<dd><p>Maximum number of attempts to try move/delete prior to error. Default 30</p></dd>
+<dd><p>Maximum number of retry attempts per file before giving up. Default 30.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -11,7 +11,7 @@ parentheses, and at-sign only."><meta property="og:image" content="https://mstar
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,6 +76,16 @@ comes from passing arguments as a vector to <code><a href="https://rdrr.io/r/bas
 never invokes a shell), not from this sanitizer — spaces and
 parentheses are deliberately preserved here so human-readable
 identifiers round-trip through filenames.</p>
+<p>The exact allowed character set after sanitization is:
+<code>[A-Za-z0-9_.()@ -]</code> (alphanumeric, underscore, hyphen, dot,
+parentheses, at-sign, and ASCII space). Any character outside this set
+is replaced with an underscore. Path traversal sequences (<code>..</code>)
+and path separators (<code>/</code>, <code>\</code>) are rejected outright rather
+than silently stripped. Callers that pass the result to a Windows
+filesystem API should be aware that Windows silently strips trailing
+spaces and that parentheses may require quoting in some shell contexts;
+always use <code>system2(args = vector)</code> rather than string
+interpolation when passing sanitized values to external commands.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

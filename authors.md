@@ -27,7 +27,7 @@ Source:
 
 Szemray H, Nambiar V, Lawler N, Wist J, Lodge S, Whiley L (2026).
 *MStargetR*.
-[doi:10.5281/zenodo.18476537](https://doi.org/10.5281/zenodo.18476537),
+[doi:10.5281/zenodo.18476537](https://doi.org/10.5281/zenodo.18476537).
 <https://github.com/MStargetR/MStargetR#readme>.
 
     @Manual{,

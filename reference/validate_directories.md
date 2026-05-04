@@ -1,7 +1,7 @@
-# validate_directories This function validates the existence of the source directory and creates the destination directory if it does not exist.
+# validate_directories
 
-validate_directories This function validates the existence of the source
-directory and creates the destination directory if it does not exist.
+This function validates the existence of the source directory and
+creates the destination directory if it does not exist.
 
 ## Usage
 

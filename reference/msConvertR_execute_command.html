@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,18 +52,30 @@
 
 
 <dl><dt id="arg-commands">commands<a class="anchor" aria-label="anchor" href="#arg-commands"></a></dt>
-<dd><p>The command string to execute for each plate.</p></dd>
+<dd><p>List of lists, each containing <code>docker_args</code> (character
+vector passed to <code>system2</code>) and <code>saneID</code> (sanitized plate ID).</p></dd>
+
+
+<dt id="arg-output-directory">output_directory<a class="anchor" aria-label="anchor" href="#arg-output-directory"></a></dt>
+<dd><p>Character string. Root output directory where a
+<code>MStargetR_logs</code> sub-directory will be created.</p></dd>
+
+
+<dt id="arg-plateids">plateIDs<a class="anchor" aria-label="anchor" href="#arg-plateids"></a></dt>
+<dd><p>Character vector of sanitized plate IDs corresponding to
+each element of <code>commands</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>None. The function executes the command.</p>
+    <p>Named logical list; <code>TRUE</code> for each plate that converted
+successfully, <code>FALSE</code> otherwise.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="fu">msConvertR_execute_command</span><span class="op">(</span><span class="va">command</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">msConvertR_execute_command</span><span class="op">(</span><span class="va">commands</span>, <span class="va">output_directory</span>, <span class="va">plateIDs</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

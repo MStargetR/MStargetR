@@ -21,7 +21,9 @@ read_mrm_guides(master_list, mrm_template_list)
 
 ## Value
 
-The updated master list object with MRM guides.
+The updated `master_list` with each validated MRM guide stored under
+`master_list$templates$mrm_guides[[version]]$mrm_guide`, where `version`
+is the basename of the corresponding template file.
 
 ## Examples
 

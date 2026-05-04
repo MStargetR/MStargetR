@@ -75,7 +75,10 @@ used on its own or combined into a single script.
   running in the background before calling these functions.
 - **Bioconductor dependencies** – the packages `mzR`, `ropls`, and
   `statTarget` are installed automatically when using the helper
-  installation function below.
+  installation function below. `sva` is also required when using
+  `method = "ComBat"` in
+  [`batchCorrectR()`](https://mstargetr.github.io/MStargetR/reference/batchCorrectR.md)
+  and can be installed with `BiocManager::install("sva")`.
 - **Minimum 8 GB RAM** recommended for processing large datasets.
 
 **Apple Silicon limitation:** Devices with Apple silicon (M1, M2, M3,
@@ -109,6 +112,7 @@ The quickest way to install MStargetR from an R session is with the
 bundled helper function:
 
 ``` r
+
 source("https://raw.githubusercontent.com/MStargetR/MStargetR/main/R/install.R")
 install_MStargetR()
 rm(install_MStargetR)
@@ -120,6 +124,7 @@ library(MStargetR)
 If you prefer to manage dependencies yourself:
 
 ``` r
+
 # Install Bioconductor dependencies first
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
@@ -150,6 +155,7 @@ MyProject/
 ### 2. Convert vendor files to mzML
 
 ``` r
+
 library(MStargetR)
 
 msConvertR(
@@ -161,6 +167,7 @@ msConvertR(
 ### 3. Peak picking and integration
 
 ``` r
+
 PeakForgeR(
   user_name         = "jdoe",
   project_directory = "C:/Users/me/Desktop/MyProject",
@@ -172,6 +179,7 @@ PeakForgeR(
 ### 4. Quality control and reporting
 
 ``` r
+
 # Using QCRFSC (default, requires QC samples)
 qcCheckR(
   user_name         = "jdoe",
@@ -210,6 +218,7 @@ qcCheckR(
 For an interactive, code-free experience, launch the built-in Shiny GUI:
 
 ``` r
+
 library(MStargetR)
 launchMStargetR()
 ```
@@ -228,6 +237,7 @@ accepts a data.frame with columns `sample_name`, `batch`, `sample_type`,
 `run_order`, and one or more numeric metabolite columns:
 
 ``` r
+
 result <- batchCorrectR(
   data   = my_data,
   method = "QCRFSC",
@@ -254,8 +264,8 @@ following structure:
 
 ``` R
 MyProject/
-  Archive/                          # Archived vendor files and logs per plate
-  ALL/
+  archive/                          # Archived vendor files and logs per plate
+  all/
     data/
       batch_correction/             # Batch and signal drift correction outputs
       rda/                          # Saved R data objects from qcCheckR
@@ -266,7 +276,8 @@ MyProject/
       mzml/                         # Converted mzML files
       rda/                          # Saved R data objects from PeakForgeR
       raw_data/                     # Original vendor files
-      PeakForgeR/                   # Peak picking input and output files
+      reports/                      # Peak picking reports
+      chromatograms/                # Exported chromatogram files
 ```
 
 ## Documentation

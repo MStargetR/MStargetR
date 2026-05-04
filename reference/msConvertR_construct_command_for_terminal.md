@@ -9,7 +9,8 @@ mzML format.
 msConvertR_construct_command_for_terminal(
   input_directory,
   output_directory,
-  plateIDs
+  plateIDs,
+  sanitized_plateIDs = plateIDs
 )
 ```
 

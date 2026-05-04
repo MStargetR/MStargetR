@@ -17,7 +17,7 @@ that post-correction QC means match the pre-correction scale."><meta property="o
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,15 +80,26 @@ match <code>orig_means</code> (names absent from either are dropped).</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Named numeric vector of correction ratios
 (<code>corr_means / orig_means</code>), with names limited to metabolites
-present in both inputs and values clipped to \([10^{-2},\,10^{2}]\).</p>
+present in both inputs. NA / non-finite / non-positive ratios are
+reported (warning) and left as-is; <code>bc_apply_mean_ratios</code> then
+skips those metabolites.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Ratios are capped at \(10^{\pm 2}\) (i.e. a 100x inflation or deflation).
-Ratios outside that window almost always indicate a near-zero mean in one
-of the two inputs, and would otherwise produce astronomical corrected
-values. A <code><a href="https://rdrr.io/r/base/warning.html" class="external-link">warning()</a></code> is emitted listing up to the first five offending
-metabolites; the ratios for those metabolites are clamped to the boundary.</p>
+    <p>The previous implementation clamped ratios outside \([10^{-2},\,10^{2}]\)
+on the assumption that such magnitudes always indicate a near-zero mean.
+That assumption is wrong for the QCRFSC pipeline: <code>statTarget::REGfit</code>
+normalises every value by dividing by the random-forest fit (<code>x[i,] /
+rfP</code>), so post-correction QC values are anchored at ~1 by construction
+regardless of the metabolite's concentration scale. The corrected/original
+ratio is therefore approximately \(1 / \mathrm{concentration}\), which
+for a typical lipid panel routinely spans 0.001 to 1000. The earlier clamp
+silently substituted a wrong rescaling factor (\(10^{-2}\) or
+\(10^{2}\)) and mis-scaled the corrected concentrations for any feature
+whose mean concentration was further than 100x from 1 – which on real
+ANPC plates was 90%+ of features. Only NA / non-finite / non-positive
+ratios are now sanitised; legitimate large-magnitude rescaling is allowed
+to pass through.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

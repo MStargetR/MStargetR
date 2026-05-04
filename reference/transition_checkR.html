@@ -13,7 +13,7 @@ by PeakForgeR and qcCheckR."><meta property="og:image" content="https://mstarget
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,7 +53,7 @@ by PeakForgeR and qcCheckR.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">transition_checkR</span><span class="op">(</span><span class="va">transition_df</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">transition_checkR</span><span class="op">(</span><span class="va">transition_df</span>, tolerance <span class="op">=</span> <span class="fl">0.001</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -64,6 +64,14 @@ by PeakForgeR and qcCheckR.</p>
 <dd><p>A data.frame containing MRM transitions. Must include
 the columns <code>"Precursor Mz"</code> (numeric), <code>"Product Mz"</code>
 (numeric), and <code>"Precursor Name"</code> (character).</p></dd>
+
+
+<dt id="arg-tolerance">tolerance<a class="anchor" aria-label="anchor" href="#arg-tolerance"></a></dt>
+<dd><p>Numeric. Pairs whose Precursor Mz and Product Mz both
+differ by less than this value (in Da) are considered duplicates.
+Defaults to <code>0.001</code>. Using a tolerance-based comparison avoids
+false negatives caused by R's banker's rounding at half-unit boundaries
+(e.g. 500.0005 rounds down at precision 3 while 500.0015 rounds up).</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -78,6 +86,7 @@ of the non-unique transitions (first six columns) sorted by
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="fu">transition_checkR</span><span class="op">(</span><span class="va">transition_df</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">transition_checkR</span><span class="op">(</span><span class="va">transition_df</span>, tolerance <span class="op">=</span> <span class="fl">0.005</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

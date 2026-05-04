@@ -13,7 +13,7 @@ data.frame input that any user can prepare."><meta property="og:image" content="
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -105,9 +105,12 @@ is <code>500</code>. Ignored when <code>method</code> is not <code>"QCRFSC"</cod
 
 
 <dt id="arg-cocv">coCV<a class="anchor" aria-label="anchor" href="#arg-cocv"></a></dt>
-<dd><p>Numeric. Coefficient of variation cutoff (percentage, 1–100)
-for feature filtering inside statTarget. Features with QC CV above this
-threshold are removed. Default is <code>100</code> (effectively no filtering).</p></dd>
+<dd><p>Numeric. Maximum percent RSD (coefficient of variation) cutoff
+passed to <code><a href="https://rdrr.io/pkg/statTarget/man/shiftCor.html" class="external-link">statTarget::shiftCor</a></code>. Features whose QC RSD exceeds this
+cutoff are dropped by statTarget; those features are then reverted to their
+original uncorrected values and a message is emitted listing them. Default
+is <code>100</code>, meaning features with QC RSD greater than 100\<!-- % are dropped. -->
+Use <code>Inf</code> for truly no filtering (no features will be dropped).</p></dd>
 
 
 <dt id="arg-frule">Frule<a class="anchor" aria-label="anchor" href="#arg-frule"></a></dt>
@@ -197,6 +200,9 @@ QC injections (signal less than 10 percent of batch median).</p></dd>
 <dt>plots</dt>
 <dd><p>A list of ggplot objects (only if <code>plot = TRUE</code>).</p></dd>
 
+<dt>report</dt>
+<dd><p>Logical indicating whether an HTML report was requested.</p></dd>
+
 <dt>report_path</dt>
 <dd><p>Path to the rendered HTML report (only if
 <code>report = TRUE</code> and rendering succeeds).</p></dd>
@@ -208,8 +214,16 @@ QC injections (signal less than 10 percent of batch median).</p></dd>
     <p>The correction pipeline proceeds as follows:</p><ol><li><p><strong>Input validation</strong>: Checks that required columns exist,
 metabolite data is numeric, and QC samples are present in each batch.</p></li>
 <li><p><strong>Metabolite detection</strong>: Identifies all numeric columns that
-are not metadata (<code>sample_name</code>, <code>batch</code>, <code>sample_type</code>,
-<code>run_order</code>) as metabolite features.</p></li>
+are not metadata columns as metabolite features. Excluded metadata columns
+are defined in <code>.METADATA_COLS</code> (see <code>R/batchCorrectR_Utils.R</code>)
+and include <code>sample_name</code>, <code>batch</code>, <code>sample_type</code>,
+<code>run_order</code>, <code>sample_plate_id</code>, <code>sample_timestamp</code>,
+<code>sample_matrix</code>, <code>synthetic_qc</code>, and others.</p></li>
+<li><p><strong>Row filtering</strong>: If <code>sample_tags</code> is supplied, rows
+whose <code>sample_type</code> does not match <code>qc_label</code> or any of the
+provided tags are dropped before correction. This step runs before QC
+flagging and affects both the correction model and the returned
+<code>corrected_data</code>.</p></li>
 <li><p><strong>QC flagging</strong>: Flags QC injections where total signal is
 less than 10 percent of the batch median, reclassifying them as regular
 samples to prevent them from distorting the correction model.</p></li>

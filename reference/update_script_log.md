@@ -41,18 +41,20 @@ The updated `master_list` object with the new log information.
 
 ``` r
 if (FALSE) { # \dontrun{
+# Build a minimal master_list with start_time already recorded
 master_list <- list(
-                project_details = list(
-                  script_log = list(
-                    timestamps = list(
-                      start_time = Sys.time()
-                    ),
-                    runtimes = list(),
-                    messages = list()
-                   )
-                 )
-               )
-
-update_script_log(master_list, "section_1", "start_time", "section_2")
+  project_details = list(
+    script_log = list(
+      timestamps = list(start_time = Sys.time()),
+      runtimes   = list(),
+      messages   = list()
+    )
+  )
+)
+# Record the end of "section_1" and prepare the log entry for "section_2"
+master_list <- update_script_log(master_list,
+                                  section_name          = "section_1",
+                                  previous_section_name = "start_time",
+                                  next_section_name     = "section_2")
 } # }
 ```

@@ -9,7 +9,7 @@ mass spectrometry data processing and quality control."><meta property="og:image
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,8 +55,8 @@ mass spectrometry data processing and quality control.</p>
 
 
 <dl><dt id="arg-port">port<a class="anchor" aria-label="anchor" href="#arg-port"></a></dt>
-<dd><p>Integer specifying the port number. Default is determined
-by Shiny.</p></dd>
+<dd><p>Integer specifying the port number. Default <code>NULL</code>;
+Shiny selects an available port automatically.</p></dd>
 
 
 <dt id="arg-launch-browser">launch.browser<a class="anchor" aria-label="anchor" href="#arg-launch-browser"></a></dt>
@@ -86,16 +86,17 @@ informative message listing the packages to install.</p>
     <h2 id="network-deployment">Network deployment<a class="anchor" aria-label="anchor" href="#network-deployment"></a></h2>
 
 
-<p>When using <code>host = "0.0.0.0"</code> to expose the app on a network,
-be aware that Shiny serves plain HTTP with no built-in authentication.
-For production or multi-user deployments you should:</p><ul><li><p>Place the app behind a reverse proxy (e.g. nginx, Apache) that
+<p>When binding to a non-loopback address (anything other than
+<code>"127.0.0.1"</code>, <code>"localhost"</code>, or <code>"::1"</code>) to expose the
+app on a network, be aware that Shiny serves plain HTTP with no built-in
+authentication. For production or multi-user deployments you should:</p><ul><li><p>Place the app behind a reverse proxy (e.g. nginx, Apache) that
 provides HTTPS/TLS encryption.</p></li>
 <li><p>Configure authentication on the reverse proxy or restrict
 access via VPN. Without this, anyone on the network can access
 the pipeline and upload files.</p></li>
-<li><p>The upload size limit is automatically reduced to 500 MB when
-<code>host = "0.0.0.0"</code> (versus 2 GB for localhost) as an
-additional safeguard.</p></li>
+<li><p>The upload size limit is automatically reduced to 500 MB for any
+non-loopback host (versus 2 GB for loopback) as an additional
+safeguard.</p></li>
 </ul></div>
 
     <div class="section level2">

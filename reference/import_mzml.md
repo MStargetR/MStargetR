@@ -1,8 +1,7 @@
-# PeakForgeR_mzml.R
+# import_mzml
 
-mzML file import, parsing, and chromatogram handling functions. Includes
-mzR MRM finding, peak boundary detection, and lipid matching.
-import_mzml
+This function imports mzML files for each plate using the mzR package,
+extracts relevant information, and updates the script log.
 
 ## Usage
 
@@ -23,11 +22,6 @@ import_mzml(plateID, master_list)
 ## Value
 
 The updated `master_list` object with the mzML import details.
-
-## Details
-
-This function imports mzML files for each plate using the mzR package,
-extracts relevant information, and updates the script log.
 
 ## Examples
 

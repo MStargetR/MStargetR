@@ -1,7 +1,7 @@
-# PeakForgeR_docker.R
+# execute_PeakForgeR_command
 
-Docker command construction, execution, and container management for
-running Skyline via Docker. execute_PeakForgeR_command
+This function executes a Skyline system command to process mzML files
+and generate various reports for a given plate.
 
 ## Usage
 
@@ -23,11 +23,6 @@ execute_PeakForgeR_command(master_list, plate_idx)
 
 Executes the Skyline command and generates reports and chromatogram
 files saving to project directory.
-
-## Details
-
-This function executes a Skyline system command to process mzML files
-and generate various reports for a given plate.
 
 ## Examples
 

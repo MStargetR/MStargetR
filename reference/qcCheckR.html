@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -58,7 +58,8 @@
 <span>  batch_imputeM <span class="op">=</span> <span class="st">"minHalf"</span>,</span>
 <span>  combat_par.prior <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  combat_mean.only <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  combat_ref.batch <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  combat_ref.batch <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  write_rda <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -131,6 +132,16 @@ effect. Default is FALSE. Only used when <code>batch_method = "ComBat"</code>.</
 <dd><p>Optional character string specifying a reference
 batch. Default is NULL. Only used when <code>batch_method = "ComBat"</code>.</p></dd>
 
+
+<dt id="arg-write-rda">write_rda<a class="anchor" aria-label="anchor" href="#arg-write-rda"></a></dt>
+<dd><p>Logical. When <code>TRUE</code> (default) the master_list RDA
+file is written synchronously as the final step of the pipeline. Set to
+<code>FALSE</code> when the caller intends to write the RDA out-of-band — for
+example, the Shiny GUI passes <code>FALSE</code> so it can surface results to
+the user immediately and fire a separate background job that calls
+<code><a href="export_master_list_rda.html">export_master_list_rda</a></code> on the returned master_list. The
+XLSX and HTML exports are unaffected.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -141,8 +152,10 @@ batch. Default is NULL. Only used when <code>batch_method = "ComBat"</code>.</p>
     <p>Capable of combining multiple cohort and methods if a common long term reference sample has been used throughout and target metabolite naming conventions have been preserved.
 To allow this feature all methods must be included in the mrm_template_list.
 Please note only matching metabolite feature names across cohorts/methods will be processed.</p>
-<p>If you have not used the MStargetR::PeakForgeR function to generate reports please ensure your report file names contains ""<em>PeakForgeR</em>"" to ensure the function can correctly identify the files in your project directory.</p>
-<ul><li><p><strong>Input Validation:</strong></p><ul><li><p>Validate user_name</p></li>
+<p>If you have not used the MStargetR::PeakForgeR function to generate reports please ensure your report file names contains <code>_PeakForgeR_</code> to ensure the function can correctly identify the files in your project directory.</p>
+<p>The steps below describe the pipeline in execution order. Input Validation
+steps are enforced by explicit <code><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop()</a></code> calls. All other steps run
+unconditionally; errors in any step propagate to the caller.</p><ul><li><p><strong>Input Validation (enforced):</strong></p><ul><li><p>Validate user_name</p></li>
 <li><p>Validate project_directory</p></li>
 <li><p>Validate mrm_template_list</p></li>
 <li><p>Validate QC_sample_label</p></li>
@@ -173,6 +186,12 @@ Please note only matching metabolite feature names across cohorts/methods will b
 <li><p><strong>Export:</strong></p><ul><li><p>Export all processed data and reports</p></li>
 </ul></li>
 </ul></div>
+    <div class="section level2">
+    <h2 id="note">Note<a class="anchor" aria-label="anchor" href="#note"></a></h2>
+    <p>When <code>batch_method = "ComBat"</code> the <span class="pkg">sva</span> Bioconductor package
+is required. Install it with
+<code>BiocManager::install("sva")</code> before use.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -185,14 +204,14 @@ Please note only matching metabolite feature names across cohorts/methods will b
 <span class="r-in"><span>                           <span class="st">"LGW_lipid_mrm_template_v1.tsv"</span>,</span></span>
 <span class="r-in"><span>                           package <span class="op">=</span> <span class="st">"MStargetR"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span>  <span class="va">sample_metadata_example</span> <span class="op">&lt;-</span> <span class="fu">read_tsv</span><span class="op">(</span><span class="va">file_path</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">sample_metadata_example</span> <span class="op">&lt;-</span> <span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">read_tsv</a></span><span class="op">(</span><span class="va">file_path</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#Load example conc_guide</span></span></span>
 <span class="r-in"><span>  <span class="va">file_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>,</span></span>
 <span class="r-in"><span>                           <span class="st">"LGW_SIL_batch_Ultimate_2023_03_06.tsv"</span>,</span></span>
 <span class="r-in"><span>                           package <span class="op">=</span> <span class="st">"MStargetR"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span>  <span class="va">sample_metadata_example</span> <span class="op">&lt;-</span> <span class="fu">read_tsv</span><span class="op">(</span><span class="va">file_path</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">conc_guide_example</span> <span class="op">&lt;-</span> <span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">read_tsv</a></span><span class="op">(</span><span class="va">file_path</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#Load example report file</span></span></span>
 <span class="r-in"><span>  <span class="va">file_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>,</span></span>

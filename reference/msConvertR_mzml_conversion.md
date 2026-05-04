@@ -11,7 +11,8 @@ msConvertR_mzml_conversion(
   input_directory,
   output_directory,
   plateIDs,
-  vendor_extension_patterns
+  vendor_extension_patterns,
+  sanitized_plateIDs = plateIDs
 )
 ```
 

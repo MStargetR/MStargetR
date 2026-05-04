@@ -70,6 +70,7 @@ dependencies are installed and up to date before installing the package
 from GitHub.
 
 ``` r
+
 source("https://raw.githubusercontent.com/MStargetR/MStargetR/main/R/install.R")
 install_MStargetR()
 ```
@@ -81,6 +82,7 @@ If you prefer to install manually, use
 after ensuring that Bioconductor packages are available:
 
 ``` r
+
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
 
@@ -91,6 +93,7 @@ remotes::install_github("MStargetR/MStargetR")
 ### Loading the package
 
 ``` r
+
 library(MStargetR)
 ```
 
@@ -124,6 +127,7 @@ vendor raw files (e.g., `.wiff`, `.wiff.scan`, `.raw`, `.d`) inside a
 subdirectory named `raw_data`.
 
 ``` r
+
 # Define the project directory
 project_dir <- "/path/to/my_project"
 
@@ -156,9 +160,9 @@ a Windows-only ProteoWizard installation.
 
 #### Parameters
 
-| Parameter          | Type      | Description                                                                                                      |
-|:-------------------|:----------|:-----------------------------------------------------------------------------------------------------------------|
-| `input_directory`  | Character | Path to the directory containing vendor raw files.                                                               |
+| Parameter | Type | Description |
+|:---|:---|:---|
+| `input_directory` | Character | Path to the directory containing vendor raw files. |
 | `output_directory` | Character | Path where converted mzML files and the project structure will be created. May be the same as `input_directory`. |
 
 #### Supported vendor formats
@@ -170,6 +174,7 @@ Waters (`.raw` directory), and others.
 #### Example
 
 ``` r
+
 msConvertR(
   input_directory  = "/path/to/my_project",
   output_directory = "/path/to/my_project"
@@ -200,13 +205,13 @@ of integrated peak areas for every sample and transition.
 
 #### Parameters
 
-| Parameter           | Type                     | Description                                                                                                                                                  |
-|:--------------------|:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `user_name`         | Character                | A user identifier string (used in logging).                                                                                                                  |
-| `project_directory` | Character                | Path to the project directory created by `msConvertR` (or set up manually).                                                                                  |
-| `mrm_template_list` | List                     | A list of file paths to MRM transition template files (TSV or CSV). For multi-method projects, provide a named list (see the Multi-Method Analysis section). |
-| `QC_sample_label`   | Character                | A tag used to identify QC/LTR samples within file names. Case-insensitive. For example, `"LTR"` or `"QC"`.                                                   |
-| `plateID_outputs`   | Character vector or NULL | Plate identifiers. Only required if you did **not** use `msConvertR` and need to specify plate names manually. Default is `NULL`.                            |
+| Parameter | Type | Description |
+|:---|:---|:---|
+| `user_name` | Character | A user identifier string (used in logging). |
+| `project_directory` | Character | Path to the project directory created by `msConvertR` (or set up manually). |
+| `mrm_template_list` | List | A list of file paths to MRM transition template files (TSV or CSV). For multi-method projects, provide a named list (see the Multi-Method Analysis section). |
+| `QC_sample_label` | Character | A tag used to identify QC/LTR samples within file names. Case-insensitive. For example, `"LTR"` or `"QC"`. |
+| `plateID_outputs` | Character vector or NULL | Plate identifiers. Only required if you did **not** use `msConvertR` and need to specify plate names manually. Default is `NULL`. |
 
 #### MRM transition template format
 
@@ -215,33 +220,26 @@ that defines the transitions to be monitored. The package includes
 several example templates. The required columns are:
 
 ``` r
+
 mrm_template_path <- system.file(
   "extdata", "LGW_lipid_mrm_template_v1.tsv",
   package = "MStargetR"
 )
-mrm_template <- read.delim(mrm_template_path, check.names = FALSE)
+mrm_template <- readr::read_tsv(mrm_template_path, show_col_types = FALSE,
+                                name_repair = "minimal")
 head(mrm_template)
-#>   Molecule List Name Precursor Name Precursor Mz Precursor Charge Product Mz
-#> 1                 CE       CE(14:0)        614.6                1      369.4
-#> 2                 CE       CE(16:0)        642.6                1      369.4
-#> 3                 CE       CE(16:1)        640.6                1      369.4
-#> 4                 CE       CE(18:0)        670.6                1      369.4
-#> 5                 CE       CE(18:1)        668.6                1      369.4
-#> 6                 CE       CE(18:2)        666.6                1      369.4
-#>   Product Charge Explicit Retention Time Explicit Retention Time Window
-#> 1              1                  11.600                            0.5
-#> 2              1                  12.295                            0.5
-#> 3              1                  11.615                            0.5
-#> 4              1                  12.845                            0.5
-#> 5              1                  12.310                            0.5
-#> 6              1                  11.685                            0.5
-#>                        Note control_chart
-#> 1 SIL_CE(16:0)_d7_Lipidyzer         FALSE
-#> 2 SIL_CE(16:0)_d7_Lipidyzer          TRUE
-#> 3 SIL_CE(16:1)_d7_Lipidyzer          TRUE
-#> 4 SIL_CE(18:1)_d7_Lipidyzer         FALSE
-#> 5 SIL_CE(18:1)_d7_Lipidyzer          TRUE
-#> 6 SIL_CE(18:2)_d7_Lipidyzer          TRUE
+#> # A tibble: 6 × 10
+#>   `Molecule List Name` `Precursor Name` `Precursor Mz` `Precursor Charge`
+#>   <chr>                <chr>                     <dbl>              <dbl>
+#> 1 CE                   CE(14:0)                   615.                  1
+#> 2 CE                   CE(16:0)                   643.                  1
+#> 3 CE                   CE(16:1)                   641.                  1
+#> 4 CE                   CE(18:0)                   671.                  1
+#> 5 CE                   CE(18:1)                   669.                  1
+#> 6 CE                   CE(18:2)                   667.                  1
+#> # ℹ 6 more variables: `Product Mz` <dbl>, `Product Charge` <dbl>,
+#> #   `Explicit Retention Time` <dbl>, `Explicit Retention Time Window` <dbl>,
+#> #   Note <chr>, control_chart <lgl>
 ```
 
 Key columns include `Precursor Name`, `Precursor Mz`, `Product Mz`,
@@ -251,6 +249,7 @@ corresponding stable isotope-labelled internal standard).
 #### Example
 
 ``` r
+
 PeakForgeR(
   user_name         = "HSzemray",
   project_directory = "/path/to/my_project",
@@ -268,6 +267,7 @@ PeakForgeR(
 areas. An example of this output is bundled with the package:
 
 ``` r
+
 report_path <- system.file(
   "extdata", "Example_PeakForgeR_report.csv",
   package = "MStargetR"
@@ -309,22 +309,22 @@ is the final step in the core pipeline. It performs:
 
 #### Parameters
 
-| Parameter           | Type              | Description                                                                                                                                                                |
-|:--------------------|:------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `user_name`         | Character         | A user identifier string.                                                                                                                                                  |
-| `project_directory` | Character         | Path to the project directory containing `PeakForgeR` output.                                                                                                              |
-| `mrm_template_list` | Named list        | A named list of lists. Each element must contain `SIL_guide` (path to the MRM template) and `conc_guide` (path to the SIL concentration guide). See the example below.     |
-| `QC_sample_label`   | Character         | Tag to identify QC samples in file names (e.g., `"LTR"`, `"qc"`). Default is `"LTR"`.                                                                                      |
-| `sample_tags`       | Character vector  | Tags that identify sample types in file names (e.g., `c("sample", "control", "qc")`).                                                                                      |
-| `mv_threshold`      | Numeric           | Percentage threshold for missing value filtering (0–100). Features with a higher percentage of missing values than this threshold are removed. Default is `50`.            |
-| `batch_method`      | Character         | Batch correction method: `"QCRFSC"` (random forest, default) or `"ComBat"` (empirical Bayes, QC-free).                                                                     |
-| `batch_ntree`       | Integer           | Number of trees for random forest correction. Ignored for other methods. Default is `500`.                                                                                 |
-| `batch_coCV`        | Numeric           | Coefficient of variation cutoff (%, 1–100) for feature filtering inside statTarget. Features with QC CV above this threshold are removed. Default is `100` (no filtering). |
-| `batch_Frule`       | Numeric           | Filtering rule (0–1) for missing values inside statTarget. Default is `0`.                                                                                                 |
-| `batch_imputeM`     | Character         | Imputation method: `"minHalf"`, `"median"`, `"mean"`, or `"knn"`. Default is `"minHalf"`.                                                                                  |
-| `combat_par.prior`  | Logical           | Use parametric priors in ComBat. Only used when `batch_method = "ComBat"`. Default is `TRUE`.                                                                              |
-| `combat_mean.only`  | Logical           | Correct only batch mean (not variance). Only used when `batch_method = "ComBat"`. Default is `FALSE`.                                                                      |
-| `combat_ref.batch`  | Character or NULL | Reference batch for ComBat. Only used when `batch_method = "ComBat"`. Default is `NULL`.                                                                                   |
+| Parameter | Type | Description |
+|:---|:---|:---|
+| `user_name` | Character | A user identifier string. |
+| `project_directory` | Character | Path to the project directory containing `PeakForgeR` output. |
+| `mrm_template_list` | Named list | A named list of lists. Each element must contain `SIL_guide` (path to the MRM template) and `conc_guide` (path to the SIL concentration guide). See the example below. |
+| `QC_sample_label` | Character | Tag to identify QC samples in file names (e.g., `"LTR"`, `"qc"`). Default is `"LTR"`. |
+| `sample_tags` | Character vector | Tags that identify sample types in file names (e.g., `c("sample", "control", "qc")`). |
+| `mv_threshold` | Numeric | Percentage threshold for missing value filtering (0–100). Features with a higher percentage of missing values than this threshold are removed. Default is `50`. |
+| `batch_method` | Character | Batch correction method: `"QCRFSC"` (random forest, default) or `"ComBat"` (empirical Bayes, QC-free). |
+| `batch_ntree` | Integer | Number of trees for random forest correction. Ignored for other methods. Default is `500`. |
+| `batch_coCV` | Numeric | Coefficient of variation cutoff (%, 1–100) for feature filtering inside statTarget. Features with QC CV above this threshold are removed. Default is `100` (no filtering). |
+| `batch_Frule` | Numeric | Filtering rule (0–1) for missing values inside statTarget. Default is `0`. |
+| `batch_imputeM` | Character | Imputation method: `"minHalf"`, `"median"`, `"mean"`, or `"knn"`. Default is `"minHalf"`. |
+| `combat_par.prior` | Logical | Use parametric priors in ComBat. Only used when `batch_method = "ComBat"`. Default is `TRUE`. |
+| `combat_mean.only` | Logical | Correct only batch mean (not variance). Only used when `batch_method = "ComBat"`. Default is `FALSE`. |
+| `combat_ref.batch` | Character or NULL | Reference batch for ComBat. Only used when `batch_method = "ComBat"`. Default is `NULL`. |
 
 #### The mrm_template_list structure
 
@@ -338,6 +338,7 @@ contains two named paths:
   standard names to their known concentrations.
 
 ``` r
+
 mrm_template_list <- list(
   v1 = list(
     SIL_guide  = "/path/to/LGW_lipid_mrm_template_v1.tsv",
@@ -352,6 +353,7 @@ The concentration guide is a TSV file mapping each internal standard to
 its known concentration. An example is included in the package:
 
 ``` r
+
 conc_guide_path <- system.file(
   "extdata", "LGW_SIL_batch_103.tsv",
   package = "MStargetR"
@@ -387,6 +389,7 @@ MRM transition template.
 #### Example
 
 ``` r
+
 # Using QCRFSC (default, requires QC samples)
 qcCheckR(
   user_name          = "HSzemray",
@@ -448,21 +451,23 @@ correction to any tabular metabolomics dataset.
 
 ### Parameters
 
-| Parameter          | Type              | Default                                             | Description                                                                                                                                 |
-|:-------------------|:------------------|:----------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------|
-| `data`             | data.frame        | (required)                                          | Input data with samples as rows. Must contain columns: `sample_name`, `batch`, `sample_type`, `run_order`, plus numeric metabolite columns. |
-| `qc_label`         | Character         | `"qc"`                                              | String identifying QC samples in the `sample_type` column.                                                                                  |
-| `method`           | Character         | `"QCRFSC"`                                          | Correction method: `"QCRFSC"` (random forest, default) or `"ComBat"` (empirical Bayes, QC-free).                                            |
-| `ntree`            | Integer           | `500`                                               | Number of trees for the random forest method. Ignored for other methods.                                                                    |
-| `coCV`             | Numeric           | `100`                                               | Coefficient of variation cutoff (%, 1–100) for feature filtering in statTarget. Features with QC CV above this threshold are removed.       |
-| `Frule`            | Numeric           | `0`                                                 | Filtering rule percentage for missing values in statTarget.                                                                                 |
-| `imputeM`          | Character         | `"minHalf"`                                         | Imputation method: `"minHalf"`, `"median"`, `"mean"`, or `"knn"`.                                                                           |
-| `combat_par.prior` | Logical           | `TRUE`                                              | Use parametric empirical Bayes priors. Only applies when `method = "ComBat"`.                                                               |
-| `combat_mean.only` | Logical           | `FALSE`                                             | If TRUE, correct only batch mean (not variance). Only applies when `method = "ComBat"`.                                                     |
-| `combat_ref.batch` | Character or NULL | `NULL`                                              | Reference batch for ComBat adjustment. Only applies when `method = "ComBat"`.                                                               |
-| `output_dir`       | Character         | [`tempdir()`](https://rdrr.io/r/base/tempfile.html) | Directory for statTarget intermediate files.                                                                                                |
-| `plot`             | Logical           | `TRUE`                                              | Whether to generate before/after correction plots.                                                                                          |
-| `report`           | Logical           | `TRUE`                                              | Whether to generate an HTML summary report.                                                                                                 |
+| Parameter | Type | Default | Description |
+|:---|:---|:---|:---|
+| `data` | data.frame | (required) | Input data with samples as rows. Must contain columns: `sample_name`, `batch`, `sample_type`, `run_order`, plus numeric metabolite columns. |
+| `qc_label` | Character | `"qc"` | String identifying QC samples in the `sample_type` column. |
+| `method` | Character | `"QCRFSC"` | Correction method: `"QCRFSC"` (random forest, default) or `"ComBat"` (empirical Bayes, QC-free). |
+| `ntree` | Integer | `500` | Number of trees for the random forest method. Ignored for other methods. |
+| `coCV` | Numeric | `100` | Coefficient of variation cutoff (%, 1–100) for feature filtering in statTarget. Features with QC CV above this threshold are removed. |
+| `Frule` | Numeric | `0` | Filtering rule percentage for missing values in statTarget. |
+| `imputeM` | Character | `"minHalf"` | Imputation method: `"minHalf"`, `"median"`, `"mean"`, or `"knn"`. |
+| `combat_par.prior` | Logical | `TRUE` | Use parametric empirical Bayes priors. Only applies when `method = "ComBat"`. |
+| `combat_mean.only` | Logical | `FALSE` | If TRUE, correct only batch mean (not variance). Only applies when `method = "ComBat"`. |
+| `combat_ref.batch` | Character or NULL | `NULL` | Reference batch for ComBat adjustment. Only applies when `method = "ComBat"`. |
+| `sample_tags` | Character vector or NULL | `NULL` | Optional sample-type labels to include in correction (in addition to QC). Rows whose type does not match `qc_label` or any of `sample_tags` are dropped before correction. Useful for excluding blanks or other low-signal types. |
+| `output_dir` | Character | [`tempdir()`](https://rdrr.io/r/base/tempfile.html) | Directory for statTarget intermediate files. |
+| `project_dir` | Character or NULL | `NULL` | If provided, the corrected data CSV and correction summary are saved into a `batch_correction` subfolder inside this directory. |
+| `plot` | Logical | `TRUE` | Whether to generate before/after correction plots. |
+| `report` | Logical | `TRUE` | Whether to generate an HTML summary report. |
 
 ### Correction methods
 
@@ -494,10 +499,14 @@ correction to any tabular metabolomics dataset.
 - `failed_qc` – Character vector of sample names flagged as failed QC
   injections (signal \< 10% of batch median).
 - `plots` – A list of ggplot objects (only if `plot = TRUE`).
+- `report` – Logical indicating whether an HTML report was requested.
+- `report_path` – Path to the rendered HTML report (only if
+  `report = TRUE` and rendering succeeds).
 
 ### Example
 
 ``` r
+
 library(MStargetR)
 
 # Prepare a synthetic input dataset
@@ -522,6 +531,7 @@ result$correction_summary
 ```
 
 ``` r
+
 # ComBat correction (does not require QC samples)
 my_data_no_qc <- data.frame(
   sample_name  = paste0("S", 1:20),
@@ -557,17 +567,18 @@ results interactively.
 ### Launching the application
 
 ``` r
+
 library(MStargetR)
 launchMStargetR()
 ```
 
 ### Parameters
 
-| Parameter        | Type            | Default       | Description                                                                              |
-|:-----------------|:----------------|:--------------|:-----------------------------------------------------------------------------------------|
-| `port`           | Integer or NULL | `NULL`        | Port number for the Shiny app. If `NULL`, Shiny selects an available port automatically. |
-| `launch.browser` | Logical         | `TRUE`        | Whether to open the application in a web browser.                                        |
-| `host`           | Character       | `"127.0.0.1"` | Host address. Use `"0.0.0.0"` to allow access from other machines on the network.        |
+| Parameter | Type | Default | Description |
+|:---|:---|:---|:---|
+| `port` | Integer or NULL | `NULL` | Port number for the Shiny app. If `NULL`, Shiny selects an available port automatically. |
+| `launch.browser` | Logical | `TRUE` | Whether to open the application in a web browser. |
+| `host` | Character | `"127.0.0.1"` | Host address. Use `"0.0.0.0"` to allow access from other machines on the network. |
 
 ### Additional dependencies
 
@@ -578,6 +589,7 @@ If any are missing,
 will display an informative error listing the packages to install.
 
 ``` r
+
 install.packages(c("shiny", "bslib", "DT", "shinyWidgets", "htmltools"))
 ```
 
@@ -606,13 +618,14 @@ resolved before processing.
 
 #### Parameters
 
-| Parameter       | Type       | Description                                                                                                     |
-|:----------------|:-----------|:----------------------------------------------------------------------------------------------------------------|
+| Parameter | Type | Description |
+|:---|:---|:---|
 | `transition_df` | data.frame | An MRM transition template data frame. Must contain columns `Precursor Mz`, `Product Mz`, and `Precursor Name`. |
 
 #### Example
 
 ``` r
+
 # Load an example MRM template
 mrm_template_path <- system.file(
   "extdata", "LGW_lipid_mrm_template_v1.tsv",
@@ -636,14 +649,15 @@ concentration information that would prevent accurate quantification.
 
 #### Parameters
 
-| Parameter             | Type       | Description                                                          |
-|:----------------------|:-----------|:---------------------------------------------------------------------|
-| `mrm_template`        | data.frame | An MRM transition template data frame. Must contain a `Note` column. |
-| `concentration_guide` | data.frame | A concentration guide data frame. Must contain a `SIL_name` column.  |
+| Parameter | Type | Description |
+|:---|:---|:---|
+| `mrm_template` | data.frame | An MRM transition template data frame. Must contain a `Note` column. |
+| `concentration_guide` | data.frame | A concentration guide data frame. Must contain a `SIL_name` column. |
 
 #### Example
 
 ``` r
+
 # Load the MRM template
 mrm_template_path <- system.file(
   "extdata", "LGW_lipid_mrm_template_v1.tsv",
@@ -675,14 +689,15 @@ to list and copy templates to your working directory.
 
 ### Available workflows
 
-| Template  | Description                                                                                                                                             |
-|:----------|:--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `generic` | A starter template for any user. Includes placeholders for project path, QC label, MRM templates, and sample tags.                                      |
-| `CCSM`    | Pre-configured ANPC CCSM lipidomics workflow. Uses built-in MRM templates and includes both single-project and multi-project batch processing examples. |
+| Template | Description |
+|:---|:---|
+| `generic` | A starter template for any user. Includes placeholders for project path, QC label, MRM templates, and sample tags. |
+| `CCSM` | Pre-configured ANPC CCSM lipidomics workflow. Uses built-in MRM templates and includes both single-project and multi-project batch processing examples. |
 
 ### Usage
 
 ``` r
+
 # List available workflow templates
 use_workflow()
 
@@ -740,6 +755,7 @@ correction.
 For `PeakForgeR`, provide a **named list of file paths**:
 
 ``` r
+
 mrm_template_list <- list(
   v1 = "/path/to/LGW_lipid_mrm_template_v1.tsv",
   v2 = "/path/to/LGW_lipid_mrm_template_v2.tsv"
@@ -750,6 +766,7 @@ For `qcCheckR`, provide a **named list of lists**, each containing both
 the MRM template and its associated concentration guide:
 
 ``` r
+
 mrm_template_list <- list(
   v1 = list(
     SIL_guide  = "/path/to/LGW_lipid_mrm_template_v1.tsv",
@@ -765,6 +782,7 @@ mrm_template_list <- list(
 ### Complete multi-method example
 
 ``` r
+
 library(MStargetR)
 
 project_directory <- "/path/to/my_multimethod_project"
@@ -849,15 +867,15 @@ following structure:
 
 #### Description of key outputs
 
-| Directory / File                 | Description                                                                                                                                                                     |
-|:---------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `PLATE_ID/data/mzml/`            | Open-format mzML files produced by `msConvertR`.                                                                                                                                |
-| `PLATE_ID/reports/`              | Per-plate CSV reports from `PeakForgeR` containing integrated peak areas.                                                                                                       |
-| `PLATE_ID/chromatograms/`        | Chromatogram images for visual inspection of peak quality.                                                                                                                      |
-| `all/*_qcCheckR_report.html`     | Interactive HTML report with PCA, run-order plots, control charts, and summary statistics.                                                                                      |
-| `all/*_qcCheckR_data.xlsx`       | Multi-sheet Excel workbook. The first sheet provides a navigation guide. Subsequent sheets contain filtered concentration data, QC summaries, and batch correction diagnostics. |
-| `all/*_qcCheckR_master_list.rda` | An R data object (`.rda`) containing the full `master_list`, enabling programmatic access to all intermediate processing results.                                               |
-| `MStargetR_logs/`                | Text log files recording the processing status and any errors for each plate.                                                                                                   |
+| Directory / File | Description |
+|:---|:---|
+| `PLATE_ID/data/mzml/` | Open-format mzML files produced by `msConvertR`. |
+| `PLATE_ID/reports/` | Per-plate CSV reports from `PeakForgeR` containing integrated peak areas. |
+| `PLATE_ID/chromatograms/` | Chromatogram images for visual inspection of peak quality. |
+| `all/*_qcCheckR_report.html` | Interactive HTML report with PCA, run-order plots, control charts, and summary statistics. |
+| `all/*_qcCheckR_data.xlsx` | Multi-sheet Excel workbook. The first sheet provides a navigation guide. Subsequent sheets contain filtered concentration data, QC summaries, and batch correction diagnostics. |
+| `all/*_qcCheckR_master_list.rda` | An R data object (`.rda`) containing the full `master_list`, enabling programmatic access to all intermediate processing results. |
+| `MStargetR_logs/` | Text log files recording the processing status and any errors for each plate. |
 
 ------------------------------------------------------------------------
 
@@ -934,6 +952,7 @@ stops with an error about the `sva` package not being installed.
 **Solution:** Install `sva` from Bioconductor:
 
 ``` r
+
 BiocManager::install("sva")
 ```
 
@@ -949,6 +968,7 @@ displays an error about missing packages.
 **Solution:** Install the required GUI dependencies:
 
 ``` r
+
 install.packages(c("shiny", "bslib", "DT", "shinyWidgets", "htmltools"))
 ```
 
@@ -957,8 +977,9 @@ install.packages(c("shiny", "bslib", "DT", "shinyWidgets", "htmltools"))
 ## Session Information
 
 ``` r
+
 sessionInfo()
-#> R version 4.5.3 (2026-03-11)
+#> R version 4.6.0 (2026-04-24)
 #> Platform: x86_64-pc-linux-gnu
 #> Running under: Ubuntu 24.04.4 LTS
 #> 
@@ -979,11 +1000,15 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] digest_0.6.39     desc_1.4.3        R6_2.6.1          fastmap_1.2.0    
-#>  [5] xfun_0.57         cachem_1.1.0      knitr_1.51        htmltools_0.5.9  
-#>  [9] rmarkdown_2.31    lifecycle_1.0.5   cli_3.6.6         sass_0.4.10      
-#> [13] pkgdown_2.2.0     textshaping_1.0.5 jquerylib_0.1.4   systemfonts_1.3.2
-#> [17] compiler_4.5.3    tools_4.5.3       ragg_1.5.2        bslib_0.10.0     
-#> [21] evaluate_1.0.5    yaml_2.3.12       otel_0.2.0        jsonlite_2.0.0   
-#> [25] rlang_1.2.0       fs_2.1.0          htmlwidgets_1.6.4
+#>  [1] bit_4.6.0         jsonlite_2.0.0    compiler_4.6.0    crayon_1.5.3     
+#>  [5] tidyselect_1.2.1  parallel_4.6.0    jquerylib_0.1.4   systemfonts_1.3.2
+#>  [9] textshaping_1.0.5 yaml_2.3.12       fastmap_1.2.0     readr_2.2.0      
+#> [13] R6_2.6.1          knitr_1.51        htmlwidgets_1.6.4 tibble_3.3.1     
+#> [17] desc_1.4.3        bslib_0.10.0      pillar_1.11.1     tzdb_0.5.0       
+#> [21] rlang_1.2.0       utf8_1.2.6        cachem_1.1.0      xfun_0.57        
+#> [25] fs_2.1.0          sass_0.4.10       bit64_4.8.0       otel_0.2.0       
+#> [29] cli_3.6.6         pkgdown_2.2.0     magrittr_2.0.5    digest_0.6.39    
+#> [33] vroom_1.7.1       hms_1.1.4         lifecycle_1.0.5   vctrs_0.7.3      
+#> [37] evaluate_1.0.5    glue_1.8.1        ragg_1.5.2        rmarkdown_2.31   
+#> [41] tools_4.6.0       pkgconfig_2.0.3   htmltools_0.5.9
 ```

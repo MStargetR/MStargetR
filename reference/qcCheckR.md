@@ -20,7 +20,8 @@ qcCheckR(
   batch_imputeM = "minHalf",
   combat_par.prior = TRUE,
   combat_mean.only = FALSE,
-  combat_ref.batch = NULL
+  combat_ref.batch = NULL,
+  write_rda = TRUE
 )
 ```
 
@@ -99,6 +100,16 @@ qcCheckR(
   Optional character string specifying a reference batch. Default is
   NULL. Only used when `batch_method = "ComBat"`.
 
+- write_rda:
+
+  Logical. When `TRUE` (default) the master_list RDA file is written
+  synchronously as the final step of the pipeline. Set to `FALSE` when
+  the caller intends to write the RDA out-of-band — for example, the
+  Shiny GUI passes `FALSE` so it can surface results to the user
+  immediately and fire a separate background job that calls
+  [`export_master_list_rda`](https://mstargetr.github.io/MStargetR/reference/export_master_list_rda.md)
+  on the returned master_list. The XLSX and HTML exports are unaffected.
+
 ## Value
 
 A list containing the processed data and generated reports.
@@ -112,11 +123,16 @@ be included in the mrm_template_list. Please note only matching
 metabolite feature names across cohorts/methods will be processed.
 
 If you have not used the MStargetR::PeakForgeR function to generate
-reports please ensure your report file names contains ""*PeakForgeR*""
-to ensure the function can correctly identify the files in your project
+reports please ensure your report file names contains `_PeakForgeR_` to
+ensure the function can correctly identify the files in your project
 directory.
 
-- **Input Validation:**
+The steps below describe the pipeline in execution order. Input
+Validation steps are enforced by explicit
+[`stop()`](https://rdrr.io/r/base/stop.html) calls. All other steps run
+unconditionally; errors in any step propagate to the caller.
+
+- **Input Validation (enforced):**
 
   - Validate user_name
 
@@ -176,6 +192,11 @@ directory.
 
   - Export all processed data and reports
 
+## Note
+
+When `batch_method = "ComBat"` the sva Bioconductor package is required.
+Install it with `BiocManager::install("sva")` before use.
+
 ## Examples
 
 ``` r
@@ -188,14 +209,14 @@ library(MStargetR)
                            "LGW_lipid_mrm_template_v1.tsv",
                            package = "MStargetR")
 
-  sample_metadata_example <- read_tsv(file_path)
+  sample_metadata_example <- readr::read_tsv(file_path)
 
 #Load example conc_guide
   file_path <- system.file("extdata",
                            "LGW_SIL_batch_Ultimate_2023_03_06.tsv",
                            package = "MStargetR")
 
-  sample_metadata_example <- read_tsv(file_path)
+  conc_guide_example <- readr::read_tsv(file_path)
 
 #Load example report file
   file_path <- system.file("extdata",

@@ -22,11 +22,3 @@ qcCheckR_statTarget_batch_correction(master_list)
 
 The updated `master_list` with corrected concentration and peak area
 data.
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-master_list <- qcCheckR_statTarget_batch_correction(master_list)
-} # }
-```

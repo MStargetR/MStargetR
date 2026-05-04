@@ -63,5 +63,18 @@ Useful links:
 
 ## Author
 
-Harrison Szemray, Vimalnath Nambiar, Nathan Lawler, Julien Wist,
-Samantha Lodge, Luke Whiley
+**Maintainer**: Harrison Szemray <Hszemray@live.com.au>
+([ORCID](https://orcid.org/0009-0008-5829-540X))
+
+Authors:
+
+- Vimalnath Nambiar <vimalnath.nambiar@murdoch.edu.au>
+  ([ORCID](https://orcid.org/0000-0001-5384-6788))
+
+- Nathan Lawler ([ORCID](https://orcid.org/0000-0001-9649-425X))
+
+- Julien Wist ([ORCID](https://orcid.org/0000-0002-3416-2572))
+
+- Samantha Lodge ([ORCID](https://orcid.org/0000-0001-9193-0462))
+
+- Luke Whiley ([ORCID](https://orcid.org/0000-0002-9088-4799))

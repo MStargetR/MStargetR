@@ -22,13 +22,15 @@ move_folder(source_dir, dest_dir, max_wait = 60, max_retries = 30)
 
 - max_wait:
 
-  Maximum wait time (in seconds) for the system prior to deleting the
-  moved folder.
+  Maximum wait time in seconds before giving up on a locked file. The
+  function stops as soon as *either* `max_wait` seconds have elapsed
+  *or* `max_retries` attempts have been made (whichever comes first).
+  With the default 0.5 s sleep, `max_retries = 30` trips at ~15 s.
 
 - max_retries:
 
-  Maximum number of attempts to try move/delete prior to error. Default
-  30
+  Maximum number of retry attempts per file before giving up. Default
+  30.
 
 ## Value
 

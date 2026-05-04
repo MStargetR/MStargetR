@@ -9,7 +9,7 @@ unit testing. It captures all output (stdout and stderr) and writes it to a .txt
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,7 +47,11 @@ unit testing. It captures all output (stdout and stderr) and writes it to a .txt
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">run_system_command</span><span class="op">(</span><span class="va">PeakForgeR_command</span>, <span class="va">output_file</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">run_system_command</span><span class="op">(</span></span>
+<span>  <span class="va">PeakForgeR_command</span>,</span>
+<span>  <span class="va">output_file</span>,</span>
+<span>  expected_output_files <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -60,6 +64,14 @@ unit testing. It captures all output (stdout and stderr) and writes it to a .txt
 
 <dt id="arg-output-file">output_file<a class="anchor" aria-label="anchor" href="#arg-output-file"></a></dt>
 <dd><p>optional path to save the command output</p></dd>
+
+
+<dt id="arg-expected-output-files">expected_output_files<a class="anchor" aria-label="anchor" href="#arg-expected-output-files"></a></dt>
+<dd><p>Optional character vector of host-side file paths that
+Skyline is expected to have produced (e.g. the report CSV and sky file).
+When supplied, the function checks that every path exists and has non-zero
+size after the command returns, providing a safety net for Skyline crash
+signatures that change across Skyline builds.</p></dd>
 
 </dl></div>
 

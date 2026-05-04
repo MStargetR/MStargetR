@@ -13,7 +13,8 @@ launchMStargetR(port = NULL, launch.browser = TRUE, host = "127.0.0.1")
 
 - port:
 
-  Integer specifying the port number. Default is determined by Shiny.
+  Integer specifying the port number. Default `NULL`; Shiny selects an
+  available port automatically.
 
 - launch.browser:
 
@@ -40,9 +41,10 @@ packages to install.
 
 ## Network deployment
 
-When using `host = "0.0.0.0"` to expose the app on a network, be aware
-that Shiny serves plain HTTP with no built-in authentication. For
-production or multi-user deployments you should:
+When binding to a non-loopback address (anything other than
+`"127.0.0.1"`, `"localhost"`, or `"::1"`) to expose the app on a
+network, be aware that Shiny serves plain HTTP with no built-in
+authentication. For production or multi-user deployments you should:
 
 - Place the app behind a reverse proxy (e.g. nginx, Apache) that
   provides HTTPS/TLS encryption.
@@ -51,8 +53,8 @@ production or multi-user deployments you should:
   VPN. Without this, anyone on the network can access the pipeline and
   upload files.
 
-- The upload size limit is automatically reduced to 500 MB when
-  `host = "0.0.0.0"` (versus 2 GB for localhost) as an additional
+- The upload size limit is automatically reduced to 500 MB for any
+  non-loopback host (versus 2 GB for loopback) as an additional
   safeguard.
 
 ## Examples

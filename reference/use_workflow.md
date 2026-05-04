@@ -30,7 +30,7 @@ use_workflow(
 - open:
 
   Logical indicating whether to open the file after copying. Defaults to
-  `TRUE` if running in RStudio, `FALSE` otherwise.
+  `TRUE` in interactive RStudio sessions, `FALSE` otherwise.
 
 - overwrite:
 

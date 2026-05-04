@@ -7,7 +7,11 @@ it to a .txt file.
 ## Usage
 
 ``` r
-run_system_command(PeakForgeR_command, output_file)
+run_system_command(
+  PeakForgeR_command,
+  output_file,
+  expected_output_files = NULL
+)
 ```
 
 ## Arguments
@@ -20,6 +24,14 @@ run_system_command(PeakForgeR_command, output_file)
 - output_file:
 
   optional path to save the command output
+
+- expected_output_files:
+
+  Optional character vector of host-side file paths that Skyline is
+  expected to have produced (e.g. the report CSV and sky file). When
+  supplied, the function checks that every path exists and has non-zero
+  size after the command returns, providing a safety net for Skyline
+  crash signatures that change across Skyline builds.
 
 ## Examples
 
