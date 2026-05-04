@@ -1,25 +1,5 @@
 # Changelog
 
-## MStargetR 1.0.0
-
-Released 2026-05-04.
-
-### Bug Fixes
-
-- **ci:** apply prettier to .mjs and widen lint-staged glob
-  ([68c2cb0](https://github.com/MStargetR/MStargetR/commit/68c2cb026031a11aa0aada1d6fac83a5eb440fc4))
-- **ci:** clear pkgdown + R CMD check failures
-  ([0433c1f](https://github.com/MStargetR/MStargetR/commit/0433c1f5321094a89a2ea3c0d0c03eb70c1a2148))
-- **ci:** repair regressions from previous CI fix attempt
-  ([d3caa55](https://github.com/MStargetR/MStargetR/commit/d3caa553057be53e8365f7447d43dd24b845a1b3))
-- **test:** skip source-reading audit tests under installed-package runs
-  ([eda5ca9](https://github.com/MStargetR/MStargetR/commit/eda5ca949efc4e833a246264975a0730a9ac9570))
-
-### Performance Improvements
-
-- **qcCheckR:** write RDA in detached background subprocess
-  ([6d7968c](https://github.com/MStargetR/MStargetR/commit/6d7968c250e6c7678a43b1330202142b2498c3c3))
-
 ## MStargetR 1.0.1
 
 Released
