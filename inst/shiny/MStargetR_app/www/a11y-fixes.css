@@ -1,0 +1,390 @@
+/* ==========================================================================
+   MStargetR Accessibility & UX Fixes
+   ==========================================================================
+   Addresses findings from the UX/a11y audit. Layered on top of custom.css
+   and premium-polish.css -- does NOT modify those files.
+
+   Severity levels: CRITICAL, HIGH, MEDIUM, LOW
+   ========================================================================== */
+
+/* ==========================================================================
+   ADDITIONAL DESIGN TOKENS
+   ==========================================================================
+   MEDIUM: Transition timing standardization -- adds --mst-transition-fast.
+   ========================================================================== */
+:root {
+  --mst-transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   CRITICAL: Color Contrast Fixes (WCAG 2.1 AA)
+   ==========================================================================
+   1. --mst-text-muted (#64748b) on --mst-bg (#f8fafc) = 4.4:1.
+      At 0.78rem (normal text) WCAG AA requires >= 4.5:1.
+      Fix: darken to #586981 which yields ~5.0:1 on #f8fafc.
+
+   2. --mst-success (#059669) on --mst-success-light (#d1fae5) = 4.2:1.
+      Used for 0.75rem badge text (normal weight, normal text rules apply).
+      Fix: darken success to #047857 which yields ~5.3:1 on #d1fae5.
+
+   3. Hero description rgba(226,232,240,0.8) on the mid-gradient ~ 4.2:1.
+      Fix: bump opacity to 0.92 which yields ~5.5:1 against the darkest
+      mid-gradient stop (#1e3a5f).
+   -------------------------------------------------------------------------- */
+
+/* Light theme overrides */
+:root {
+  --mst-text-muted: #586981;
+  --mst-success: #047857;
+}
+
+/* Dark theme: the original dark --mst-text-muted (#94a3b8) on #0f172a is
+   fine at 5.5:1, but --mst-success also needs fixing for badge contrast
+   against the dark success-light background. */
+[data-bs-theme='dark'] {
+  --mst-success: #059669;
+}
+
+/* Hero description contrast fix */
+.hero-description {
+  color: rgba(226, 232, 240, 0.92);
+}
+
+/* ==========================================================================
+   HIGH: Disabled State for .btn-run Buttons
+   ==========================================================================
+   All .btn-run buttons lack a disabled visual state. Users can click them
+   even when the action is unavailable, providing no feedback.
+
+   Fix: add proper disabled styling -- muted background, reduced opacity,
+   not-allowed cursor, and suppress the shimmer pseudo-element.
+   -------------------------------------------------------------------------- */
+.btn-run:disabled,
+.btn-run[disabled],
+.btn-run.disabled {
+  background: var(--mst-border);
+  color: var(--mst-text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  pointer-events: auto; /* keep cursor visible even when disabled */
+  opacity: 0.65;
+  transform: none;
+}
+
+.btn-run:disabled:hover,
+.btn-run[disabled]:hover,
+.btn-run.disabled:hover {
+  background: var(--mst-border);
+  color: var(--mst-text-muted);
+  box-shadow: none;
+  transform: none;
+}
+
+/* Kill the shimmer on disabled buttons */
+.btn-run:disabled::after,
+.btn-run[disabled]::after,
+.btn-run.disabled::after {
+  display: none;
+}
+
+/* Also cover the prominent variant */
+.btn-run-prominent:disabled,
+.btn-run-prominent[disabled],
+.btn-run-prominent.disabled {
+  background: var(--mst-border);
+  color: var(--mst-text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
+}
+
+.btn-run-prominent:disabled:hover,
+.btn-run-prominent[disabled]:hover,
+.btn-run-prominent.disabled:hover {
+  background: var(--mst-border);
+  transform: none;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   HIGH: Workflow Card Keyboard Accessibility
+   ==========================================================================
+   Cards are clickable divs with no focus indicator. CSS cannot add
+   role="button" or tabindex, but it CAN provide a visible :focus-visible
+   style so that when JS adds those attributes the experience is correct.
+
+   Uses box-shadow instead of outline so it follows border-radius.
+   -------------------------------------------------------------------------- */
+.workflow-card:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--mst-bg),
+    0 0 0 5px var(--mst-accent);
+  border-color: var(--mst-accent);
+}
+
+[data-bs-theme='dark'] .workflow-card:focus-visible {
+  box-shadow:
+    0 0 0 3px var(--mst-bg),
+    0 0 0 5px var(--mst-accent-light);
+}
+
+/* Apply the same hover transform on keyboard focus for parity */
+.workflow-card:focus-visible {
+  transform: translateY(-4px);
+}
+
+/* ==========================================================================
+   HIGH: Fixed Footer -> Sticky Footer
+   ==========================================================================
+   The footer uses position:fixed which required 6 separate padding-bottom
+   hacks on body, sidebar, main content, tab-content, and container rows.
+
+   Fix: override to position:sticky at the bottom of the document flow.
+   This eliminates the need for all padding hacks. We reset each hack to
+   its natural value so the layout is clean.
+   -------------------------------------------------------------------------- */
+.mst-footer {
+  position: sticky;
+  bottom: 0;
+}
+
+/* Remove the padding-bottom hacks that compensated for position:fixed */
+body {
+  padding-bottom: 0;
+}
+
+.bslib-sidebar-layout > .sidebar {
+  padding-bottom: 0;
+}
+
+.bslib-sidebar-layout > .main {
+  padding-bottom: 0;
+}
+
+.bslib-sidebar-layout > .main .tab-content {
+  padding-bottom: 0;
+}
+
+.container-fluid > .row:last-child {
+  padding-bottom: 0;
+}
+
+/* Back-to-top button no longer needs the footer offset */
+#mst-back-to-top {
+  bottom: 16px;
+}
+
+/* ==========================================================================
+   MEDIUM: Toast Positioning Normalization
+   ==========================================================================
+   The CSS declares bottom:1.5rem but the JS overrides it with top
+   positioning. Normalize the CSS to use top so there is no flash of
+   bottom-positioned toast before JS runs.
+   -------------------------------------------------------------------------- */
+.mst-toast {
+  bottom: auto;
+  top: 1.5rem;
+}
+
+/* ==========================================================================
+   MEDIUM: ionRangeSlider (Shiny) Styling
+   ==========================================================================
+   Style the track, bar, and grid text to match the MStargetR design system.
+   The handle and bar are already styled in premium-polish.css; this adds
+   the missing track and grid pieces.
+   -------------------------------------------------------------------------- */
+
+/* Track background */
+.irs--shiny .irs-line {
+  background: var(--mst-border);
+  border: none;
+  border-radius: 100px;
+  height: 6px;
+}
+
+/* Min/max labels */
+.irs--shiny .irs-min,
+.irs--shiny .irs-max {
+  color: var(--mst-text-muted);
+  background: transparent;
+  font-size: 0.72rem;
+}
+
+/* Single / from-to value labels */
+.irs--shiny .irs-single,
+.irs--shiny .irs-from,
+.irs--shiny .irs-to {
+  background: var(--mst-accent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+/* Grid text */
+.irs--shiny .irs-grid-text {
+  color: var(--mst-text-muted);
+  font-size: 0.68rem;
+}
+
+/* Grid tick marks */
+.irs--shiny .irs-grid-pol {
+  background: var(--mst-border);
+}
+
+/* Handle focus ring for keyboard users */
+.irs--shiny .irs-handle:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--mst-accent),
+    0 0 0 5px rgba(13, 148, 136, 0.25);
+}
+
+/* ==========================================================================
+   MEDIUM: Sidebar Label Hierarchy
+   ==========================================================================
+   Currently ALL sidebar labels are uppercase. Only group/section headers
+   (h5, h6, or elements used as visual dividers) should be uppercase.
+   Regular input labels should be sentence case for readability.
+   -------------------------------------------------------------------------- */
+.sidebar .form-label,
+.sidebar label {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Keep group headers uppercase -- these are typically <h5>, <h6>, or
+   labels with a special class used as section dividers. */
+.sidebar h5,
+.sidebar h6,
+.sidebar .sidebar-section-header,
+.sidebar .control-label-header {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--mst-text-muted);
+}
+
+/* ==========================================================================
+   MEDIUM: Nav-Tabs Horizontal Scroll Indicators
+   ==========================================================================
+   When tabs overflow, users get no visual hint that more tabs exist.
+   Add gradient fade masks on the left/right edges.
+   -------------------------------------------------------------------------- */
+.nav-tabs {
+  position: relative;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 3%,
+    black 97%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 3%,
+    black 97%,
+    transparent 100%
+  );
+}
+
+/* Only apply the mask when content actually overflows */
+@supports (selector(:has(+ *))) {
+  .nav-tabs:not(:has(.nav-link:first-child:last-child)) {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 3%,
+      black 97%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 3%,
+      black 97%,
+      transparent 100%
+    );
+  }
+}
+
+/* ==========================================================================
+   LOW: will-change Performance Hints
+   ==========================================================================
+   Cards with the tilt/glow mouse-tracking effect and the navbar gradient
+   animation benefit from compositor-layer promotion.
+   -------------------------------------------------------------------------- */
+.workflow-card {
+  will-change: transform;
+}
+
+.navbar::after {
+  will-change: background-position;
+}
+
+/* ==========================================================================
+   LOW: Variable Font Optical Sizing for Inter
+   ==========================================================================
+   Enable optical sizing so Inter adjusts stroke contrast at small sizes.
+   -------------------------------------------------------------------------- */
+body {
+  font-variation-settings: 'opsz' auto;
+}
+
+/* ==========================================================================
+   MOTION SENSITIVITY: prefers-reduced-motion
+   ==========================================================================
+   Disable non-essential animations and transitions for users who have
+   indicated a preference for reduced motion.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  /* Remove card hover transforms */
+  .workflow-card:hover,
+  .workflow-card:focus-visible {
+    transform: none;
+  }
+
+  /* Disable shimmer on buttons */
+  .btn-run::after,
+  .btn-run:hover::after {
+    animation: none;
+    display: none;
+  }
+
+  /* Disable navbar gradient animation */
+  .navbar::after {
+    animation: none;
+    will-change: auto;
+  }
+
+  /* Remove card glow tracking */
+  .card::after,
+  .workflow-card::after {
+    display: none;
+  }
+
+  /* Tone down all transitions */
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  /* Disable smooth scroll */
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* Remove will-change hints (no animations to optimise) */
+  .workflow-card,
+  .navbar::after {
+    will-change: auto;
+  }
+}

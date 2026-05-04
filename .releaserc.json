@@ -1,0 +1,40 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "writerOpts": {
+          "headerPartial": "## MStargetR {{version}}\n\nReleased {{date}}{{#if @root.linkCompare}} ([compare]({{@root.host}}/{{@root.owner}}/{{@root.repository}}/compare/{{previousTag}}...{{currentTag}})){{/if}}.\n\n"
+        }
+      }
+    ],
+    ["@semantic-release/changelog", { "changelogFile": "NEWS.md" }],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "bash scripts/semantic-release.sh ${nextRelease.version}"
+      }
+    ],
+    ["@semantic-release/npm", { "npmPublish": false }],
+    ["@semantic-release/github", { "assets": ["*.tar.gz"] }],
+    [
+      "@semantic-release/git",
+      {
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}",
+        "assets": [
+          "inst/CITATION",
+          "CITATION.cff",
+          "DESCRIPTION",
+          "inst/installer/setup.iss",
+          "LICENSE",
+          "LICENSE.md",
+          "NEWS.md",
+          "package-lock.json",
+          "package.json"
+        ]
+      }
+    ]
+  ]
+}

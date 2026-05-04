@@ -1,0 +1,56 @@
+url: https://mstargetr.github.io/MStargetR/
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+  components:
+    github:
+      icon: fa-github
+      href: https://github.com/MStargetR/MStargetR
+      aria-label: GitHub
+
+articles:
+  - title: 'Getting Started'
+    navbar: Getting Started
+    contents:
+      - MStargetR-vignette
+
+reference:
+  - title: 'Pipeline Functions'
+    desc: 'Core LC-MS data processing pipeline'
+    contents:
+      - msConvertR
+      - PeakForgeR
+      - qcCheckR
+
+  - title: 'Batch Correction'
+    desc: 'Signal drift and batch correction methods'
+    contents:
+      - batchCorrectR
+      - bc_export_html_report
+
+  - title: 'Shiny Application'
+    desc: 'Interactive GUI for MStargetR'
+    contents:
+      - launchMStargetR
+
+  - title: 'Workflows'
+    desc: 'Pre-configured pipeline templates'
+    contents:
+      - use_workflow
+
+  - title: 'Utilities'
+    desc: 'Helper and validation functions'
+    contents:
+      - transition_checkR
+      - compare_mrm_template_with_guide
+      - install_MStargetR
+
+  - title: 'Other'
+    contents:
+      - matches(".")

@@ -1,0 +1,87 @@
+# Git/GitHub
+^\.git$
+^\.github$
+^\.gitignore$
+^CITATION\.cff$
+^LICENSE\.md$
+
+# Node.js
+^node_modules$
+^package-lock\.json$
+^package\.json$
+
+# R
+^\.Rproj\.user$
+^\.Rbuildignore$
+^\.Rprofile$
+^.*\.Rproj$
+^.*\.tar\.gz$
+
+# Visual Studio Code
+^\.vscode$
+
+# eslint
+^eslint\.config\.js$
+
+# prettier
+^\.prettierrc\.json$
+
+# commitizen
+^\.czrc$
+
+# semantic-release
+^\.releaserc\.json$
+
+# Resources
+^scripts$
+^vignettes/MStargetR-vignette\\.R$
+^vignettes/MStargetR-vignette\\.html$
+^doc$
+^Meta$
+
+# AI/dev tooling
+^\.claude$
+^\.claude-flow$
+^\.mcp\.json$
+
+# Windows launcher
+^MStargetR\.bat$
+
+# statTarget working directory
+^statTarget$
+
+# Documentation site
+^docs$
+^_pkgdown\.yml$
+^pkgdown$
+
+# README source
+^README\.md$
+^README\.Rmd$
+
+# R history
+^\.Rhistory$
+
+# Installer directory
+^inst/installer/Output
+^inst/installer/\.btn$
+^inst/installer/\.sidebar$
+
+# Rendered README
+^README\.html$
+
+
+# Node.js tooling (not needed in R package)
+^\.husky$
+^\.nvmrc$
+^\.prettierignore$
+^codecov\.yml$
+^commitlint\.config\.js$
+
+# Non-standard top-level files
+^workflow_HS\.Rmd$
+^cleanup-claude\.ps1$
+^network-requests\.txt$
+
+# Playwright MCP
+^\.playwright-mcp$

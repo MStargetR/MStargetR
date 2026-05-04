@@ -1,0 +1,67 @@
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+name: pkgdown
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions: read-all
+
+jobs:
+  pkgdown:
+    runs-on: ubuntu-latest
+    # Only restrict access to the token for deployments
+    permissions:
+      contents: write
+      pages: write
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libxml2-dev libssl-dev libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libnetcdf-dev netcdf-bin libuv1-dev
+
+      - name: Install R dependencies (BiocManager + remotes)
+        run: |
+          lib <- Sys.getenv("R_LIBS_USER")
+          dir.create(lib, recursive = TRUE, showWarnings = FALSE)
+          .libPaths(c(lib, .libPaths()))
+          if (!requireNamespace("BiocManager", quietly = TRUE))
+            install.packages("BiocManager", lib = lib)
+          # Include Bioconductor in repo list so remotes::install_deps() can
+          # resolve mzR/ropls/statTarget alongside CRAN deps in one pass.
+          options(repos = BiocManager::repositories())
+          install.packages("remotes", lib = lib)
+          remotes::install_deps(dependencies = TRUE, lib = lib, upgrade = "never")
+          install.packages("pkgdown", lib = lib)
+          # Install the package itself so pkgdown can document it.
+          remotes::install_local(".", dependencies = FALSE, lib = lib, upgrade = "never")
+        shell: Rscript {0}
+
+      - name: Build site
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        shell: Rscript {0}
+
+      - name: Deploy to GitHub pages
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@v4.6.9
+        with:
+          clean: false
+          branch: gh-pages
+          folder: docs

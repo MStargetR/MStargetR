@@ -1,0 +1,91 @@
+{
+  "name": "mstargetr",
+  "version": "1.0.2",
+  "description": "A R package to assess LC-MS data quality using total ion current.",
+  "keywords": [
+    "liquid chromatography",
+    "mass spectrometry",
+    "data analysis",
+    "quality control",
+    "software package"
+  ],
+  "type": "module",
+  "homepage": "https://github.com/MStargetR/MStargetR#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MStargetR/MStargetR.git"
+  },
+  "bugs": "https://github.com/MStargetR/MStargetR/issues",
+  "license": "MIT",
+  "author": {
+    "name": "Harrison Szemray",
+    "email": "Hszemray@live.com.au",
+    "url": "https://orcid.org/0009-0008-5829-540X"
+  },
+  "contributors": [
+    {
+      "name": "Theresa Schiemer",
+      "url": "https://orcid.org/0009-0000-6508-0636"
+    },
+    {
+      "name": "Shabarinath Nambiar",
+      "url": "https://orcid.org/0000-0002-6713-1705"
+    },
+    {
+      "name": "Luke Whiley",
+      "url": "https://orcid.org/0000-0002-9088-4799"
+    },
+    {
+      "name": "Kok Wai Wong"
+    },
+    {
+      "name": "Guanjin Wang",
+      "url": "https://orcid.org/0000-0002-5258-0532"
+    },
+    {
+      "name": "Elaine Holmes",
+      "url": "https://orcid.org/0000-0002-0556-8389"
+    },
+    {
+      "name": "Julien Wist",
+      "url": "https://orcid.org/0000-0002-3416-2572"
+    }
+  ],
+  "devDependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
+    "@eslint/js": "^9.33.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.4",
+    "@semantic-release/npm": "^12.0.2",
+    "@semantic-release/release-notes-generator": "^14.0.3",
+    "commitizen": "^4.3.1",
+    "cz-conventional-changelog": "^3.3.0",
+    "eslint": "^9.33.0",
+    "globals": "^16.3.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.6.2",
+    "semantic-release": "^24.2.7"
+  },
+  "scripts": {
+    "check": "npm run eslint && npm run prettier",
+    "commit": "cz",
+    "eslint": "eslint .",
+    "eslint:fix": "eslint --fix",
+    "prettier": "prettier --check .",
+    "prettier:fix": "prettier --write",
+    "release": "semantic-release",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,ts,json,yml,yaml,md,css,html}": "prettier --write"
+  },
+  "overrides": {
+    "lodash": "^4.17.24",
+    "tmp": "^0.2.4"
+  }
+}

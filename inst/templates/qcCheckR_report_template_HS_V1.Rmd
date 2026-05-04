@@ -1,0 +1,87 @@
+---
+title: "MStargetR Quality Control Report"
+author: "Australian National Phenome Centre"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+    
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(plotly)
+library(htmlwidgets)
+```
+
+<style>
+body {
+    position: absolute;
+    left: 0px;}
+</style>
+
+### projectOverview
+#### Overall Summary
+```{r Overall-Summary, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=9}
+
+target_index <- which(master_list$summary_tables$odsAreaOverview$key == "total.SIL.Int.Stds")
+summary_table <- master_list$summary_tables$odsAreaOverview[1:(target_index), ]
+
+knitr::kable(summary_table)
+```
+
+#### Data Summary
+```{r Data-Summary, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=9}
+knitr::kable(master_list$summary_tables$projectOverview)
+```
+
+### Data QC PCA Scores Plots {.tabset}
+#### Coloured by sample_type
+```{r PCA-sample-type, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=9}
+master_list$pca$plot$sample_type_factor
+```
+
+#### Coloured by plateID
+```{r PCA-plateID, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=9}
+master_list$pca$plot$sample_plate_id
+```
+
+### PCA scores run order {.tabset}
+#### PC1
+```{r PC1, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=9}
+master_list$pca$scoresRunOrder$PC1
+```
+
+#### PC2
+```{r PC2, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=9}
+master_list$pca$scoresRunOrder$PC2
+```
+
+#### PC3
+```{r PC3, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=9}
+master_list$pca$scoresRunOrder$PC3
+```
+
+### Target Lipid Control Charts {.tabset .tabset-fade .tabset-dropdown}
+control_charts_custom_code_placeholder
+
+
+### Environment Summary
+#### R version
+```{r R-version, echo=FALSE, message=FALSE, warning=FALSE,  fig.width=14, fig.height=7} 
+print(master_list$environment$r_version)
+```
+
+#### Base packages
+```{r Base-packages, echo=FALSE, message=FALSE, warning=FALSE,  fig.width=14, fig.height=7} 
+print(master_list$environment$base_packages)
+```
+
+#### User packages
+```{r User-packages, echo=FALSE, message=FALSE, warning=FALSE,  fig.width=14, fig.height=7} 
+print(master_list$environment$user_packages)
+```

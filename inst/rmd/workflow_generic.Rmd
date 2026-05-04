@@ -1,0 +1,148 @@
+---
+title: "MStargetR Generic Workflow"
+author: "Your Name"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+library(MStargetR)
+```
+
+# User Parameters
+
+Edit these variables before running.
+
+```{r user-parameters}
+# Required parameters
+user_name    <- "NAME"                        # Your identifier
+project_path <- "USER/PATH/TO/PROJECT"        # Path to project folder
+qc_label     <- "QC"                          # QC sample tag (e.g., "LTR", "PQC", "VLTR")
+
+# Sample classification tags (must include your qc_label)
+sample_tags  <- c("sample", "control", "blank", "qc")
+
+# Missing value threshold (% per metabolite)
+mv_threshold <- 50
+
+# MRM template for PeakForgeR (path to .tsv file)
+mrm_template_peakforger <- "path/to/mrm_guide_v1.tsv"
+
+# MRM template list for qcCheckR (named list of SIL + concentration guides per version)
+mrm_template_qccheckr <- list(
+  v1 = list(
+    SIL_guide  = "path/to/mrm_guide_v1.tsv",
+    conc_guide = "path/to/SIL_concentration_guide_v1.tsv"
+  )
+  # Add more versions if needed:
+  # v2 = list(SIL_guide = "...", conc_guide = "...")
+)
+
+# Batch correction parameters (used inside qcCheckR)
+batch_method  <- "QCRFSC"   # Options: "QCRFSC", "ComBat"
+batch_ntree   <- 500         # Number of trees (QCRFSC only)
+batch_coCV    <- 100         # CoCV threshold (%, 1-100)
+batch_Frule   <- 0           # Filtering rule (0 = no filter)
+batch_imputeM <- "minHalf"   # Imputation method: "minHalf", "minQ", or "zero"
+```
+
+# Optional: Validate Templates
+
+Run these checks before the pipeline to catch template errors early.
+
+```{r validate-templates}
+# Check for duplicate Q1/Q3 transitions
+mrm_df <- read.delim(mrm_template_peakforger, check.names = FALSE)
+transition_checkR(mrm_df)
+
+# Check that MRM template and concentration guide entries match
+conc_df <- read.delim(
+  mrm_template_qccheckr[["v1"]]$conc_guide,
+  check.names = FALSE
+)
+compare_mrm_template_with_guide(mrm_df, conc_df)
+```
+
+# Step 1: msConvertR -- Vendor File Conversion
+
+Converts raw vendor files (WIFF, RAW, etc.) to mzML format via Docker.
+
+```{r step1-msconvertr}
+message("Step 1: Converting raw vendor files to mzML...")
+msConvertR(
+  input_directory  = project_path,
+  output_directory = project_path
+)
+```
+
+# Step 2: PeakForgeR -- Peak Picking and Integration
+
+Processes mzML files using Skyline (via Docker) for peak picking, retention
+time optimisation, and chromatographic integration.
+
+```{r step2-peakforger}
+message("Step 2: Running PeakForgeR...")
+PeakForgeR(
+  user_name         = user_name,
+  project_directory = project_path,
+  mrm_template_list = mrm_template_peakforger,
+  QC_sample_label   = qc_label,
+  plateID_outputs   = NULL    # NULL = process all plates
+)
+```
+
+# Step 3: qcCheckR -- Quality Control and Reporting
+
+Imports PeakForgeR reports, applies QC filtering, missing value imputation,
+batch correction, PCA, and generates HTML/Excel reports.
+
+```{r step3-qccheckr}
+message("Step 3: Running QC check...")
+qcCheckR(
+  user_name         = user_name,
+  project_directory = project_path,
+  mrm_template_list = mrm_template_qccheckr,
+  QC_sample_label   = qc_label,
+  sample_tags       = sample_tags,
+  mv_threshold      = mv_threshold,
+  batch_method      = batch_method,
+  batch_ntree       = batch_ntree,
+  batch_coCV        = batch_coCV,
+  batch_Frule       = batch_Frule,
+  batch_imputeM     = batch_imputeM
+)
+```
+
+# Optional: Standalone Batch Correction
+
+Use `batchCorrectR()` independently on any dataset with `sample_name`,
+`batch`, `sample_type`, `run_order`, and numeric metabolite columns.
+
+```{r optional-batchcorrectr}
+# result <- batchCorrectR(
+#   data       = my_data,       # data.frame or list of plate data.frames
+#   qc_label   = "qc",
+#   method     = "QCRFSC",      # "QCRFSC" or "ComBat"
+#   ntree      = 500,
+#   coCV       = 100,
+#   Frule      = 0,
+#   imputeM    = "minHalf",
+#   output_dir = file.path(project_path, "batch_correction"),
+#   plot       = TRUE,
+#   report     = TRUE
+# )
+#
+# corrected <- result$corrected_data
+# result$correction_summary
+```
+
+# Session Info
+
+```{r session-info}
+sessionInfo()
+```

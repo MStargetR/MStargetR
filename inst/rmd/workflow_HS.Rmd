@@ -1,0 +1,179 @@
+---
+title: "MStargetR CCSM Workflow"
+author: "Harrison Szemray"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+library(MStargetR)
+```
+
+# Single Project Workflow
+
+ANPC CCSM lipidomics pipeline using built-in MRM templates and sample tags.
+
+## User Parameters
+
+```{r single-user-params}
+project_path <- "USER/PATH/TO/PROJECT"   # Path to project folder
+qc_label     <- "LTR"                    # Options: LTR, PQC, VLTR, etc.
+mv_threshold <- 50                        # Missing value threshold (%)
+
+# Batch correction parameters
+batch_method  <- "QCRFSC"   # Options: "QCRFSC", "ComBat"
+batch_ntree   <- 500
+batch_coCV    <- 100
+batch_Frule   <- 0
+batch_imputeM <- "minHalf"
+```
+
+## Run Pipeline
+
+```{r single-pipeline}
+message("Step 1: Converting raw vendor files to mzML...")
+msConvertR(
+  input_directory  = project_path,
+  output_directory = project_path
+)
+
+message("Step 2: Running PeakForgeR...")
+PeakForgeR(
+  user_name         = "ANPC",
+  project_directory = project_path,
+  mrm_template_list = NULL,           # Uses built-in ANPC templates
+  QC_sample_label   = qc_label,
+  plateID_outputs   = NULL
+)
+
+message("Step 3: Running QC check...")
+qcCheckR(
+  user_name         = "ANPC",
+  project_directory = project_path,
+  mrm_template_list = NULL,           # Uses built-in ANPC templates
+  QC_sample_label   = qc_label,
+  sample_tags       = NULL,           # Uses ANPC default tags
+  mv_threshold      = mv_threshold,
+  batch_method      = batch_method,
+  batch_ntree       = batch_ntree,
+  batch_coCV        = batch_coCV,
+  batch_Frule       = batch_Frule,
+  batch_imputeM     = batch_imputeM
+)
+
+sessionInfo()
+```
+
+---
+
+# Multi-Project Batch Workflow
+
+Process multiple projects sequentially with per-project configuration.
+
+## Project Configurations
+
+```{r multi-configs}
+project_configs <- list(
+  list(
+    path         = "USER/PATH/TO/PROJECT1",
+    qc_label     = "PQC",
+    mv_threshold = 50,
+    batch_method = "QCRFSC"
+  ),
+  list(
+    path         = "USER/PATH/TO/PROJECT2",
+    qc_label     = "LTR",
+    mv_threshold = 40,
+    batch_method = "QCRFSC"
+  ),
+  list(
+    path         = "USER/PATH/TO/PROJECT3",
+    qc_label     = "VLTR",
+    mv_threshold = 60,
+    batch_method = "QCRFSC"
+  )
+)
+```
+
+## Run All Projects
+
+```{r multi-pipeline}
+for (config in project_configs) {
+  message("\n========================================")
+  message("Processing: ", config$path)
+  message("========================================\n")
+
+  message("Step 1: Converting raw vendor files to mzML...")
+  msConvertR(
+    input_directory  = config$path,
+    output_directory = config$path
+  )
+
+  message("Step 2: Running PeakForgeR...")
+  PeakForgeR(
+    user_name         = "ANPC",
+    project_directory = config$path,
+    mrm_template_list = NULL,
+    QC_sample_label   = config$qc_label,
+    plateID_outputs   = NULL
+  )
+
+  message("Step 3: Running QC check...")
+  qcCheckR(
+    user_name         = "ANPC",
+    project_directory = config$path,
+    mrm_template_list = NULL,
+    QC_sample_label   = config$qc_label,
+    sample_tags       = NULL,
+    mv_threshold      = config$mv_threshold,
+    batch_method      = config$batch_method
+  )
+}
+
+sessionInfo()
+```
+
+---
+
+# Optional: Standalone Batch Correction
+
+Use `batchCorrectR()` on any dataset independently of the main pipeline.
+
+```{r standalone-batchcorrectr}
+# result <- batchCorrectR(
+#   data       = my_data,       # data.frame or list of plate data.frames
+#   qc_label   = "ltr",
+#   method     = "QCRFSC",
+#   ntree      = 500,
+#   coCV       = 100,
+#   Frule      = 0,
+#   imputeM    = "minHalf",
+#   output_dir = tempdir(),
+#   plot       = TRUE,
+#   report     = TRUE
+# )
+#
+# corrected <- result$corrected_data
+# result$correction_summary
+```
+
+# Optional: ComBat Batch Correction
+
+ComBat does not require QC samples and uses empirical Bayes methods.
+
+```{r combat-example}
+# result <- batchCorrectR(
+#   data             = my_data,
+#   method           = "ComBat",
+#   combat_par.prior = TRUE,
+#   combat_mean.only = FALSE,
+#   combat_ref.batch = NULL,   # Reference batch (optional)
+#   plot             = TRUE,
+#   report           = TRUE
+# )
+```

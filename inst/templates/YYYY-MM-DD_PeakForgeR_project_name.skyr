@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<views>
+  <view name="YYYY-MM-DD_PeakForgeR_project_name" rowsource="pwiz.Skyline.Model.Databinding.Entities.Transition" sublist="Results!*" uimode="small_molecules">
+    <column name="Results!*.Value.PrecursorResult.PeptideResult.ResultFile.FileName" />
+    <column name="Precursor.Peptide.Protein.Name" />
+    <column name="Precursor.Peptide.MoleculeName" />
+    <column name="Precursor.Mz" />
+    <column name="ProductMz" />
+    <column name="Results!*.Value.RetentionTime" />
+    <column name="Results!*.Value.StartTime" />
+    <column name="Results!*.Value.EndTime" />
+    <column name="Results!*.Value.Area" />
+    <column name="Results!*.Value.Height" />
+    <column name="Results!*.Value.PrecursorResult.PeptideResult.ResultFile.AcquiredTime" />
+  </view>
+</views>

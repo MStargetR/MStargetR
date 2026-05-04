@@ -1,0 +1,1103 @@
+/* ==========================================================================
+   MStargetR Premium Polish - Enhancement Layer
+   ==========================================================================
+   This file layers on top of custom.css. It adds premium micro-interactions,
+   refined animations, and polished UI details without modifying the base.
+   All rules use the existing --mst-* design tokens.
+   ========================================================================== */
+
+/* ==========================================================================
+   0. ADDITIONAL CUSTOM PROPERTIES
+   ========================================================================== */
+:root {
+  --mst-pp-focus-ring: rgba(13, 148, 136, 0.45);
+  --mst-pp-focus-ring-spread: 3px;
+  --mst-pp-glow-inner: rgba(13, 148, 136, 0.06);
+  --mst-pp-glow-inner-hover: rgba(13, 148, 136, 0.12);
+  --mst-pp-scrollbar-idle-opacity: 0.3;
+  --mst-pp-transition-spring: 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --mst-pp-divider-ornament: var(--mst-accent);
+}
+
+[data-bs-theme='dark'] {
+  --mst-pp-focus-ring: rgba(45, 212, 191, 0.4);
+  --mst-pp-glow-inner: rgba(45, 212, 191, 0.05);
+  --mst-pp-glow-inner-hover: rgba(45, 212, 191, 0.1);
+}
+
+/* ==========================================================================
+   1. SMOOTH PAGE TRANSITIONS (Tab Switches)
+   ==========================================================================
+   Enhances tab content appearance with a combined fade + subtle slide.
+   Uses @starting-style for browsers that support it (Chrome 117+).
+   -------------------------------------------------------------------------- */
+.tab-content > .tab-pane.active {
+  animation: pp-tab-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes pp-tab-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* @starting-style for instant-render transitions where supported */
+@supports (selector(:has(+ *))) {
+  .tab-content > .tab-pane.active {
+    transition:
+      opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      filter 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* ==========================================================================
+   2. ENHANCED SKELETON LOADERS
+   ==========================================================================
+   Variants for text, charts, and table rows with organic shimmer.
+   -------------------------------------------------------------------------- */
+
+/* Organic shimmer with dual-wave gradient */
+.skeleton,
+.skeleton-text,
+.skeleton-chart,
+.skeleton-table {
+  background: linear-gradient(
+    105deg,
+    var(--mst-border-subtle) 0%,
+    var(--mst-border-subtle) 35%,
+    var(--mst-surface-hover) 45%,
+    var(--mst-surface) 50%,
+    var(--mst-surface-hover) 55%,
+    var(--mst-border-subtle) 65%,
+    var(--mst-border-subtle) 100%
+  );
+  background-size: 300% 100%;
+  animation: pp-shimmer 2s ease-in-out infinite;
+}
+
+@keyframes pp-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* Text skeleton: multiple lines with varying widths */
+.skeleton-text {
+  border-radius: 4px;
+  height: 0.85em;
+  margin-bottom: 0.65em;
+}
+
+.skeleton-text:nth-child(1) {
+  width: 92%;
+}
+.skeleton-text:nth-child(2) {
+  width: 78%;
+  animation-delay: 0.08s;
+}
+.skeleton-text:nth-child(3) {
+  width: 85%;
+  animation-delay: 0.16s;
+}
+.skeleton-text:nth-child(4) {
+  width: 60%;
+  animation-delay: 0.24s;
+}
+
+/* Chart placeholder skeleton */
+.skeleton-chart {
+  border-radius: var(--mst-radius);
+  height: 200px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-chart::after {
+  content: '';
+  position: absolute;
+  bottom: 12%;
+  left: 8%;
+  right: 8%;
+  height: 55%;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--mst-surface-hover) 0px,
+    var(--mst-surface-hover) 8%,
+    transparent 8%,
+    transparent 12%
+  );
+  mask-image: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0.08) 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0.08) 100%
+  );
+  border-radius: 3px 3px 0 0;
+}
+
+/* Table rows skeleton */
+.skeleton-table {
+  border-radius: var(--mst-radius);
+  padding: 0;
+  overflow: hidden;
+}
+
+.skeleton-table-row {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--mst-border-subtle);
+}
+
+.skeleton-table-row:last-child {
+  border-bottom: none;
+}
+
+.skeleton-table-cell {
+  background: var(--mst-surface-hover);
+  border-radius: 4px;
+  height: 1em;
+  flex: 1;
+}
+
+.skeleton-table-cell:first-child {
+  flex: 0.6;
+}
+.skeleton-table-cell:last-child {
+  flex: 0.4;
+}
+
+.skeleton-table-row:nth-child(even) {
+  opacity: 0.7;
+}
+
+/* ==========================================================================
+   3. MICRO-INTERACTIONS ON FORM INPUTS
+   ==========================================================================
+   Floating label hints, checkbox/radio scale, slider thumb polish.
+   -------------------------------------------------------------------------- */
+
+/* Subtle lift on focus for all form controls */
+.form-control:focus,
+.form-select:focus {
+  box-shadow:
+    0 0 0 var(--mst-pp-focus-ring-spread) var(--mst-pp-focus-ring),
+    var(--mst-shadow-sm) !important;
+  transform: translateY(-1px);
+  transition:
+    box-shadow var(--mst-transition),
+    border-color var(--mst-transition),
+    transform var(--mst-transition);
+}
+
+.form-control,
+.form-select {
+  transition:
+    box-shadow var(--mst-transition),
+    border-color var(--mst-transition),
+    transform var(--mst-transition);
+}
+
+/* Floating label effect -- label shrinks and colors on focus-within */
+.form-group:focus-within > label,
+.form-group:focus-within > .control-label,
+.shiny-input-container:focus-within > label,
+.shiny-input-container:focus-within > .control-label {
+  color: var(--mst-accent);
+  transform: translateY(-1px);
+  transition:
+    color var(--mst-transition),
+    transform var(--mst-transition);
+}
+
+/* Checkbox and radio: subtle scale on check */
+.form-check-input {
+  transition:
+    background-color var(--mst-transition),
+    border-color var(--mst-transition),
+    box-shadow var(--mst-transition),
+    transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.form-check-input:checked {
+  transform: scale(1.1);
+}
+
+.form-check-input:active {
+  transform: scale(0.9);
+}
+
+/* Shiny slider: polished thumb */
+.irs--shiny .irs-handle {
+  transition:
+    transform var(--mst-transition),
+    box-shadow var(--mst-transition);
+}
+
+.irs--shiny .irs-handle:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 4px var(--mst-pp-focus-ring);
+}
+
+.irs--shiny .irs-handle:active {
+  transform: scale(1.05);
+}
+
+/* Slider bar active color */
+.irs--shiny .irs-bar {
+  background: var(--mst-gradient-brand);
+  border: none;
+}
+
+/* ==========================================================================
+   4. PREMIUM CARD HOVER STATES
+   ==========================================================================
+   Inner glow on hover, gradient border illusion via background-clip.
+   -------------------------------------------------------------------------- */
+
+/* Inner glow overlay on cards */
+.card::after,
+.workflow-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity var(--mst-transition-slow);
+  pointer-events: none;
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    var(--mst-pp-glow-inner-hover),
+    transparent 40%
+  );
+  z-index: 0;
+}
+
+.card:hover::after,
+.workflow-card:hover::after {
+  opacity: 1;
+}
+
+/* Ensure card content stays above the glow */
+.card > *,
+.workflow-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Gradient border that intensifies on hover */
+.card {
+  position: relative;
+}
+
+.card:hover {
+  border-color: var(--mst-accent);
+  transition:
+    border-color var(--mst-transition-slow),
+    box-shadow var(--mst-transition-slow),
+    transform var(--mst-transition);
+}
+
+/* ==========================================================================
+   5. ENHANCED CONSOLE OUTPUT
+   ==========================================================================
+   Line numbers gutter, syntax-highlighted log levels, scroll-edge glow,
+   and copy-ready indicator.
+   -------------------------------------------------------------------------- */
+
+/* Line numbers via counter */
+.console-output {
+  counter-reset: console-line;
+  position: relative;
+}
+
+.console-output > div,
+.console-output > p,
+.console-output > span,
+.console-output > .shiny-text-output > div {
+  counter-increment: console-line;
+  padding-left: 3.5em;
+  position: relative;
+}
+
+.console-output > div::before,
+.console-output > p::before,
+.console-output > span::before,
+.console-output > .shiny-text-output > div::before {
+  content: counter(console-line);
+  position: absolute;
+  left: 0;
+  width: 2.8em;
+  text-align: right;
+  padding-right: 0.7em;
+  color: var(--mst-text-muted);
+  opacity: 0.4;
+  font-size: 0.75em;
+  font-family: var(--mst-font-mono);
+  border-right: 1px solid var(--mst-border-subtle);
+  user-select: none;
+}
+
+/* Enhanced syntax highlighting for log levels */
+.console-output .console-success,
+.console-output .text-success,
+.console-output [class*='SUCCESS'] {
+  background-color: var(--mst-success-light);
+  border-left: 3px solid var(--mst-success);
+  padding-left: calc(3.5em - 3px);
+  margin-left: 0;
+  border-radius: 0 4px 4px 0;
+}
+
+.console-output .console-error,
+.console-output .text-danger,
+.console-output [class*='ERROR'] {
+  background-color: var(--mst-danger-light);
+  border-left: 3px solid var(--mst-danger);
+  padding-left: calc(3.5em - 3px);
+  margin-left: 0;
+  border-radius: 0 4px 4px 0;
+}
+
+.console-output .console-warning,
+.console-output .text-warning,
+.console-output [class*='WARNING'] {
+  background-color: var(--mst-warning-light);
+  border-left: 3px solid var(--mst-warning);
+  padding-left: calc(3.5em - 3px);
+  margin-left: 0;
+  border-radius: 0 4px 4px 0;
+}
+
+.console-output .console-info,
+.console-output .text-info,
+.console-output [class*='INFO'] {
+  background-color: var(--mst-info-light);
+  border-left: 3px solid var(--mst-info);
+  padding-left: calc(3.5em - 3px);
+  margin-left: 0;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Scroll-edge glow indicators (top and bottom) */
+.console-output::before {
+  z-index: 2;
+}
+
+.console-output.pp-scroll-shadow-top::before {
+  content: '';
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: block;
+  height: 20px;
+  background: linear-gradient(
+    to bottom,
+    var(--mst-surface) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 3;
+  margin-bottom: -20px;
+}
+
+.console-output.pp-scroll-shadow-bottom::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: block;
+  height: 20px;
+  background: linear-gradient(to top, var(--mst-surface) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 3;
+  margin-top: -20px;
+}
+
+[data-bs-theme='dark'] .console-output.pp-scroll-shadow-top::before {
+  background: linear-gradient(
+    to bottom,
+    var(--mst-surface) 0%,
+    transparent 100%
+  );
+}
+
+[data-bs-theme='dark'] .console-output.pp-scroll-shadow-bottom::after {
+  background: linear-gradient(to top, var(--mst-surface) 0%, transparent 100%);
+}
+
+/* ==========================================================================
+   6. SMOOTH NUMBER TRANSITIONS (Value Box Counters)
+   ==========================================================================
+   Uses @property for animatable custom properties where supported.
+   -------------------------------------------------------------------------- */
+@property --pp-counter-value {
+  syntax: '<integer>';
+  initial-value: 0;
+  inherits: false;
+}
+
+.value-box .value-box-value {
+  transition: --pp-counter-value 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle pop when value changes */
+.value-box.pp-value-changed .value-box-value {
+  animation: pp-value-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pp-value-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.08);
+    color: var(--mst-accent);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Tabular nums for non-jittery number display */
+.value-box .value-box-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   7. ENHANCED FILE UPLOAD
+   ==========================================================================
+   Upload progress ring, animated cloud icon, file type preview.
+   -------------------------------------------------------------------------- */
+
+/* Animated cloud upload icon */
+.file-upload-area .upload-icon,
+.file-upload-area .bi-cloud-arrow-up,
+.file-upload-area svg {
+  transition: transform var(--mst-pp-transition-spring);
+}
+
+.file-upload-area:hover .upload-icon,
+.file-upload-area:hover .bi-cloud-arrow-up,
+.file-upload-area:hover svg {
+  transform: translateY(-4px);
+  animation: pp-cloud-float 2s ease-in-out infinite;
+}
+
+@keyframes pp-cloud-float {
+  0%,
+  100% {
+    transform: translateY(-4px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Drag-over pulsing border */
+.file-upload-area.drag-over {
+  animation: pp-drag-pulse 1s ease-in-out infinite;
+}
+
+@keyframes pp-drag-pulse {
+  0%,
+  100% {
+    border-color: var(--mst-accent);
+    box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.3);
+  }
+  50% {
+    border-color: var(--mst-accent-light);
+    box-shadow: 0 0 0 6px rgba(13, 148, 136, 0);
+  }
+}
+
+/* Upload progress ring (applied via class pp-uploading) */
+.file-upload-area.pp-uploading {
+  position: relative;
+}
+
+.file-upload-area.pp-uploading::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 3px solid transparent;
+  border-top-color: var(--mst-accent);
+  animation: pp-upload-spin 0.8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes pp-upload-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* File type indicator badge */
+.pp-file-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.2em 0.6em;
+  border-radius: 4px;
+  font-family: var(--mst-font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: var(--mst-accent);
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pp-file-badge.csv {
+  background-color: var(--mst-success);
+}
+.pp-file-badge.xlsx {
+  background-color: var(--mst-primary);
+}
+.pp-file-badge.txt {
+  background-color: var(--mst-text-muted);
+}
+.pp-file-badge.mzml {
+  background-color: var(--mst-warning);
+}
+
+/* ==========================================================================
+   8. PREMIUM SCROLLBAR (Auto-hide Behavior)
+   ==========================================================================
+   Scrollbar that fades when idle using overlay scrollbar mode.
+   -------------------------------------------------------------------------- */
+
+/* Thin auto-hiding scrollbar for all scrollable containers */
+.card-body,
+.tab-content,
+.sidebar,
+.console-output,
+.dataTables_scrollBody {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mst-border) transparent;
+}
+
+/* Webkit: auto-hide scrollbar via opacity */
+.card-body::-webkit-scrollbar,
+.tab-content::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.card-body::-webkit-scrollbar-track,
+.tab-content::-webkit-scrollbar-track,
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.card-body::-webkit-scrollbar-thumb,
+.tab-content::-webkit-scrollbar-thumb,
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: var(--mst-border);
+  border-radius: 3px;
+  opacity: var(--mst-pp-scrollbar-idle-opacity);
+  transition: opacity 0.3s ease;
+}
+
+.card-body:hover::-webkit-scrollbar-thumb,
+.tab-content:hover::-webkit-scrollbar-thumb,
+.sidebar:hover::-webkit-scrollbar-thumb {
+  opacity: 1;
+  background-color: var(--mst-text-muted);
+}
+
+/* Firefox: overlay scrollbar mode if supported */
+@supports (overflow: overlay) {
+  .card-body,
+  .tab-content,
+  .sidebar {
+    overflow-y: overlay;
+  }
+}
+
+/* ==========================================================================
+   9. FOCUS RING ENHANCEMENT
+   ==========================================================================
+   Animated expanding gradient focus ring for interactive elements.
+   -------------------------------------------------------------------------- */
+*:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--mst-surface),
+    0 0 0 4px var(--mst-accent);
+  transition: box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: var(--mst-radius);
+}
+
+/* Animated ring expansion on buttons and links */
+.btn:focus-visible,
+.nav-link:focus-visible,
+a:focus-visible {
+  animation: pp-focus-expand 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes pp-focus-expand {
+  0% {
+    box-shadow:
+      0 0 0 2px var(--mst-surface),
+      0 0 0 2px var(--mst-accent);
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px var(--mst-surface),
+      0 0 0 4px var(--mst-accent),
+      0 0 8px 0 var(--mst-pp-focus-ring);
+  }
+}
+
+/* Gradient focus ring for primary buttons */
+.btn-primary:focus-visible,
+.btn-run:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--mst-surface),
+    0 0 0 4px var(--mst-primary-light),
+    0 0 12px 0 rgba(59, 130, 246, 0.25);
+}
+
+/* ==========================================================================
+   10. CARD LOADING STATE (.recalculating)
+   ==========================================================================
+   Pulse overlay when Shiny is recalculating card content.
+   -------------------------------------------------------------------------- */
+.shiny-bound-output.recalculating {
+  opacity: 1 !important;
+  position: relative;
+  pointer-events: none;
+}
+
+.shiny-bound-output.recalculating::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    var(--mst-pp-glow-inner-hover) 50%,
+    transparent 75%
+  );
+  background-size: 250% 100%;
+  animation: pp-recalc-sweep 1.2s ease-in-out infinite;
+  border-radius: inherit;
+  z-index: 10;
+  pointer-events: none;
+}
+
+@keyframes pp-recalc-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* Dim content while recalculating (no blur to avoid rendering artefacts) */
+.shiny-bound-output.recalculating > *:not(::before) {
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+/* Card-level recalculating state */
+.card .shiny-bound-output.recalculating {
+  min-height: 40px;
+}
+
+/* ==========================================================================
+   11. ENHANCED TAB INDICATORS
+   ==========================================================================
+   Pill-style variant with sliding background indicator.
+   -------------------------------------------------------------------------- */
+
+/* Pill-style tabs (add class .nav-tabs-pill to opt in) */
+.nav-tabs.pp-tabs-pill {
+  border-bottom: none;
+  background-color: var(--mst-surface-hover);
+  border-radius: var(--mst-radius);
+  padding: 3px;
+  gap: 2px;
+}
+
+.nav-tabs.pp-tabs-pill .nav-link {
+  border-radius: calc(var(--mst-radius) - 2px);
+  border: none;
+  color: var(--mst-text-muted);
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  transition:
+    color var(--mst-transition),
+    background-color var(--mst-transition),
+    box-shadow var(--mst-transition);
+}
+
+.nav-tabs.pp-tabs-pill .nav-link:hover {
+  color: var(--mst-text);
+  background-color: transparent;
+}
+
+.nav-tabs.pp-tabs-pill .nav-link.active {
+  color: var(--mst-text);
+  background-color: var(--mst-surface);
+  box-shadow: var(--mst-shadow-sm);
+  font-weight: 600;
+}
+
+.nav-tabs.pp-tabs-pill .nav-link.active::after {
+  display: none;
+}
+
+[data-bs-theme='dark'] .nav-tabs.pp-tabs-pill {
+  background-color: var(--mst-bg);
+}
+
+[data-bs-theme='dark'] .nav-tabs.pp-tabs-pill .nav-link.active {
+  background-color: var(--mst-surface);
+}
+
+/* Smooth underline indicator for regular tabs */
+.nav-tabs .nav-link.active::after {
+  transition: all var(--mst-transition-slow);
+  transform-origin: center;
+  animation: pp-tab-indicator-slide 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes pp-tab-indicator-slide {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   12. TOOLTIP ENHANCEMENTS
+   ==========================================================================
+   Glassmorphism tooltips with arrow and smooth entrance.
+   -------------------------------------------------------------------------- */
+.tooltip .tooltip-inner {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.15),
+    0 0 1px rgba(0, 0, 0, 0.1);
+  max-width: 260px;
+}
+
+[data-bs-theme='dark'] .tooltip .tooltip-inner {
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+/* Arrow styling */
+.tooltip .tooltip-arrow::before {
+  border-width: 6px;
+}
+
+.bs-tooltip-top .tooltip-arrow::before,
+.bs-tooltip-auto[data-popper-placement^='top'] .tooltip-arrow::before {
+  border-top-color: rgba(15, 23, 42, 0.85);
+}
+
+.bs-tooltip-bottom .tooltip-arrow::before,
+.bs-tooltip-auto[data-popper-placement^='bottom'] .tooltip-arrow::before {
+  border-bottom-color: rgba(15, 23, 42, 0.85);
+}
+
+[data-bs-theme='dark'] .bs-tooltip-top .tooltip-arrow::before,
+[data-bs-theme='dark']
+  .bs-tooltip-auto[data-popper-placement^='top']
+  .tooltip-arrow::before {
+  border-top-color: rgba(30, 41, 59, 0.9);
+}
+
+[data-bs-theme='dark'] .bs-tooltip-bottom .tooltip-arrow::before,
+[data-bs-theme='dark']
+  .bs-tooltip-auto[data-popper-placement^='bottom']
+  .tooltip-arrow::before {
+  border-bottom-color: rgba(30, 41, 59, 0.9);
+}
+
+/* Smooth entrance */
+.tooltip.show {
+  animation: pp-tooltip-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes pp-tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ==========================================================================
+   13. BUTTON PRESS STATES
+   ==========================================================================
+   Haptic-like press feedback with scale and color shift.
+   -------------------------------------------------------------------------- */
+.btn {
+  transition:
+    background-color var(--mst-transition),
+    border-color var(--mst-transition),
+    color var(--mst-transition),
+    box-shadow var(--mst-transition),
+    transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn:active {
+  transform: scale(0.965) !important;
+  transition-duration: 0.08s;
+}
+
+/* Primary and run buttons: deeper press with brightness shift */
+.btn-primary:active,
+.btn-run:active {
+  transform: scale(0.955) !important;
+  filter: brightness(0.92);
+  transition-duration: 0.06s;
+}
+
+/* Ghost / outline buttons: press with subtle bg fill */
+.btn-outline-secondary:active {
+  transform: scale(0.97) !important;
+  background-color: var(--mst-surface-hover);
+}
+
+/* Spring-back on release */
+.btn:not(:active) {
+  transition:
+    background-color var(--mst-transition),
+    border-color var(--mst-transition),
+    color var(--mst-transition),
+    box-shadow var(--mst-transition),
+    transform var(--mst-pp-transition-spring),
+    filter var(--mst-transition);
+}
+
+/* Icon rotation on press for icon-only buttons */
+.btn-icon:active svg,
+.btn-icon:active i {
+  transform: rotate(-8deg);
+  transition: transform 0.1s ease;
+}
+
+/* ==========================================================================
+   14. SECTION DIVIDERS
+   ==========================================================================
+   Gradient dividers with diamond and dot ornaments.
+   -------------------------------------------------------------------------- */
+
+/* Diamond ornament divider */
+.pp-divider-diamond {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 2rem 0;
+}
+
+.pp-divider-diamond::before,
+.pp-divider-diamond::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--mst-border) 20%,
+    var(--mst-border) 80%,
+    transparent
+  );
+}
+
+.pp-divider-diamond span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--mst-pp-divider-ornament);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+  margin: 0 0.75rem;
+  border-radius: 1px;
+  opacity: 0.6;
+}
+
+/* Dot ornament divider */
+.pp-divider-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 2rem 0;
+  position: relative;
+}
+
+.pp-divider-dots::before,
+.pp-divider-dots::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--mst-border) 30%,
+    var(--mst-border) 70%,
+    transparent
+  );
+}
+
+.pp-divider-dots span {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+  margin: 0 0.5rem;
+}
+
+.pp-divider-dots span::before,
+.pp-divider-dots span::after,
+.pp-divider-dots span i {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--mst-pp-divider-ornament);
+  opacity: 0.5;
+}
+
+.pp-divider-dots span::before {
+  opacity: 0.3;
+}
+.pp-divider-dots span i {
+  display: block;
+  background: var(--mst-pp-divider-ornament);
+  opacity: 0.6;
+}
+.pp-divider-dots span::after {
+  opacity: 0.3;
+}
+
+/* Gradient fade divider (enhanced version of existing .divider-gradient) */
+.pp-divider-glow {
+  height: 1px;
+  border: none;
+  margin: 2rem 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--mst-accent) 30%,
+    var(--mst-primary-light) 50%,
+    var(--mst-accent) 70%,
+    transparent 100%
+  );
+  opacity: 0.3;
+  position: relative;
+}
+
+.pp-divider-glow::after {
+  content: '';
+  position: absolute;
+  inset: -2px 20% -2px 20%;
+  background: inherit;
+  filter: blur(4px);
+  opacity: 0.5;
+}
+
+/* ==========================================================================
+   15. REDUCED MOTION SUPPORT
+   ==========================================================================
+   Respects user preference for reduced motion.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .tab-content > .tab-pane.active {
+    animation: none;
+  }
+
+  .shiny-bound-output.recalculating::before {
+    animation: none;
+    background: var(--mst-pp-glow-inner-hover);
+  }
+
+  .value-box.pp-value-changed .value-box-value {
+    animation: none;
+  }
+
+  .file-upload-area:hover .upload-icon,
+  .file-upload-area:hover .bi-cloud-arrow-up,
+  .file-upload-area:hover svg {
+    animation: none;
+    transform: none;
+  }
+
+  .btn:active {
+    transform: none !important;
+  }
+
+  .form-check-input:checked {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   16. PRINT ADJUSTMENTS
+   ==========================================================================
+   Hide decorative polish in print to keep output clean.
+   -------------------------------------------------------------------------- */
+@media print {
+  .card::after,
+  .workflow-card::after,
+  .shiny-bound-output.recalculating::before,
+  .pp-divider-diamond span,
+  .pp-divider-dots span,
+  .pp-divider-glow::after {
+    display: none !important;
+  }
+
+  .console-output > div::before,
+  .console-output > p::before,
+  .console-output > span::before {
+    color: #999;
+    opacity: 1;
+  }
+}

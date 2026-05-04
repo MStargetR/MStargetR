@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: If you use this software in your work, please cite it using the following metadata.
+title: MStargetR
+abstract: An R package to convert vendor files to ready to use concentration data.
+keywords:
+  - liquid chromatography
+  - targeted mass spectrometry
+  - data analysis
+  - quality control
+  - software package
+type: software
+url: https://github.com/MStargetR/MStargetR#readme
+repository-code: https://github.com/MStargetR/MStargetR
+license: MIT
+authors:
+  - given-names: Harrison
+    family-names: Szemray
+    orcid: https://orcid.org/0009-0008-5829-540X
+  - given-names: Vimalnath
+    family-names: Nambiar
+    orcid: https://orcid.org/0000-0001-5384-6788
+  - given-names: Nathan
+    family-names: Lawler
+    orcid: https://orcid.org/0000-0001-9649-425X
+  - given-names: Julien
+    family-names: Wist
+    orcid: https://orcid.org/0000-0002-3416-2572
+  - given-names: Samantha
+    family-names: Lodge
+    orcid: https://orcid.org/0000-0001-9193-0462
+  - given-names: Luke
+    family-names: Whiley
+    orcid: https://orcid.org/0000-0002-9088-4799
+publisher: Zenodo
+version: 1.0.0
+doi: 10.5281/zenodo.18476537
+date-released: 2026-05-04

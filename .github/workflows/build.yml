@@ -1,0 +1,190 @@
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+
+name: build.yml
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: ${{ matrix.config.os }}
+    continue-on-error: ${{ matrix.config.r == 'devel' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { os: ubuntu-latest, r: 'release' }
+          - { os: ubuntu-latest, r: 'oldrel-1' }
+          - { os: ubuntu-latest, r: 'devel' }
+          - { os: windows-latest, r: 'release' }
+          - { os: windows-latest, r: 'oldrel-1' }
+          - { os: macos-latest, r: 'release' }
+          - { os: macos-latest, r: 'oldrel-1' }
+    steps:
+      - name: Set up environment
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libxml2-dev libssl-dev libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libnetcdf-dev netcdf-bin libuv1-dev
+
+      - name: Install R dependencies (BiocManager + remotes)
+        run: |
+          lib <- Sys.getenv("R_LIBS_USER")
+          dir.create(lib, recursive = TRUE, showWarnings = FALSE)
+          .libPaths(c(lib, .libPaths()))
+          if (!requireNamespace("BiocManager", quietly = TRUE))
+            install.packages("BiocManager", lib = lib)
+          bioc_ver <- BiocManager::version()
+          message("R ", getRversion(), " -> Bioconductor ", bioc_ver)
+          # Include Bioconductor in repo list so remotes::install_deps() can
+          # resolve mzR/ropls/statTarget/sva alongside CRAN deps in one pass.
+          options(repos = BiocManager::repositories())
+          install.packages("remotes", lib = lib)
+          remotes::install_deps(dependencies = TRUE, lib = lib, upgrade = "never")
+          install.packages(c("rcmdcheck", "covr"), lib = lib)
+        shell: Rscript {0}
+
+      - name: Check package
+        run: npm run check
+      - uses: r-lib/actions/check-r-package@v2
+
+      - name: Test coverage
+        # Only run on the canonical linux/release row, and skip Codecov upload
+        # entirely on pull requests from forks (where secrets aren't available).
+        if: >-
+          matrix.config.os == 'ubuntu-latest' &&
+          matrix.config.r == 'release' &&
+          (github.event_name != 'pull_request' ||
+           github.event.pull_request.head.repo.full_name == github.repository)
+        run: |
+          Rscript -e 'covr::codecov(quiet = FALSE)'
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  # Prettier is a code-style lint over non-R files (JSON, YAML, MD).
+  # It is informational only; failures here MUST NOT block R CMD check.
+  format:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - name: Check formatting (non-blocking)
+        run: npx prettier --check .
+
+  installer:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    needs: [build]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Inno Setup 6
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            Write-Error "Inno Setup 6 not found at $iscc. Install it or update the runner image."
+            exit 1
+          }
+          Write-Host "Inno Setup 6 found at $iscc"
+        shell: pwsh
+
+      - name: Build Windows installer
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" inst\installer\setup.iss
+        shell: pwsh
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MStargetR_Setup
+          path: inst/installer/Output/MStargetR_Setup.exe
+
+  release:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    needs: [build, installer]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Set up environment
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install R packages for tarball build
+        run: |
+          install.packages(c("knitr", "rmarkdown"))
+        shell: Rscript {0}
+
+      - name: Download installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: MStargetR_Setup
+          path: installer
+
+      - name: Validate release token
+        run: |
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo "::error::RELEASE_TOKEN secret is not configured. Set it in repo Settings > Secrets."
+            exit 1
+          fi
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Release package
+        run: npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GIT_AUTHOR_NAME: github-actions
+          GIT_AUTHOR_EMAIL: github-actions@github.com
+          GIT_COMMITTER_NAME: github-actions
+          GIT_COMMITTER_EMAIL: github-actions@github.com
+
+      - name: Attach installer to release
+        run: |
+          # Get the tag created by semantic-release (most recent tag)
+          TAG=$(git describe --tags --exact-match HEAD 2>/dev/null || echo "")
+          if [ -z "$TAG" ]; then
+            echo "No release tag on HEAD — semantic-release likely skipped. Nothing to upload."
+            exit 0
+          fi
+          if [ -f installer/MStargetR_Setup.exe ]; then
+            gh release upload "$TAG" installer/MStargetR_Setup.exe --clobber
+          else
+            echo "::warning::Installer artifact not found — release $TAG published without Windows installer (.exe)"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}

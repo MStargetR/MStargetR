@@ -1,0 +1,351 @@
+---
+title: "batchCorrectR Batch Correction Report"
+author: "MStargetR"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: flatly
+    code_folding: hide
+params:
+  result: NULL
+  original_data: NULL
+  qc_label: "qc"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, message = FALSE, warning = FALSE,
+  fig.width = 10, fig.height = 5
+)
+library(ggplot2)
+library(plotly)
+
+result <- params$result
+original_data <- params$original_data
+qc_label <- tolower(params$qc_label)
+cs <- result$correction_summary
+met_cols <- cs$metabolite
+corrected_data <- result$corrected_data
+```
+
+# Overview {.tabset}
+
+## Summary
+
+```{r summary-boxes}
+n_mets <- length(met_cols)
+n_improved <- sum(cs$improved, na.rm = TRUE)
+n_worsened <- sum(!cs$improved & !is.na(cs$improved))
+med_before <- round(median(cs$rsd_before, na.rm = TRUE), 1)
+med_after <- round(median(cs$rsd_after, na.rm = TRUE), 1)
+n_failed_qc <- length(result$failed_qc)
+n_batches <- if (!is.null(original_data) && "batch" %in% names(original_data)) {
+  length(unique(original_data$batch))
+} else { NA }
+n_samples <- if (!is.null(original_data)) nrow(original_data) else nrow(corrected_data)
+method <- if (!is.null(result$report)) result$report$parameters$method else "Unknown"
+```
+
+| Parameter | Value |
+|:----------|:------|
+| **Method** | `r method` |
+| **Samples** | `r n_samples` |
+| **Batches** | `r n_batches` |
+| **Metabolites** | `r n_mets` |
+| **Failed QC injections** | `r n_failed_qc` |
+| **Median QC %RSD (before)** | `r med_before`% |
+| **Median QC %RSD (after)** | `r med_after`% |
+| **Metabolites improved** | `r n_improved` / `r n_mets` (`r round(100 * n_improved / n_mets, 1)`%) |
+| **Metabolites worsened** | `r n_worsened` / `r n_mets` |
+
+## Failed QC Injections
+
+```{r failed-qc}
+if (length(result$failed_qc) > 0) {
+  knitr::kable(data.frame(Sample = result$failed_qc), caption = "Flagged QC injections (signal < 10% batch median)")
+} else {
+  cat("No QC injections were flagged.")
+}
+```
+
+# Quality Dashboard {.tabset}
+
+## RSD Distribution
+
+```{r rsd-histogram, fig.height=4}
+rsd_df <- data.frame(
+  rsd_before = cs$rsd_before,
+  rsd_after = cs$rsd_after
+)
+
+p <- ggplot() +
+  geom_histogram(data = rsd_df, aes(x = rsd_before, fill = "Before"),
+                 alpha = 0.5, bins = 30, colour = "white") +
+  geom_histogram(data = rsd_df, aes(x = rsd_after, fill = "After"),
+                 alpha = 0.5, bins = 30, colour = "white") +
+  geom_vline(xintercept = 30, linetype = "dashed", colour = "red", linewidth = 0.5) +
+  scale_fill_manual(values = c("Before" = "#E41A1C", "After" = "#377EB8"), name = "Stage") +
+  labs(title = "QC %RSD Distribution", x = "%RSD", y = "Count") +
+  theme_bw()
+ggplotly(p)
+```
+
+## Pass / Fail
+
+```{r pass-fail-donut, fig.height=4}
+pass_after <- sum(cs$rsd_after <= 30, na.rm = TRUE)
+fail_after <- sum(cs$rsd_after > 30, na.rm = TRUE)
+
+plotly::plot_ly(
+  labels = c("Pass (RSD <= 30%)", "Fail (RSD > 30%)"),
+  values = c(pass_after, fail_after),
+  type = "pie", hole = 0.5,
+  marker = list(colors = c("#22c55e", "#ef4444")),
+  textinfo = "label+percent"
+) |> plotly::layout(title = "Metabolite Pass/Fail (After Correction)",
+                    showlegend = FALSE)
+```
+
+# RSD Comparison {.tabset}
+
+## Before vs After
+
+```{r rsd-comparison, fig.height=6}
+rsd_long <- tidyr::pivot_longer(
+  data.frame(metabolite = cs$metabolite, Before = cs$rsd_before, After = cs$rsd_after),
+  cols = c("Before", "After"), names_to = "stage", values_to = "rsd"
+)
+rsd_long$stage <- factor(rsd_long$stage, levels = c("Before", "After"))
+
+p <- ggplot(rsd_long, aes(x = reorder(metabolite, rsd), y = rsd, fill = stage)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  geom_hline(yintercept = 30, linetype = "dashed", colour = "red") +
+  scale_fill_manual(values = c("Before" = "#E41A1C", "After" = "#377EB8"), name = "Stage") +
+  labs(title = "QC %RSD Before vs After Correction", x = "Metabolite", y = "%RSD") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 7))
+ggplotly(p)
+```
+
+## Scatter (Before vs After)
+
+```{r rsd-scatter, fig.height=5}
+scatter_df <- data.frame(
+  metabolite = cs$metabolite,
+  before = cs$rsd_before,
+  after = cs$rsd_after,
+  improved = cs$improved
+)
+
+p <- ggplot(scatter_df, aes(x = before, y = after, colour = improved, text = metabolite)) +
+  geom_point(size = 2, alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "grey50") +
+  geom_hline(yintercept = 30, linetype = "dotted", colour = "red", linewidth = 0.4) +
+  geom_vline(xintercept = 30, linetype = "dotted", colour = "red", linewidth = 0.4) +
+  scale_colour_manual(values = c("TRUE" = "#22c55e", "FALSE" = "#ef4444"),
+                      labels = c("TRUE" = "Improved", "FALSE" = "Worsened"),
+                      name = "Status") +
+  labs(title = "RSD: Before vs After", x = "%RSD Before", y = "%RSD After") +
+  theme_bw()
+ggplotly(p, tooltip = c("text", "x", "y"))
+```
+
+# PCA {.tabset}
+
+```{r pca-helper}
+run_pca <- function(data, met_cols) {
+  mat <- as.matrix(data[, intersect(met_cols, names(data)), drop = FALSE])
+  for (j in seq_len(ncol(mat))) {
+    nas <- is.na(mat[, j])
+    if (any(nas)) mat[nas, j] <- median(mat[, j], na.rm = TRUE)
+  }
+  col_vars <- apply(mat, 2, var, na.rm = TRUE)
+  mat <- mat[, !is.na(col_vars) & col_vars > 0, drop = FALSE]
+  if (ncol(mat) < 2) return(NULL)
+  pca <- prcomp(mat, center = TRUE, scale. = TRUE)
+  var_expl <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
+  list(
+    df = data.frame(
+      PC1 = pca$x[, 1], PC2 = pca$x[, 2],
+      sample_type = as.character(data$sample_type),
+      batch = as.character(data$batch),
+      sample_name = if ("sample_name" %in% names(data)) data$sample_name else seq_len(nrow(data)),
+      stringsAsFactors = FALSE
+    ),
+    var_expl = var_expl
+  )
+}
+```
+
+## Before Correction
+
+```{r pca-before, fig.height=5}
+if (!is.null(original_data)) {
+  pca_res <- run_pca(original_data, met_cols)
+  if (!is.null(pca_res)) {
+    p <- ggplot(pca_res$df, aes(x = PC1, y = PC2, colour = sample_type, shape = batch, text = sample_name)) +
+      geom_point(size = 2, alpha = 0.7) +
+      labs(title = "PCA: Before Correction",
+           x = paste0("PC1 (", pca_res$var_expl[1], "%)"),
+           y = paste0("PC2 (", pca_res$var_expl[2], "%)"),
+           colour = "Sample Type", shape = "Batch") +
+      theme_bw()
+    ggplotly(p, tooltip = c("text", "x", "y"))
+  } else {
+    cat("Insufficient data for PCA.")
+  }
+} else {
+  cat("Original data not available. Pass `original_data` to bc_export_html_report().")
+}
+```
+
+## After Correction
+
+```{r pca-after, fig.height=5}
+pca_res <- run_pca(corrected_data, met_cols)
+if (!is.null(pca_res)) {
+  p <- ggplot(pca_res$df, aes(x = PC1, y = PC2, colour = sample_type, shape = batch, text = sample_name)) +
+    geom_point(size = 2, alpha = 0.7) +
+    labs(title = "PCA: After Correction",
+         x = paste0("PC1 (", pca_res$var_expl[1], "%)"),
+         y = paste0("PC2 (", pca_res$var_expl[2], "%)"),
+         colour = "Sample Type", shape = "Batch") +
+    theme_bw()
+  ggplotly(p, tooltip = c("text", "x", "y"))
+} else {
+  cat("Insufficient data for PCA.")
+}
+```
+
+# Run Order Plots {.tabset}
+
+```{r run-order-setup}
+# Pick top 6 metabolites by pre-correction RSD
+n_plot <- min(6, length(met_cols))
+top_mets <- names(sort(result$qc_rsd_before, decreasing = TRUE))[seq_len(n_plot)]
+```
+
+## Signal Drift
+
+```{r run-order-plots, fig.height=8, results='asis'}
+if (!is.null(original_data) && "run_order" %in% names(original_data)) {
+  ro_data <- dplyr::bind_rows(
+    original_data |>
+      dplyr::select(dplyr::any_of(c("sample_name", "batch", "sample_type", "run_order")),
+                    dplyr::all_of(top_mets)) |>
+      tidyr::pivot_longer(dplyr::all_of(top_mets), names_to = "metabolite", values_to = "value") |>
+      dplyr::mutate(stage = "Before"),
+    corrected_data |>
+      dplyr::select(dplyr::any_of(c("sample_name", "batch", "sample_type", "run_order")),
+                    dplyr::all_of(top_mets)) |>
+      tidyr::pivot_longer(dplyr::all_of(top_mets), names_to = "metabolite", values_to = "value") |>
+      dplyr::mutate(stage = "After")
+  ) |>
+    dplyr::mutate(
+      stage = factor(stage, levels = c("Before", "After")),
+      is_qc = tolower(sample_type) == qc_label
+    )
+
+  p <- ggplot(ro_data, aes(x = run_order, y = value, colour = is_qc)) +
+    geom_point(size = 1.2, alpha = 0.7) +
+    facet_wrap(~ metabolite + stage, scales = "free_y", ncol = 2) +
+    scale_color_manual(values = c("TRUE" = "#E41A1C", "FALSE" = "#377EB8"),
+                       labels = c("TRUE" = "QC", "FALSE" = "Sample"), name = "Type") +
+    labs(title = "Run Order: Before vs After Correction",
+         x = "Run Order", y = "Signal Intensity") +
+    theme_bw() +
+    theme(strip.text = element_text(size = 8))
+  print(ggplotly(p))
+} else {
+  cat("Run order data not available in original data.")
+}
+```
+
+# Correction Summary {.tabset}
+
+## Top Improved
+
+```{r top-improved}
+top_imp <- cs |>
+  dplyr::filter(improved) |>
+  dplyr::arrange(rsd_change) |>
+  utils::head(15) |>
+  dplyr::select(metabolite, rsd_before, rsd_after, rsd_change, improved)
+
+knitr::kable(top_imp, digits = 2, caption = "Top 15 most improved metabolites (by RSD reduction)")
+```
+
+## Worst Affected
+
+```{r worst-affected}
+worst <- cs |>
+  dplyr::filter(!improved) |>
+  dplyr::arrange(dplyr::desc(rsd_change)) |>
+  utils::head(15) |>
+  dplyr::select(metabolite, rsd_before, rsd_after, rsd_change, improved)
+
+if (nrow(worst) > 0) {
+  knitr::kable(worst, digits = 2, caption = "Top 15 worst affected metabolites (RSD increased)")
+} else {
+  cat("All metabolites showed improvement or no change.")
+}
+```
+
+## Full Table
+
+```{r full-table}
+DT::datatable(
+  cs |> dplyr::select(metabolite, rsd_before, rsd_after, rsd_change, improved),
+  filter = "top",
+  options = list(pageLength = 25, scrollX = TRUE),
+  caption = "Full correction summary"
+)
+```
+
+# Heatmap
+
+```{r heatmap, fig.height=8, fig.width=10}
+# Use corrected data, top 30 metabolites by variance
+hm_mets <- intersect(met_cols, names(corrected_data))
+if (length(hm_mets) > 0) {
+  mat <- as.matrix(corrected_data[, hm_mets, drop = FALSE])
+  col_vars <- apply(mat, 2, var, na.rm = TRUE)
+  top_n <- min(30, length(hm_mets))
+  hm_mets <- names(sort(col_vars, decreasing = TRUE))[seq_len(top_n)]
+  mat <- mat[, hm_mets, drop = FALSE]
+
+  # Scale for heatmap
+  mat_scaled <- scale(mat)
+  mat_scaled[is.na(mat_scaled)] <- 0
+
+  row_labels <- if ("sample_name" %in% names(corrected_data)) {
+    corrected_data$sample_name
+  } else {
+    seq_len(nrow(corrected_data))
+  }
+
+  plotly::plot_ly(
+    x = hm_mets, y = row_labels, z = mat_scaled,
+    type = "heatmap",
+    colorscale = list(c(0, "#313695"), c(0.5, "#ffffbf"), c(1, "#a50026")),
+    hovertemplate = "Metabolite: %{x}<br>Sample: %{y}<br>Z-score: %{z:.2f}<extra></extra>"
+  ) |> plotly::layout(
+    title = "Corrected Data Heatmap (Top 30 by Variance, Z-scored)",
+    xaxis = list(title = "", tickangle = 45, tickfont = list(size = 8)),
+    yaxis = list(title = "", tickfont = list(size = 7)),
+    margin = list(b = 120, l = 150)
+  )
+} else {
+  cat("No metabolite columns found for heatmap.")
+}
+```
+
+---
+
+<p style="text-align:center; color:#94a3b8; font-size:0.85em;">
+Generated by <strong>MStargetR::batchCorrectR</strong> on `r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+</p>
