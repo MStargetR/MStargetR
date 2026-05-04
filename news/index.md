@@ -1,16 +1,5 @@
 # Changelog
 
-## MStargetR 1.0.1
-
-Released
-[2026-04-23](https://github.com/MStargetR/MStargetR/compare/v1.0.0...v1.0.1).
-
-### Bug Fixes
-
-- **batch:** resolve QCRFSC ‘subscript out of bounds’ and add
-  sample_tags input
-  ([c51707b](https://github.com/MStargetR/MStargetR/commit/c51707b6759acb201d2779456c23decfe7f9b93f))
-
 ## MStargetR 1.0.0
 
 Initial public release.
