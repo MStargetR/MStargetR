@@ -1482,6 +1482,9 @@ function(input, output, session) {
       combat_ref.batch  = if (nzchar(input$qc_combat_ref_batch %||% "")) {
         input$qc_combat_ref_batch
       } else NULL,
+      batch_column      = if (nzchar(input$qc_batch_column %||% "")) {
+        input$qc_batch_column
+      } else NULL,
       # The RDA save is the slowest tail-end step in the pipeline. Skip it
       # here so qcCheckR returns the in-memory result as soon as the
       # XLSX/HTML exports finish, then the qc_run completion handler

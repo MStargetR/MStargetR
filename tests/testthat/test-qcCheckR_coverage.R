@@ -1494,6 +1494,127 @@ test_that("qcCheckR_combat_correction uses defaults for NULL par_prior and mean_
   expect_false(mean_only_used)
 })
 
+test_that("qcCheckR_combat_correction uses batch_column when set", {
+  ml <- list(
+    project_details = list(
+      combat_par.prior = TRUE,
+      combat_mean.only = FALSE,
+      combat_ref.batch = NULL,
+      batch_column = "run_batch",
+      statTarget_qc_type = "qc",
+      qc_type = "qc"
+    ),
+    data = list(
+      concentration = list(
+        imputed = list(
+          plate1 = data.frame(
+            sample_name = paste0("s", 1:6),
+            sample_type_factor = rep(c("sample", "qc"), 3),
+            sample_plate_id = rep("plateX", 6),
+            run_batch = rep("alpha", 6),
+            met1 = c(10, 20, 30, 40, 50, 60),
+            stringsAsFactors = FALSE
+          ),
+          plate2 = data.frame(
+            sample_name = paste0("s", 7:12),
+            sample_type_factor = rep(c("sample", "qc"), 3),
+            sample_plate_id = rep("plateX", 6),
+            run_batch = rep("beta", 6),
+            met1 = c(15, 25, 35, 45, 55, 65),
+            stringsAsFactors = FALSE
+          )
+        )
+      )
+    )
+  )
+
+  batch_seen <- NULL
+  stub(qcCheckR_combat_correction, "sva::ComBat",
+       function(dat, batch, mod, par.prior, prior.plots, mean.only, ref.batch) {
+         batch_seen <<- batch
+         dat
+       })
+
+  suppressMessages(qcCheckR_combat_correction(ml))
+
+  # ComBat must be driven by run_batch (alpha/beta), not sample_plate_id
+  # (which is constant "plateX" and would silently produce a single-batch
+  # correction). This guards against the pre-batch_column behaviour where
+  # the batch vector was hardcoded to sample_plate_id.
+  expect_equal(sort(unique(batch_seen)), c("alpha", "beta"))
+})
+
+test_that("qcCheckR_combat_correction errors if batch_column is missing from data", {
+  ml <- list(
+    project_details = list(
+      combat_par.prior = TRUE,
+      combat_mean.only = FALSE,
+      combat_ref.batch = NULL,
+      batch_column = "does_not_exist",
+      statTarget_qc_type = "qc",
+      qc_type = "qc"
+    ),
+    data = list(
+      concentration = list(
+        imputed = list(
+          plate1 = data.frame(
+            sample_name = paste0("s", 1:4),
+            sample_type_factor = rep(c("sample", "qc"), 2),
+            sample_plate_id = rep("plate1", 4),
+            met1 = c(10, 20, 30, 40),
+            stringsAsFactors = FALSE
+          )
+        )
+      )
+    )
+  )
+
+  expect_error(
+    suppressMessages(qcCheckR_combat_correction(ml)),
+    "batch_column.*does_not_exist.*not found"
+  )
+})
+
+test_that("qcCheckR_combat_correction validates combat_ref.batch against batch_column values", {
+  ml <- list(
+    project_details = list(
+      combat_par.prior = TRUE,
+      combat_mean.only = FALSE,
+      combat_ref.batch = "alpha",  # absent in run_batch
+      batch_column = "run_batch",
+      statTarget_qc_type = "qc",
+      qc_type = "qc"
+    ),
+    data = list(
+      concentration = list(
+        imputed = list(
+          plate1 = data.frame(
+            sample_name = paste0("s", 1:4),
+            sample_type_factor = rep(c("sample", "qc"), 2),
+            sample_plate_id = rep("plate1", 4),
+            run_batch = rep("gamma", 4),
+            met1 = c(10, 20, 30, 40),
+            stringsAsFactors = FALSE
+          ),
+          plate2 = data.frame(
+            sample_name = paste0("s", 5:8),
+            sample_type_factor = rep(c("sample", "qc"), 2),
+            sample_plate_id = rep("plate2", 4),
+            run_batch = rep("delta", 4),
+            met1 = c(15, 25, 35, 45),
+            stringsAsFactors = FALSE
+          )
+        )
+      )
+    )
+  )
+
+  expect_error(
+    suppressMessages(qcCheckR_combat_correction(ml)),
+    "combat_ref\\.batch.*'run_batch'.*Available batches"
+  )
+})
+
 # ============================================================================
 # run_pca_model - concentration branch and validation (lines 2686-2700, 2706, 2716-2728)
 # ============================================================================
