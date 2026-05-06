@@ -2103,7 +2103,7 @@ function(input, output, session) {
   # Populate the ComBat reference-batch dropdown from the unique values of
   # whichever column the user picked above. The "(none — use grand mean)"
   # option corresponds to combat_ref.batch = NULL on the R side (see args
-  # construction in input$batch_run handler).
+  # construction inside the batchCorrectR run observer below).
   shiny::observe({
     df <- tryCatch(batch_loaded_data(), error = function(e) NULL)
     batch_col <- input$batch_batch_column
