@@ -405,6 +405,42 @@ test_that("bc_run_combat errors when sva is not installed", {
 })
 
 # ============================================================================
+# batch_shared_utils.R -- bc_run_combat: ref.batch validation
+# Catches user-supplied ref.batch values that don't exist in the data,
+# replacing the previously cryptic sva::ComBat error with a clear listing
+# of the available batches.
+# ============================================================================
+
+test_that("bc_run_combat errors when ref.batch is not present in data", {
+  df <- make_bc_data()  # batches = plate1, plate2
+  stub(bc_run_combat, "requireNamespace", function(...) TRUE)
+
+  err <- expect_error(
+    bc_run_combat(df, c("metab_A", "metab_B"),
+                  ref.batch = "plate99"),
+    "ref.batch"
+  )
+  # Error message must surface the bad value AND the available batches so the
+  # user can correct their input without re-running the whole pipeline.
+  expect_match(conditionMessage(err), "plate99", fixed = TRUE)
+  expect_match(conditionMessage(err), "plate1", fixed = TRUE)
+  expect_match(conditionMessage(err), "plate2", fixed = TRUE)
+})
+
+test_that("bc_run_combat accepts a valid ref.batch (no validation error)", {
+  df <- make_bc_data()
+  stub(bc_run_combat, "requireNamespace", function(...) TRUE)
+  stub(bc_run_combat, "sva::ComBat", function(dat, ...) dat)
+
+  # plate1 is a real batch -> no validation error, ComBat is reached.
+  expect_no_error(
+    suppressMessages(
+      bc_run_combat(df, c("metab_A", "metab_B"), ref.batch = "plate1")
+    )
+  )
+})
+
+# ============================================================================
 # batchCorrectR_Utils.R -- bc_run_combat: NA imputation (lines 536-544)
 # ============================================================================
 

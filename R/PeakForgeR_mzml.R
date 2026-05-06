@@ -1,7 +1,6 @@
-#' PeakForgeR_mzml.R
-#'
-#' mzML file import, parsing, and chromatogram handling functions.
-#' Includes mzR MRM finding, peak boundary detection, and lipid matching.
+# PeakForgeR_mzml.R
+# mzML file import, parsing, and chromatogram handling functions.
+# Includes mzR MRM finding, peak boundary detection, and lipid matching.
 
 # ANPC-specific pattern to exclude conditioning, blank, and ISTD-only runs from
 # the QC mzML list. The pattern matches filenames whose COND/BLANK/ISTDs token

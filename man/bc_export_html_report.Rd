@@ -41,3 +41,4 @@ result <- batchCorrectR(my_data, qc_label = "PQC")
 bc_export_html_report(result, original_data = my_data, qc_label = "PQC")
 }
 }
+\keyword{internal}

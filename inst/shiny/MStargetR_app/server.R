@@ -2068,6 +2068,59 @@ function(input, output, session) {
     )
   })
 
+  # Populate the "Batch Column" dropdown from the loaded data. Default-select
+  # the conventional sample_plate_id (or batch) so existing workflows keep
+  # working without user intervention; otherwise fall back to the first
+  # discrete-looking column. When no data is loaded the dropdown is empty.
+  shiny::observe({
+    df <- tryCatch(batch_loaded_data(), error = function(e) NULL)
+    if (is.null(df) || nrow(df) == 0 || ncol(df) == 0) {
+      shiny::updateSelectInput(session, "batch_batch_column",
+                               choices = character(0))
+      return()
+    }
+    cols <- colnames(df)
+    # A reasonable default: prefer sample_plate_id, then batch, then the first
+    # non-numeric column with > 1 unique value (i.e. looks like a grouping).
+    default_col <- if ("sample_plate_id" %in% cols) "sample_plate_id"
+                   else if ("batch" %in% cols) "batch"
+                   else {
+                     candidates <- cols[vapply(df, function(x) {
+                       !is.numeric(x) && length(unique(x)) > 1
+                     }, logical(1))]
+                     if (length(candidates) > 0) candidates[1] else cols[1]
+                   }
+    current <- shiny::isolate(input$batch_batch_column)
+    selected <- if (!is.null(current) && nzchar(current) && current %in% cols)
+                  current else default_col
+    shiny::updateSelectInput(session, "batch_batch_column",
+                             choices = cols, selected = selected)
+  })
+
+  # Populate the ComBat reference-batch dropdown from the unique values of
+  # whichever column the user picked above. The "(none — use grand mean)"
+  # option corresponds to combat_ref.batch = NULL on the R side (see args
+  # construction in input$batch_run handler).
+  shiny::observe({
+    df <- tryCatch(batch_loaded_data(), error = function(e) NULL)
+    batch_col <- input$batch_batch_column
+    batches <- character(0)
+    if (!is.null(df) && nrow(df) > 0 &&
+        !is.null(batch_col) && nzchar(batch_col) &&
+        batch_col %in% colnames(df)) {
+      batches <- sort(unique(stats::na.omit(as.character(df[[batch_col]]))))
+      batches <- batches[nzchar(batches)]
+    }
+    choices <- c("(none — use grand mean)" = "")
+    if (length(batches) > 0) {
+      choices <- c(choices, stats::setNames(batches, batches))
+    }
+    current <- shiny::isolate(input$combat_ref_batch)
+    selected <- if (!is.null(current) && current %in% choices) current else ""
+    shiny::updateSelectInput(session, "combat_ref_batch",
+                             choices = choices, selected = selected)
+  })
+
   # Console output for batch correction
   output$batch_console <- shiny::renderText({
     log <- rv$batch_log
@@ -2149,6 +2202,9 @@ function(input, output, session) {
       Frule       = frule_pct / 100,
       imputeM     = "minHalf",
       sample_tags = sample_tags_vec,
+      batch_column = if (nzchar(input$batch_batch_column %||% "")) {
+        input$batch_batch_column
+      } else NULL,
       project_dir = if (nzchar(input$batch_project_dir %||% "")) {
         input$batch_project_dir
       } else NULL,

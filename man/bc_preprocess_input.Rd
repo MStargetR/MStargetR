@@ -4,10 +4,17 @@
 \alias{bc_preprocess_input}
 \title{Preprocess batchCorrectR Input}
 \usage{
-bc_preprocess_input(data)
+bc_preprocess_input(data, batch_column = NULL)
 }
 \arguments{
 \item{data}{A data.frame, tibble, or list of data.frames/tibbles.}
+
+\item{batch_column}{Optional character. Name of the column in \code{data}
+that holds the batch identifier. When \code{NULL} (default) the function
+auto-detects \code{batch} or \code{sample_plate_id} (in that order). When
+supplied, that column's values are copied into the canonical
+\code{batch} column for the rest of the pipeline. Use this to drive the
+correction off any user-named column (e.g. \code{plate}, \code{run_batch}).}
 }
 \value{
 A single data.frame in canonical format with columns:

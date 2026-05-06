@@ -906,6 +906,57 @@ test_that("bc_preprocess_input errors on list with non-dataframe elements", {
   )
 })
 
+test_that("bc_preprocess_input copies a user-named batch_column to 'batch'", {
+  # Simulates a user whose data uses a non-canonical column name (here
+  # 'plate') for their batch identifier. With batch_column = 'plate' the
+  # column's values must drive the canonical 'batch' column used downstream
+  # by ComBat / QCRFSC, while the original column is preserved for the
+  # output reconstruction.
+  df <- data.frame(
+    sample_name = c("S1", "S2", "S3", "S4"),
+    plate       = c("A", "A", "B", "B"),
+    sample_type = c("qc", "sample", "qc", "sample"),
+    run_order   = 1:4,
+    metab_A     = c(10, 20, 30, 40),
+    stringsAsFactors = FALSE
+  )
+  result <- bc_preprocess_input(df, batch_column = "plate")
+  expect_true("batch" %in% colnames(result))
+  expect_equal(result$batch, c("A", "A", "B", "B"))
+  # Original column is retained so downstream output reconstruction can
+  # emit the user's schema unchanged.
+  expect_true("plate" %in% colnames(result))
+})
+
+test_that("bc_preprocess_input errors clearly when batch_column is missing", {
+  df <- data.frame(
+    sample_name = "S1",
+    batch       = "plate1",
+    sample_type = "qc",
+    run_order   = 1,
+    metab_A     = 10,
+    stringsAsFactors = FALSE
+  )
+  err <- expect_error(
+    bc_preprocess_input(df, batch_column = "does_not_exist"),
+    "batch_column"
+  )
+  # Surface the bad name and the available column list so users can fix it.
+  expect_match(conditionMessage(err), "does_not_exist", fixed = TRUE)
+  expect_match(conditionMessage(err), "batch", fixed = TRUE)
+})
+
+test_that("bc_preprocess_input rejects malformed batch_column", {
+  df <- data.frame(sample_name = "S1", batch = "p1", sample_type = "qc",
+                   run_order = 1, metab_A = 1, stringsAsFactors = FALSE)
+  expect_error(bc_preprocess_input(df, batch_column = ""),
+               "non-empty character")
+  expect_error(bc_preprocess_input(df, batch_column = c("a", "b")),
+               "non-empty character")
+  expect_error(bc_preprocess_input(df, batch_column = 123),
+               "non-empty character")
+})
+
 test_that("bc_detect_metabolite_columns excludes sample_ prefixed columns", {
   df <- data.frame(
     sample_name = "S1",
