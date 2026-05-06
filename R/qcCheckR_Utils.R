@@ -619,12 +619,29 @@ qcCheckR_combat_correction <- function(master_list) {
   mean_only <- master_list$project_details$combat_mean.only
   if (is.null(mean_only)) mean_only <- FALSE
   ref_batch <- master_list$project_details$combat_ref.batch
+  batch_column <- master_list$project_details$batch_column
+
+  # Resolve which column drives the batch grouping. NULL keeps the canonical
+  # qcCheckR contract (sample_plate_id); a user-supplied column lets ComBat
+  # run off any per-sample grouping (plate, run_batch, etc.) without needing
+  # to rename it upstream.
+  if (is.null(batch_column) || !nzchar(batch_column)) {
+    batch_column <- "sample_plate_id"
+  }
+  if (!batch_column %in% colnames(combined_data)) {
+    stop("qcCheckR: 'batch_column' = '", batch_column,
+         "' was not found in the imputed concentration data. ",
+         "Available columns: ",
+         paste(shQuote(colnames(combined_data)), collapse = ", "),
+         call. = FALSE)
+  }
+  batch_vector <- as.character(combined_data[[batch_column]])
 
   if (!is.null(ref_batch)) {
-    available_batches <- unique(as.character(combined_data$sample_plate_id))
+    available_batches <- unique(batch_vector)
     if (!as.character(ref_batch) %in% available_batches) {
       stop("qcCheckR: 'combat_ref.batch' = '", ref_batch,
-           "' is not present in the data's sample_plate_id column. ",
+           "' is not present in the data's '", batch_column, "' column. ",
            "Available batches: ",
            paste(shQuote(available_batches), collapse = ", "),
            ". Use NULL to adjust against the grand mean instead.",
@@ -632,7 +649,8 @@ qcCheckR_combat_correction <- function(master_list) {
     }
   }
 
-  message("    par.prior = ", par_prior, ", mean.only = ", mean_only,
+  message("    batch_column = ", batch_column,
+          ", par.prior = ", par_prior, ", mean.only = ", mean_only,
           if (!is.null(ref_batch)) paste0(", ref.batch = ", ref_batch) else "")
 
   # Prepare the feature matrix using the shared helper
@@ -641,7 +659,7 @@ qcCheckR_combat_correction <- function(master_list) {
   # Run ComBat (called directly so test stubs can intercept sva::ComBat)
   corrected_matrix <- sva::ComBat(
     dat = prep$dat_combat,
-    batch = combined_data$sample_plate_id,
+    batch = batch_vector,
     mod = NULL,
     par.prior = par_prior,
     prior.plots = FALSE,

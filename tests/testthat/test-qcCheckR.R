@@ -702,3 +702,19 @@ test_that("combat_ref.batch must be character or NULL", {
   )
 })
 
+test_that("batch_column must be character or NULL", {
+  temp_dir <- file.path(tempdir(), paste0("qccheck_combat_bc_", gsub("[^a-z0-9]", "", tolower(tempfile("")))))
+  dir.create(temp_dir, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
+  expect_error(
+    qcCheckR(user_name = "ANPC", project_directory = temp_dir,
+             batch_method = "ComBat", batch_column = 42),
+    "batch_column"
+  )
+  expect_error(
+    qcCheckR(user_name = "ANPC", project_directory = temp_dir,
+             batch_method = "ComBat", batch_column = ""),
+    "batch_column"
+  )
+})
+

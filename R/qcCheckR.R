@@ -32,6 +32,15 @@
 #'   effect. Default is FALSE. Only used when \code{batch_method = "ComBat"}.
 #' @param combat_ref.batch Optional character string specifying a reference
 #'   batch. Default is NULL. Only used when \code{batch_method = "ComBat"}.
+#'   Must match a value in the column selected by \code{batch_column} (or in
+#'   \code{sample_plate_id} when \code{batch_column} is NULL).
+#' @param batch_column Optional character. Name of the column in the
+#'   imputed concentration data that holds the batch identifier used by
+#'   ComBat. When \code{NULL} (default) the canonical \code{sample_plate_id}
+#'   column is used. Set this to drive the correction off an arbitrary
+#'   user-named column (e.g. \code{plate}, \code{run_batch}); the chosen
+#'   column's values become the valid choices for \code{combat_ref.batch}.
+#'   Only used when \code{batch_method = "ComBat"}.
 #' @param write_rda Logical. When \code{TRUE} (default) the master_list RDA
 #'   file is written synchronously as the final step of the pipeline. Set to
 #'   \code{FALSE} when the caller intends to write the RDA out-of-band — for
@@ -157,6 +166,7 @@ qcCheckR <- function(user_name,
                      combat_par.prior = TRUE,
                      combat_mean.only = FALSE,
                      combat_ref.batch = NULL,
+                     batch_column = NULL,
                      write_rda = TRUE) {
   # validate write_rda early so a bad value fails fast rather than at
   # the export step at the end of a long pipeline.
@@ -279,6 +289,10 @@ qcCheckR <- function(user_name,
       stop("qcCheckR: 'combat_ref.batch' must be a non-empty character string or NULL. Got: ",
            deparse(combat_ref.batch), call. = FALSE)
     }
+    if (!is.null(batch_column) && (!is.character(batch_column) || length(batch_column) != 1 || !nzchar(batch_column))) {
+      stop("qcCheckR: 'batch_column' must be a non-empty character string or NULL. Got: ",
+           deparse(batch_column), call. = FALSE)
+    }
   }
 
   # process data----
@@ -300,6 +314,7 @@ qcCheckR <- function(user_name,
   master_list$project_details$combat_par.prior <- combat_par.prior
   master_list$project_details$combat_mean.only <- combat_mean.only
   master_list$project_details$combat_ref.batch <- combat_ref.batch
+  master_list$project_details$batch_column <- batch_column
 
   ##data preparation----
   master_list <- qcCheckR_transpose_data(master_list)

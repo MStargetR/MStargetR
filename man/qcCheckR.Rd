@@ -19,6 +19,7 @@ qcCheckR(
   combat_par.prior = TRUE,
   combat_mean.only = FALSE,
   combat_ref.batch = NULL,
+  batch_column = NULL,
   write_rda = TRUE
 )
 }
@@ -59,7 +60,17 @@ Bayes adjustments. Only used when \code{batch_method = "ComBat"}.}
 effect. Default is FALSE. Only used when \code{batch_method = "ComBat"}.}
 
 \item{combat_ref.batch}{Optional character string specifying a reference
-batch. Default is NULL. Only used when \code{batch_method = "ComBat"}.}
+batch. Default is NULL. Only used when \code{batch_method = "ComBat"}.
+Must match a value in the column selected by \code{batch_column} (or in
+\code{sample_plate_id} when \code{batch_column} is NULL).}
+
+\item{batch_column}{Optional character. Name of the column in the
+imputed concentration data that holds the batch identifier used by
+ComBat. When \code{NULL} (default) the canonical \code{sample_plate_id}
+column is used. Set this to drive the correction off an arbitrary
+user-named column (e.g. \code{plate}, \code{run_batch}); the chosen
+column's values become the valid choices for \code{combat_ref.batch}.
+Only used when \code{batch_method = "ComBat"}.}
 
 \item{write_rda}{Logical. When \code{TRUE} (default) the master_list RDA
 file is written synchronously as the final step of the pipeline. Set to
