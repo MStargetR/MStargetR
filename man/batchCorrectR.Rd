@@ -15,6 +15,7 @@ batchCorrectR(
   combat_par.prior = TRUE,
   combat_mean.only = FALSE,
   combat_ref.batch = NULL,
+  batch_column = NULL,
   sample_tags = NULL,
   output_dir = tempdir(),
   project_dir = NULL,
@@ -68,7 +69,16 @@ effect (no scale/variance adjustment). Default is FALSE. Only used when
 
 \item{combat_ref.batch}{Optional character string. If provided, use this
 batch as the reference for ComBat adjustment. Default is NULL. Only used
-when \code{method = "ComBat"}.}
+when \code{method = "ComBat"}. Must match a value present in the column
+selected by \code{batch_column} (or in \code{sample_plate_id}/\code{batch}
+when \code{batch_column} is NULL).}
+
+\item{batch_column}{Optional character. Name of the column in \code{data}
+that holds the batch identifier. When \code{NULL} (default) the function
+uses \code{sample_plate_id} if present, otherwise \code{batch}. Set this
+to drive the correction off an arbitrary user-named column (e.g.
+\code{plate}, \code{run_batch}). The chosen column's values are also the
+valid choices for \code{combat_ref.batch}.}
 
 \item{sample_tags}{Optional character vector of sample-type labels to
 include in the correction (in addition to the QC label). Matched

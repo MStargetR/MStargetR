@@ -269,6 +269,7 @@ export_html_report <- function(master_list) {
 #'
 #' @param master_list A list containing project details and data.
 #' @return The updated `master_list` with the RDA file exported.
+#' @keywords internal
 #' @export
 export_master_list_rda <- function(master_list) {
   output_file <- file.path(

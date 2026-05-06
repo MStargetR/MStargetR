@@ -41,7 +41,15 @@
 #'   \code{method = "ComBat"}.
 #' @param combat_ref.batch Optional character string. If provided, use this
 #'   batch as the reference for ComBat adjustment. Default is NULL. Only used
-#'   when \code{method = "ComBat"}.
+#'   when \code{method = "ComBat"}. Must match a value present in the column
+#'   selected by \code{batch_column} (or in \code{sample_plate_id}/\code{batch}
+#'   when \code{batch_column} is NULL).
+#' @param batch_column Optional character. Name of the column in \code{data}
+#'   that holds the batch identifier. When \code{NULL} (default) the function
+#'   uses \code{sample_plate_id} if present, otherwise \code{batch}. Set this
+#'   to drive the correction off an arbitrary user-named column (e.g.
+#'   \code{plate}, \code{run_batch}). The chosen column's values are also the
+#'   valid choices for \code{combat_ref.batch}.
 #' @param sample_tags Optional character vector of sample-type labels to
 #'   include in the correction (in addition to the QC label). Matched
 #'   case-insensitively against \code{sample_type_factor} when present,
@@ -161,6 +169,7 @@ batchCorrectR <- function(data,
                           combat_par.prior = TRUE,
                           combat_mean.only = FALSE,
                           combat_ref.batch = NULL,
+                          batch_column = NULL,
                           sample_tags = NULL,
                           output_dir = tempdir(),
                           project_dir = NULL,
@@ -201,7 +210,7 @@ batchCorrectR <- function(data,
       original_data_raw$sample_run_index <- seq_len(nrow(original_data_raw))
     }
   }
-  data <- bc_preprocess_input(data)
+  data <- bc_preprocess_input(data, batch_column = batch_column)
 
   # Filter by sample_tags (if supplied). Rows whose sample_type does not
   # match qc_label or any of the tags (case-insensitive) are dropped and

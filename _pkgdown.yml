@@ -32,7 +32,6 @@ reference:
     desc: 'Signal drift and batch correction methods'
     contents:
       - batchCorrectR
-      - bc_export_html_report
 
   - title: 'Shiny Application'
     desc: 'Interactive GUI for MStargetR'

@@ -620,6 +620,18 @@ bc_run_combat <- function(data, metabolite_cols, par.prior = TRUE,
          "Install it with: BiocManager::install('sva')", call. = FALSE)
   }
 
+  if (!is.null(ref.batch)) {
+    available_batches <- unique(as.character(data$batch))
+    if (!as.character(ref.batch) %in% available_batches) {
+      stop("bc_run_combat: 'ref.batch' = '", ref.batch,
+           "' is not present in the data's batch column. ",
+           "Available batches: ",
+           paste(shQuote(available_batches), collapse = ", "),
+           ". Use NULL to adjust against the grand mean instead.",
+           call. = FALSE)
+    }
+  }
+
   prep <- bc_prepare_combat_matrix(data, metabolite_cols)
 
   corrected_matrix <- sva::ComBat(

@@ -23,3 +23,4 @@ as a detached background job after \code{\link[=qcCheckR]{qcCheckR()}} returns
 \code{callr::r_bg()} running this function), letting users view results
 immediately while the slow compressed save continues in the background.
 }
+\keyword{internal}

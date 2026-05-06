@@ -620,6 +620,18 @@ qcCheckR_combat_correction <- function(master_list) {
   if (is.null(mean_only)) mean_only <- FALSE
   ref_batch <- master_list$project_details$combat_ref.batch
 
+  if (!is.null(ref_batch)) {
+    available_batches <- unique(as.character(combined_data$sample_plate_id))
+    if (!as.character(ref_batch) %in% available_batches) {
+      stop("qcCheckR: 'combat_ref.batch' = '", ref_batch,
+           "' is not present in the data's sample_plate_id column. ",
+           "Available batches: ",
+           paste(shQuote(available_batches), collapse = ", "),
+           ". Use NULL to adjust against the grand mean instead.",
+           call. = FALSE)
+    }
+  }
+
   message("    par.prior = ", par_prior, ", mean.only = ", mean_only,
           if (!is.null(ref_batch)) paste0(", ref.batch = ", ref_batch) else "")
 

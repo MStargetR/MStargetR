@@ -893,7 +893,13 @@ ui <- bslib::page_navbar(
           condition = "input.qc_batch_method == 'ComBat'",
           shiny::checkboxInput("qc_combat_par_prior", "Parametric priors", value = TRUE),
           shiny::checkboxInput("qc_combat_mean_only", "Mean-only correction", value = FALSE),
-          shiny::textInput("qc_combat_ref_batch", "Reference batch (optional)", value = "")
+          shiny::textInput("qc_combat_ref_batch", "Reference batch (optional)", value = ""),
+          htmltools::tags$p(class = "help-text",
+            "Must match a value in your data's sample_plate_id column ",
+            "(case-sensitive). Leave blank to centre against the grand mean. ",
+            "If the typed value is not found, qcCheckR will abort with a list ",
+            "of the available batches."
+          )
         ),
 
         shiny::sliderInput(
@@ -1156,6 +1162,19 @@ ui <- bslib::page_navbar(
         htmltools::tags$hr(),
 
         shiny::selectInput(
+          "batch_batch_column", "Batch Column",
+          choices = NULL
+        ),
+        htmltools::tags$p(class = "help-text",
+          "Column in your data that identifies each batch / plate / run. ",
+          "Populated from the loaded data; defaults to ",
+          htmltools::tags$code("sample_plate_id"),
+          " (or ", htmltools::tags$code("batch"),
+          ") when present. The values in this column become the choices for ",
+          htmltools::tags$strong("Reference batch"), " below."
+        ),
+
+        shiny::selectInput(
           "batch_method", "Correction Method",
           choices = c(
             "QCRFSC (Random Forest)" = "QCRFSC",
@@ -1194,9 +1213,15 @@ ui <- bslib::page_navbar(
           htmltools::tags$p(class = "help-text",
             "Only adjust batch means, not variances. Use when batch effects primarily shift the mean signal level."
           ),
-          shiny::textInput("combat_ref_batch", "Reference batch (optional)", value = ""),
+          shiny::selectInput(
+            "combat_ref_batch", "Reference batch (optional)",
+            choices  = c("(none — use grand mean)" = ""),
+            selected = ""
+          ),
           htmltools::tags$p(class = "help-text",
-            "If set, other batches are adjusted to match this reference batch. Leave blank to use the grand mean."
+            "If set, other batches are adjusted to match this reference batch. ",
+            "Choices are populated automatically from the loaded data. ",
+            "Leave as '(none — use grand mean)' to centre against the grand mean."
           )
         ),
 

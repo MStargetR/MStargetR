@@ -21,10 +21,16 @@
 #' @importFrom stats reorder prcomp var
 #' @importFrom utils head
 #' @param data A data.frame, tibble, or list of data.frames/tibbles.
+#' @param batch_column Optional character. Name of the column in \code{data}
+#'   that holds the batch identifier. When \code{NULL} (default) the function
+#'   auto-detects \code{batch} or \code{sample_plate_id} (in that order). When
+#'   supplied, that column's values are copied into the canonical
+#'   \code{batch} column for the rest of the pipeline. Use this to drive the
+#'   correction off any user-named column (e.g. \code{plate}, \code{run_batch}).
 #' @return A single data.frame in canonical format with columns:
 #'   \code{sample_name}, \code{batch}, \code{sample_type}, \code{run_order},
 #'   plus metabolite columns.
-bc_preprocess_input <- function(data) {
+bc_preprocess_input <- function(data, batch_column = NULL) {
   # Combine list of dataframes
   if (is.list(data) && !is.data.frame(data)) {
     if (length(data) == 0)
@@ -33,6 +39,28 @@ bc_preprocess_input <- function(data) {
       stop("batchCorrectR: All elements of 'data' list must be data.frames.",
            call. = FALSE)
     data <- dplyr::bind_rows(data)
+  }
+
+  # User-specified batch column overrides the default sample_plate_id->batch
+  # mapping below. Copying (rather than renaming) preserves the original
+  # column too so bc_reconstruct_output can still emit it in the user's
+  # output schema.
+  if (!is.null(batch_column)) {
+    if (!is.character(batch_column) || length(batch_column) != 1 ||
+        !nzchar(batch_column)) {
+      stop("batchCorrectR: 'batch_column' must be a single non-empty ",
+           "character string or NULL. Got: ", deparse(batch_column),
+           call. = FALSE)
+    }
+    if (!batch_column %in% colnames(data)) {
+      stop("batchCorrectR: 'batch_column' = '", batch_column,
+           "' was not found in the data. Available columns: ",
+           paste(shQuote(colnames(data)), collapse = ", "),
+           call. = FALSE)
+    }
+    if (batch_column != "batch") {
+      data$batch <- data[[batch_column]]
+    }
   }
 
   # Column mapping: user-facing names -> canonical internal names
@@ -736,6 +764,7 @@ bc_save_to_project <- function(result, project_dir) {
 #'   rendering. Default \code{TRUE} in interactive sessions.
 #'
 #' @return Invisibly returns the path to the rendered HTML file.
+#' @keywords internal
 #' @export
 #'
 #' @examples

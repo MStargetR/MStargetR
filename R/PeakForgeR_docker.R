@@ -1,7 +1,6 @@
-#' PeakForgeR_docker.R
-#'
-#' Docker command construction, execution, and container management
-#' for running Skyline via Docker.
+# PeakForgeR_docker.R
+# Docker command construction, execution, and container management
+# for running Skyline via Docker.
 
 # Skyline instrument-method m/z tolerance used when importing MRM transitions.
 # 0.055 Da is intentionally wider than the mrm_guide matching tolerances
