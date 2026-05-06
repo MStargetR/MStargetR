@@ -40,7 +40,7 @@ data.frame input that any user can prepare."><meta property="og:image" content="
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Standalone Interbatch Correction for Targeted LC-MS Data</h1>
-      <small class="dont-index">Source: <a href="https://github.com/MStargetR/MStargetR/blob/v1.0.0/R/batchCorrectR.R" class="external-link"><code>R/batchCorrectR.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/MStargetR/MStargetR/blob/main/R/batchCorrectR.R" class="external-link"><code>R/batchCorrectR.R</code></a></small>
       <div class="d-none name"><code>batchCorrectR.Rd</code></div>
     </div>
 
@@ -64,6 +64,7 @@ data.frame input that any user can prepare.</p>
 <span>  combat_par.prior <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  combat_mean.only <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  combat_ref.batch <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  batch_column <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  sample_tags <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  project_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -140,7 +141,18 @@ effect (no scale/variance adjustment). Default is FALSE. Only used when
 <dt id="arg-combat-ref-batch">combat_ref.batch<a class="anchor" aria-label="anchor" href="#arg-combat-ref-batch"></a></dt>
 <dd><p>Optional character string. If provided, use this
 batch as the reference for ComBat adjustment. Default is NULL. Only used
-when <code>method = "ComBat"</code>.</p></dd>
+when <code>method = "ComBat"</code>. Must match a value present in the column
+selected by <code>batch_column</code> (or in <code>sample_plate_id</code>/<code>batch</code>
+when <code>batch_column</code> is NULL).</p></dd>
+
+
+<dt id="arg-batch-column">batch_column<a class="anchor" aria-label="anchor" href="#arg-batch-column"></a></dt>
+<dd><p>Optional character. Name of the column in <code>data</code>
+that holds the batch identifier. When <code>NULL</code> (default) the function
+uses <code>sample_plate_id</code> if present, otherwise <code>batch</code>. Set this
+to drive the correction off an arbitrary user-named column (e.g.
+<code>plate</code>, <code>run_batch</code>). The chosen column's values are also the
+valid choices for <code>combat_ref.batch</code>.</p></dd>
 
 
 <dt id="arg-sample-tags">sample_tags<a class="anchor" aria-label="anchor" href="#arg-sample-tags"></a></dt>

@@ -19,6 +19,7 @@ batchCorrectR(
   combat_par.prior = TRUE,
   combat_mean.only = FALSE,
   combat_ref.batch = NULL,
+  batch_column = NULL,
   sample_tags = NULL,
   output_dir = tempdir(),
   project_dir = NULL,
@@ -93,7 +94,17 @@ batchCorrectR(
 
   Optional character string. If provided, use this batch as the
   reference for ComBat adjustment. Default is NULL. Only used when
-  `method = "ComBat"`.
+  `method = "ComBat"`. Must match a value present in the column selected
+  by `batch_column` (or in `sample_plate_id`/`batch` when `batch_column`
+  is NULL).
+
+- batch_column:
+
+  Optional character. Name of the column in `data` that holds the batch
+  identifier. When `NULL` (default) the function uses `sample_plate_id`
+  if present, otherwise `batch`. Set this to drive the correction off an
+  arbitrary user-named column (e.g. `plate`, `run_batch`). The chosen
+  column's values are also the valid choices for `combat_ref.batch`.
 
 - sample_tags:
 

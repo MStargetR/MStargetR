@@ -36,7 +36,7 @@ maps column names to the canonical internal format expected by the pipeline."><m
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Preprocess batchCorrectR Input</h1>
-      <small class="dont-index">Source: <a href="https://github.com/MStargetR/MStargetR/blob/v1.0.0/R/batchCorrectR_Utils.R" class="external-link"><code>R/batchCorrectR_Utils.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/MStargetR/MStargetR/blob/main/R/batchCorrectR_Utils.R" class="external-link"><code>R/batchCorrectR_Utils.R</code></a></small>
       <div class="d-none name"><code>bc_preprocess_input.Rd</code></div>
     </div>
 
@@ -47,7 +47,7 @@ maps column names to the canonical internal format expected by the pipeline.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">bc_preprocess_input</span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">bc_preprocess_input</span><span class="op">(</span><span class="va">data</span>, batch_column <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -56,6 +56,15 @@ maps column names to the canonical internal format expected by the pipeline.</p>
 
 <dl><dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
 <dd><p>A data.frame, tibble, or list of data.frames/tibbles.</p></dd>
+
+
+<dt id="arg-batch-column">batch_column<a class="anchor" aria-label="anchor" href="#arg-batch-column"></a></dt>
+<dd><p>Optional character. Name of the column in <code>data</code>
+that holds the batch identifier. When <code>NULL</code> (default) the function
+auto-detects <code>batch</code> or <code>sample_plate_id</code> (in that order). When
+supplied, that column's values are copied into the canonical
+<code>batch</code> column for the rest of the pipeline. Use this to drive the
+correction off any user-named column (e.g. <code>plate</code>, <code>run_batch</code>).</p></dd>
 
 </dl></div>
     <div class="section level2">
