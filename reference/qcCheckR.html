@@ -59,6 +59,7 @@
 <span>  combat_par.prior <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  combat_mean.only <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  combat_ref.batch <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  batch_column <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  write_rda <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -130,7 +131,19 @@ effect. Default is FALSE. Only used when <code>batch_method = "ComBat"</code>.</
 
 <dt id="arg-combat-ref-batch">combat_ref.batch<a class="anchor" aria-label="anchor" href="#arg-combat-ref-batch"></a></dt>
 <dd><p>Optional character string specifying a reference
-batch. Default is NULL. Only used when <code>batch_method = "ComBat"</code>.</p></dd>
+batch. Default is NULL. Only used when <code>batch_method = "ComBat"</code>.
+Must match a value in the column selected by <code>batch_column</code> (or in
+<code>sample_plate_id</code> when <code>batch_column</code> is NULL).</p></dd>
+
+
+<dt id="arg-batch-column">batch_column<a class="anchor" aria-label="anchor" href="#arg-batch-column"></a></dt>
+<dd><p>Optional character. Name of the column in the
+imputed concentration data that holds the batch identifier used by
+ComBat. When <code>NULL</code> (default) the canonical <code>sample_plate_id</code>
+column is used. Set this to drive the correction off an arbitrary
+user-named column (e.g. <code>plate</code>, <code>run_batch</code>); the chosen
+column's values become the valid choices for <code>combat_ref.batch</code>.
+Only used when <code>batch_method = "ComBat"</code>.</p></dd>
 
 
 <dt id="arg-write-rda">write_rda<a class="anchor" aria-label="anchor" href="#arg-write-rda"></a></dt>

@@ -21,6 +21,7 @@ qcCheckR(
   combat_par.prior = TRUE,
   combat_mean.only = FALSE,
   combat_ref.batch = NULL,
+  batch_column = NULL,
   write_rda = TRUE
 )
 ```
@@ -98,7 +99,18 @@ qcCheckR(
 - combat_ref.batch:
 
   Optional character string specifying a reference batch. Default is
-  NULL. Only used when `batch_method = "ComBat"`.
+  NULL. Only used when `batch_method = "ComBat"`. Must match a value in
+  the column selected by `batch_column` (or in `sample_plate_id` when
+  `batch_column` is NULL).
+
+- batch_column:
+
+  Optional character. Name of the column in the imputed concentration
+  data that holds the batch identifier used by ComBat. When `NULL`
+  (default) the canonical `sample_plate_id` column is used. Set this to
+  drive the correction off an arbitrary user-named column (e.g. `plate`,
+  `run_batch`); the chosen column's values become the valid choices for
+  `combat_ref.batch`. Only used when `batch_method = "ComBat"`.
 
 - write_rda:
 
