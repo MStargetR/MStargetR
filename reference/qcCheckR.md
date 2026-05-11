@@ -22,7 +22,9 @@ qcCheckR(
   combat_mean.only = FALSE,
   combat_ref.batch = NULL,
   batch_column = NULL,
-  write_rda = TRUE
+  write_rda = TRUE,
+  rda_compress = FALSE,
+  date_order = c("auto", "dmy", "mdy", "ymd", "iso")
 )
 ```
 
@@ -121,6 +123,30 @@ qcCheckR(
   immediately and fire a separate background job that calls
   [`export_master_list_rda`](https://mstargetr.github.io/MStargetR/reference/export_master_list_rda.md)
   on the returned master_list. The XLSX and HTML exports are unaffected.
+
+- rda_compress:
+
+  Compression option forwarded to
+  [`save`](https://rdrr.io/r/base/save.html). Default `FALSE` (no
+  compression). R's single-threaded gzip pass over the serialized
+  master_list can take hours on ~50+ plate cohorts and was producing an
+  apparent hang on a 54-plate run, so we default to off and accept a
+  5-10x larger `.rda` on disk in exchange for a save that completes in
+  seconds-to-minutes. Pass `"gzip"`, `"bzip2"`, or `"xz"` to opt into
+  compression for archival runs.
+
+- date_order:
+
+  Controls how the `AcquiredTime` column from PeakForgeR reports (which
+  Skyline exports in the OS locale of whoever ran the export) is parsed.
+  One of `"auto"` (default; the pipeline inspects the cohort, prefers
+  mzML `startTimeStamp` ISO 8601 headers where available, and chooses an
+  unambiguous order from the cohort's parse pattern and any `_YYYYMMDD$`
+  plate-name hints), `"dmy"` (day-first slash/dash formats), `"mdy"`
+  (month-first slash/dash formats), or `"ymd"` / `"iso"` (ISO 8601
+  only). If `"auto"` cannot resolve the format unambiguously, the
+  pipeline stops with a clear message asking you to set this argument
+  explicitly rather than silently produce wrong dates.
 
 ## Value
 

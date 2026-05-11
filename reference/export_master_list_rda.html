@@ -47,7 +47,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">export_master_list_rda</span><span class="op">(</span><span class="va">master_list</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">export_master_list_rda</span><span class="op">(</span><span class="va">master_list</span>, rda_compress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -56,6 +56,17 @@
 
 <dl><dt id="arg-master-list">master_list<a class="anchor" aria-label="anchor" href="#arg-master-list"></a></dt>
 <dd><p>A list containing project details and data.</p></dd>
+
+
+<dt id="arg-rda-compress">rda_compress<a class="anchor" aria-label="anchor" href="#arg-rda-compress"></a></dt>
+<dd><p>Passed straight through to <code><a href="https://rdrr.io/r/base/save.html" class="external-link">save()</a></code>'s <code>compress</code>
+argument. Default is <code>FALSE</code> (no compression). On large cohorts
+(~50+ plates) R's single-threaded gzip pass over the serialized
+master_list can take hours and was producing an apparent hang in
+the R workflow on 54-plate cohorts; an uncompressed save completes
+in seconds-to-minutes at the cost of a 5-10x larger file on disk.
+Set to <code>"gzip"</code>, <code>"bzip2"</code>, or <code>"xz"</code> to opt into compression for
+archival runs.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -68,7 +79,7 @@
 as a detached background job after <code><a href="qcCheckR.html">qcCheckR()</a></code> returns
 (<code>qcCheckR(..., write_rda = FALSE)</code> followed by a separate
 <code><a href="https://callr.r-lib.org/reference/r_bg.html" class="external-link">callr::r_bg()</a></code> running this function), letting users view results
-immediately while the slow compressed save continues in the background.</p>
+immediately while the slow save continues in the background.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

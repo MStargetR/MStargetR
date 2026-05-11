@@ -6,7 +6,7 @@ summary tables, QC metrics, and processed data.
 ## Usage
 
 ``` r
-qcCheckR_export_all(master_list, write_rda = TRUE)
+qcCheckR_export_all(master_list, write_rda = TRUE, rda_compress = FALSE)
 ```
 
 ## Arguments
@@ -24,6 +24,12 @@ qcCheckR_export_all(master_list, write_rda = TRUE)
   write completes). When `FALSE`, callers are responsible for invoking
   [`export_master_list_rda()`](https://mstargetr.github.io/MStargetR/reference/export_master_list_rda.md)
   themselves.
+
+- rda_compress:
+
+  Forwarded to
+  [`export_master_list_rda()`](https://mstargetr.github.io/MStargetR/reference/export_master_list_rda.md);
+  see its documentation. Default is `FALSE` (uncompressed save).
 
 ## Value
 

@@ -44,7 +44,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">qcCheckR_export_all</span><span class="op">(</span><span class="va">master_list</span>, write_rda <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">qcCheckR_export_all</span><span class="op">(</span><span class="va">master_list</span>, write_rda <span class="op">=</span> <span class="cn">TRUE</span>, rda_compress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -62,6 +62,11 @@ caller intends to write the RDA out-of-band (e.g. the Shiny GUI fires a
 detached background save so results can render before the slow RDA write
 completes). When <code>FALSE</code>, callers are responsible for invoking
 <code><a href="export_master_list_rda.html">export_master_list_rda()</a></code> themselves.</p></dd>
+
+
+<dt id="arg-rda-compress">rda_compress<a class="anchor" aria-label="anchor" href="#arg-rda-compress"></a></dt>
+<dd><p>Forwarded to <code><a href="export_master_list_rda.html">export_master_list_rda()</a></code>; see its
+documentation. Default is <code>FALSE</code> (uncompressed save).</p></dd>
 
 </dl></div>
     <div class="section level2">
