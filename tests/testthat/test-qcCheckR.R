@@ -217,7 +217,8 @@ test_that("qcCheckR calls workflow functions in correct order for non-ANPC user"
     call_log <<- c(call_log, "transpose")
     ml
   })
-  stub(qcCheckR, "qcCheckR_sort_data", function(ml) {
+  # ... absorbs the date_order arg the real qcCheckR() forwards.
+  stub(qcCheckR, "qcCheckR_sort_data", function(ml, ...) {
     call_log <<- c(call_log, "sort")
     ml
   })
@@ -366,7 +367,8 @@ test_that("qcCheckR returns result of qcCheckR_export_all", {
                      "qcCheckR_summary_report", "qcCheckR_plot_options",
                      "qcCheckR_PCA", "qcCheckR_run_order_plots",
                      "qcCheckR_target_control_charts")) {
-    stub(qcCheckR, fn_name, function(ml) ml)
+    # ... absorbs the date_order arg qcCheckR() forwards to qcCheckR_sort_data.
+    stub(qcCheckR, fn_name, function(ml, ...) ml)
   }
   # ... absorbs the write_rda arg the real qcCheckR() forwards.
   stub(qcCheckR, "qcCheckR_export_all", function(ml, ...) {

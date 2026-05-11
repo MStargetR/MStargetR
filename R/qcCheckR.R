@@ -48,6 +48,18 @@
 #'   the user immediately and fire a separate background job that calls
 #'   \code{\link{export_master_list_rda}} on the returned master_list. The
 #'   XLSX and HTML exports are unaffected.
+#' @param date_order Controls how the \code{AcquiredTime} column from
+#'   PeakForgeR reports (which Skyline exports in the OS locale of whoever
+#'   ran the export) is parsed. One of \code{"auto"} (default; the
+#'   pipeline inspects the cohort, prefers mzML \code{startTimeStamp}
+#'   ISO 8601 headers where available, and chooses an unambiguous order
+#'   from the cohort's parse pattern and any \code{_YYYYMMDD$} plate-name
+#'   hints), \code{"dmy"} (day-first slash/dash formats), \code{"mdy"}
+#'   (month-first slash/dash formats), or \code{"ymd"} / \code{"iso"}
+#'   (ISO 8601 only). If \code{"auto"} cannot resolve the format
+#'   unambiguously, the pipeline stops with a clear message asking you to
+#'   set this argument explicitly rather than silently produce wrong
+#'   dates.
 #' @return A list containing the processed data and generated reports.
 #' @export
 #' @examples
@@ -167,12 +179,22 @@ qcCheckR <- function(user_name,
                      combat_mean.only = FALSE,
                      combat_ref.batch = NULL,
                      batch_column = NULL,
-                     write_rda = TRUE) {
+                     write_rda = TRUE,
+                     date_order = c("auto", "dmy", "mdy", "ymd", "iso")) {
   # validate write_rda early so a bad value fails fast rather than at
   # the export step at the end of a long pipeline.
   if (!is.logical(write_rda) || length(write_rda) != 1 || is.na(write_rda)) {
     stop("qcCheckR: 'write_rda' must be TRUE or FALSE. Got: ",
          deparse(write_rda), call. = FALSE)
+  }
+  if (missing(date_order)) {
+    date_order <- "auto"
+  } else {
+    date_order <- tryCatch(match.arg(date_order),
+                           error = function(e) {
+      stop("qcCheckR: 'date_order' must be one of 'auto', 'dmy', 'mdy', ",
+           "'ymd', or 'iso'. Got: ", deparse(date_order), call. = FALSE)
+    })
   }
   #validate user_name
   if (missing(user_name)) {
@@ -318,7 +340,7 @@ qcCheckR <- function(user_name,
 
   ##data preparation----
   master_list <- qcCheckR_transpose_data(master_list)
-  master_list <- qcCheckR_sort_data(master_list)
+  master_list <- qcCheckR_sort_data(master_list, date_order = date_order)
   master_list <- qcCheckR_impute_data(master_list)
   master_list <- qcCheckR_calculate_response_concentration(master_list)
   master_list <- qcCheckR_statTarget_batch_correction(master_list)

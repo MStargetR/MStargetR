@@ -120,15 +120,45 @@ transpose_plate_data <- function(data) {
 #'
 #' This function sorts the transposed peak area data by run order and performs QC checks.
 #' It assigns sample types, validates QC coverage, and sets the appropriate QC type for the project.
+#'
+#' Before iterating plates, the cohort-wide date format is resolved once so
+#' every plate uses the same calendar convention. mzML \code{startTimeStamp}
+#' headers (ISO 8601, locale-invariant) are preferred per sample where
+#' available; the \code{date_order} argument controls how to parse any
+#' Skyline-exported \code{AcquiredTime} strings that fall back to the
+#' string path.
+#'
 #' @keywords internal
 #' @param master_list A list containing project details and data.
+#' @param date_order One of \code{"auto"} (default), \code{"dmy"}, \code{"mdy"},
+#'   or \code{"ymd"} / \code{"iso"}. Forwarded to \code{parse_sample_timestamp}
+#'   for any sample where mzR \code{startTimeStamp} is unavailable. When
+#'   \code{"auto"}, this function inspects the cohort and selects an
+#'   unambiguous order; if every value is ambiguous and no plate-name
+#'   \code{_YYYYMMDD$} hint can break the tie, it errors so the user must
+#'   pick explicitly rather than silently get the wrong dates.
 #' @return The updated `master_list` with sorted data and QC check results.
 #'
 #' @examples
 #' \dontrun{
 #' master_list <- qcCheckR_sort_data(master_list)
 #' }
-qcCheckR_sort_data <- function(master_list) {
+qcCheckR_sort_data <- function(master_list,
+                               date_order = c("auto", "dmy", "mdy", "ymd", "iso")) {
+  if (missing(date_order)) {
+    date_order <- "auto"
+  } else {
+    date_order <- match.arg(date_order)
+  }
+  if (date_order == "iso") date_order <- "ymd"
+
+  effective_order <- if (identical(date_order, "auto")) {
+    detect_cohort_date_order(master_list)
+  } else {
+    date_order
+  }
+
+  master_list$project_details$date_order <- effective_order
   master_list$project_details$run_orders <- list()
   master_list$data$peakArea$sorted <- list()
 
@@ -144,7 +174,10 @@ qcCheckR_sort_data <- function(master_list) {
     } else {
       report_data <- report_list[[plate_id]]
     }
-    run_order <- extract_run_order(report_data, plate_id)
+    mzR_entries <- master_list$data[[plate_id]]$mzR
+    run_order <- extract_run_order(report_data, plate_id,
+                                   mzR_entries = mzR_entries,
+                                   date_order = effective_order)
     run_order <- assign_sample_type(master_list$project_details$sample_tags, run_order)
     validate_qc_types(run_order, master_list$project_details$sample_tags)
     sorted_data <- sort_and_filter_data(
@@ -169,50 +202,83 @@ qcCheckR_sort_data <- function(master_list) {
 ###Sub Functions ----
 #' Extract Run Order from PeakForgeR Report
 #'
-#' This function extracts the run order data from a PeakForgeR report, filtering by plate ID.
+#' Builds the per-plate run order frame used downstream by qcCheckR. mzML
+#' \code{startTimeStamp} headers (ISO 8601, locale-invariant) are preferred
+#' on a per-sample basis when \code{mzR_entries} is supplied; Skyline's
+#' \code{AcquiredTime} string is used as a fallback for any sample whose
+#' mzML did not carry a usable header. The string-parse path honours
+#' \code{date_order} so the locale-dependent dmy/mdy ambiguity is resolved
+#' by the caller's cohort-level decision rather than by silent first-match
+#' inside the parser.
+#'
 #' @keywords internal
 #' @param report The PeakForgeR report data frame.
 #' @param plate_id The ID of the plate to filter by.
+#' @param mzR_entries Optional named list of mzR entries (typically
+#'   \code{master_list$data[[plate_id]]$mzR}). Each element should carry an
+#'   \code{mzR_timestamp} character scalar (an ISO 8601 timestamp from the
+#'   mzML \code{startTimeStamp} header). Where present and non-empty, this
+#'   value replaces the report's \code{AcquiredTime} for that sample.
+#' @param date_order Forwarded to \code{parse_sample_timestamp} for the
+#'   fallback path; see that function for accepted values.
 #' @return A data frame containing the sample names, timestamps, and other relevant information.
-extract_run_order <- function(report, plate_id) {
+extract_run_order <- function(report, plate_id, mzR_entries = NULL,
+                              date_order = "auto") {
   extracted_data <- report %>%
     dplyr::select(dplyr::contains(c("FileName", "AcquiredTime"))) %>%
     dplyr::distinct(FileName, .keep_all = TRUE)
 
-  # Detect ambiguous date formats before parsing. Vote across the full
-  # vector (not just the first value) to decide between dmy and mdy.
-  raw_timestamps <- extracted_data$AcquiredTime
-  parsed_dmy <- suppressWarnings(as.POSIXct(raw_timestamps, format = "%d/%m/%Y %H:%M", tz = "UTC"))
-  parsed_mdy <- suppressWarnings(as.POSIXct(raw_timestamps, format = "%m/%d/%Y %H:%M:%S", tz = "UTC"))
-  both_valid <- !is.na(parsed_dmy) & !is.na(parsed_mdy) & parsed_dmy != parsed_mdy
-  if (any(both_valid, na.rm = TRUE)) {
-    non_na_raw <- raw_timestamps[!is.na(raw_timestamps) & nzchar(raw_timestamps)]
-    day_parts <- suppressWarnings(as.integer(sub("/.*", "", non_na_raw)))
-    # Prefer whichever parser yields the most successful dates across the
-    # whole vector, rather than relying on the first element.
-    n_dmy <- sum(!is.na(parsed_dmy))
-    n_mdy <- sum(!is.na(parsed_mdy))
-    if (length(day_parts) > 0 && all(day_parts <= 12, na.rm = TRUE)) {
-      winner <- if (n_mdy > n_dmy) "month-first (mm/dd/YYYY)" else "day-first (dd/mm/YYYY)"
-      warning("Ambiguous date format detected in plate '", plate_id,
-              "': all day/month values <= 12. ",
-              "Dates like '", non_na_raw[which(both_valid[!is.na(raw_timestamps) & nzchar(raw_timestamps)])[1]],
-              "' could be interpreted as day-first or month-first. ",
-              "Vote across the full vector (", n_dmy, " dmy vs ", n_mdy,
-              " mdy successes) selects ", winner, ".",
-              call. = FALSE)
+  # Build a per-FileName ISO 8601 lookup from any mzR entries the caller
+  # supplied. mzML startTimeStamp is mandated ISO 8601 by the PSI-MS spec,
+  # so it is locale-invariant and eliminates the dmy/mdy ambiguity that
+  # bites Skyline's AcquiredTime string export.
+  iso_lookup <- character(0)
+  if (!is.null(mzR_entries) && length(mzR_entries) > 0) {
+    for (mzml_name in names(mzR_entries)) {
+      ts <- mzR_entries[[mzml_name]]$mzR_timestamp
+      if (!is.null(ts) && length(ts) == 1 && !is.na(ts) &&
+          nzchar(trimws(ts))) {
+        iso_lookup[mzml_name] <- ts
+      }
     }
+  }
+
+  raw_filename <- as.character(extracted_data$FileName)
+  mzR_iso <- if (length(iso_lookup) > 0) {
+    iso_lookup[raw_filename]
+  } else {
+    rep(NA_character_, length(raw_filename))
+  }
+  effective_ts <- ifelse(
+    !is.na(mzR_iso) & nzchar(mzR_iso),
+    mzR_iso,
+    as.character(extracted_data$AcquiredTime)
+  )
+
+  n_total <- sum(!is.na(extracted_data$AcquiredTime) &
+                   nzchar(as.character(extracted_data$AcquiredTime)))
+  n_iso <- sum(!is.na(mzR_iso) & nzchar(mzR_iso))
+  if (n_total > 0 && n_iso > 0 && n_iso < n_total) {
+    message("Plate '", plate_id, "': using mzML startTimeStamp for ",
+            n_iso, "/", n_total,
+            " samples; falling back to AcquiredTime parsing for the ",
+            "remainder (date_order='", date_order, "').")
   }
 
   extracted_data <- extracted_data %>%
     dplyr::mutate(FileName = sub("\\.mzML$", "", FileName)) %>%
-    dplyr::rename(sample_name = FileName, sample_timestamp = AcquiredTime) %>%
-    dplyr::mutate(sample_timestamp = parse_sample_timestamp(sample_timestamp)) %>%
-    # Now filter and arrange safely
+    dplyr::rename(sample_name = FileName) %>%
+    dplyr::mutate(
+      sample_timestamp = parse_sample_timestamp(effective_ts,
+                                                date_order = date_order)
+    ) %>%
+    dplyr::select(-dplyr::any_of("AcquiredTime")) %>%
     dplyr::filter(!is.na(sample_timestamp)) %>%
     dplyr::arrange(sample_timestamp)
 
-  # Post-parse validation: detect suspicious timestamp gaps
+  # Post-parse sanity check: large inter-sample gaps on a single plate
+  # suggest a format-detection error. Mostly silent on the mzR-ISO path
+  # because ISO is unambiguous; still useful for the AcquiredTime fallback.
   if (nrow(extracted_data) > 1) {
     sorted_ts <- sort(extracted_data$sample_timestamp, na.rm = TRUE)
     gaps <- diff(sorted_ts)
@@ -238,6 +304,209 @@ extract_run_order <- function(report, plate_id) {
     )
 
   return(extracted_data)
+}
+
+#' Extract a YYYYMMDD Date Hint From a Plate ID
+#'
+#' Many ANPC plate IDs end with an \code{_YYYYMMDD} suffix (e.g.
+#' \code{..._BHASp06_20211004}) that names the acquisition date in an
+#' unambiguous, locale-independent form. When the dmy/mdy heuristics tie
+#' across an otherwise-ambiguous cohort, this hint is used to tip the
+#' decision toward whichever calendar convention places the parsed dates
+#' closest to the embedded date. The looser 6-digit \code{_DDMMYY} or
+#' \code{_YYMMDD} suffixes are intentionally not matched, because in
+#' practice they have been observed to be project codes rather than
+#' acquisition dates.
+#'
+#' @keywords internal
+#' @param plate_id A character scalar plate identifier.
+#' @return A length-1 POSIXct (UTC) or \code{NA} if no usable hint is
+#'   present.
+extract_plate_date_hint <- function(plate_id) {
+  if (!is.character(plate_id) || length(plate_id) != 1 ||
+      is.na(plate_id)) {
+    return(as.POSIXct(NA_character_, tz = "UTC"))
+  }
+  m <- regmatches(plate_id, regexpr("_\\d{8}$", plate_id))
+  if (length(m) == 0) return(as.POSIXct(NA_character_, tz = "UTC"))
+  ts <- sub("^_", "", m)
+  year  <- suppressWarnings(as.integer(substr(ts, 1, 4)))
+  month <- suppressWarnings(as.integer(substr(ts, 5, 6)))
+  day   <- suppressWarnings(as.integer(substr(ts, 7, 8)))
+  if (anyNA(c(year, month, day))) {
+    return(as.POSIXct(NA_character_, tz = "UTC"))
+  }
+  if (year < 2000 || year > 2100 || month < 1 || month > 12 ||
+      day < 1 || day > 31) {
+    return(as.POSIXct(NA_character_, tz = "UTC"))
+  }
+  suppressWarnings(as.POSIXct(
+    sprintf("%04d-%02d-%02dT12:00:00", year, month, day),
+    format = "%Y-%m-%dT%H:%M:%S", tz = "UTC"
+  ))
+}
+
+#' Detect Cohort-Wide Date Format for AcquiredTime Strings
+#'
+#' Skyline's \code{AcquiredTime} export uses the system locale of whoever
+#' ran the export, so the same mzML files can produce DMY (UK), MDY (US),
+#' ISO, or other formats on different machines. This helper resolves the
+#' format once per cohort so every plate gets a consistent interpretation.
+#'
+#' Decision order:
+#' \enumerate{
+#'   \item If every non-empty \code{AcquiredTime} value parses as ISO 8601,
+#'         return \code{"ymd"} (no further work needed).
+#'   \item Otherwise count cohort-wide DMY vs MDY parse successes; any
+#'         single value with day part \eqn{>12} locks DMY, any with
+#'         month part \eqn{>12} locks MDY. The format with the higher
+#'         parse count wins.
+#'   \item If the counts are tied (every value is digit-ambiguous), use
+#'         per-plate \code{_YYYYMMDD$} hints to vote between formats by
+#'         computing which interpretation places the median parsed
+#'         timestamp closer to the plate-name date.
+#'   \item If still ambiguous and no hints exist, \code{stop()} so the
+#'         caller is forced to supply \code{date_order} explicitly rather
+#'         than silently receive the wrong dates.
+#' }
+#'
+#' @keywords internal
+#' @param master_list The qcCheckR master_list. Must have
+#'   \code{data$PeakForgeRReport} populated.
+#' @return One of \code{"dmy"}, \code{"mdy"}, or \code{"ymd"}. Never
+#'   returns \code{"auto"} (the caller passed that intent in).
+detect_cohort_date_order <- function(master_list) {
+  report_list <- master_list$data$PeakForgeRReport
+  if (!is.list(report_list) || length(report_list) == 0) {
+    # No reports loaded -- nothing to disambiguate. Default to ymd so any
+    # downstream ISO timestamps from mzR pass through unchanged.
+    return("ymd")
+  }
+
+  plate_ids <- names(master_list$data$peakArea$transposed)
+  if (length(plate_ids) == 0) plate_ids <- names(report_list)
+
+  per_plate_ts <- list()
+  for (pid in plate_ids) {
+    matched <- find_matching_report(report_list, pid)
+    if (length(matched) != 1) next
+    raw <- report_list[[matched]]$AcquiredTime
+    if (is.null(raw)) next
+    raw <- as.character(raw)
+    raw <- raw[!is.na(raw) & nzchar(raw)]
+    if (length(raw) == 0) next
+    per_plate_ts[[pid]] <- raw
+  }
+
+  all_ts <- unlist(per_plate_ts, use.names = FALSE)
+  if (length(all_ts) == 0) return("ymd")
+
+  iso_a <- suppressWarnings(as.POSIXct(all_ts, format = "%Y-%m-%dT%H:%M:%S", tz = "UTC"))
+  iso_b <- suppressWarnings(as.POSIXct(all_ts, format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
+  iso_c <- suppressWarnings(as.POSIXct(all_ts, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+  if (all(!is.na(iso_a) | !is.na(iso_b) | !is.na(iso_c))) {
+    message("qcCheckR: AcquiredTime is ISO 8601 across the cohort; ",
+            "using date_order='ymd'.")
+    return("ymd")
+  }
+
+  parsed_dmy <- suppressWarnings(as.POSIXct(all_ts, format = "%d/%m/%Y %H:%M:%S", tz = "UTC"))
+  needs <- is.na(parsed_dmy)
+  if (any(needs)) {
+    parsed_dmy[needs] <- suppressWarnings(as.POSIXct(
+      all_ts[needs], format = "%d/%m/%Y %H:%M", tz = "UTC"))
+  }
+  parsed_mdy <- suppressWarnings(as.POSIXct(all_ts, format = "%m/%d/%Y %H:%M:%S", tz = "UTC"))
+  needs <- is.na(parsed_mdy)
+  if (any(needs)) {
+    parsed_mdy[needs] <- suppressWarnings(as.POSIXct(
+      all_ts[needs], format = "%m/%d/%Y %H:%M", tz = "UTC"))
+  }
+
+  n_dmy <- sum(!is.na(parsed_dmy))
+  n_mdy <- sum(!is.na(parsed_mdy))
+
+  if (n_dmy > 0 && n_mdy == 0) {
+    message("qcCheckR: cohort AcquiredTime values resolved unambiguously ",
+            "as day-first; using date_order='dmy'.")
+    return("dmy")
+  }
+  if (n_mdy > 0 && n_dmy == 0) {
+    message("qcCheckR: cohort AcquiredTime values resolved unambiguously ",
+            "as month-first; using date_order='mdy'.")
+    return("mdy")
+  }
+  if (n_dmy > n_mdy) {
+    message("qcCheckR: cohort AcquiredTime values favour day-first (",
+            n_dmy, " dmy vs ", n_mdy,
+            " mdy successes); using date_order='dmy'.")
+    return("dmy")
+  }
+  if (n_mdy > n_dmy) {
+    message("qcCheckR: cohort AcquiredTime values favour month-first (",
+            n_dmy, " dmy vs ", n_mdy,
+            " mdy successes); using date_order='mdy'.")
+    return("mdy")
+  }
+
+  # Tied -- use plate-name YYYYMMDD hints.
+  votes_dmy <- 0L
+  votes_mdy <- 0L
+  for (pid in names(per_plate_ts)) {
+    hint <- extract_plate_date_hint(pid)
+    if (is.na(hint)) next
+    ts_pid <- per_plate_ts[[pid]]
+    p_dmy <- suppressWarnings(as.POSIXct(ts_pid, format = "%d/%m/%Y %H:%M:%S", tz = "UTC"))
+    needs <- is.na(p_dmy)
+    if (any(needs)) {
+      p_dmy[needs] <- suppressWarnings(as.POSIXct(
+        ts_pid[needs], format = "%d/%m/%Y %H:%M", tz = "UTC"))
+    }
+    p_mdy <- suppressWarnings(as.POSIXct(ts_pid, format = "%m/%d/%Y %H:%M:%S", tz = "UTC"))
+    needs <- is.na(p_mdy)
+    if (any(needs)) {
+      p_mdy[needs] <- suppressWarnings(as.POSIXct(
+        ts_pid[needs], format = "%m/%d/%Y %H:%M", tz = "UTC"))
+    }
+    med_dmy <- if (any(!is.na(p_dmy))) stats::median(as.numeric(p_dmy), na.rm = TRUE) else NA_real_
+    med_mdy <- if (any(!is.na(p_mdy))) stats::median(as.numeric(p_mdy), na.rm = TRUE) else NA_real_
+    hint_sec <- as.numeric(hint)
+    diff_dmy <- if (!is.na(med_dmy)) abs(med_dmy - hint_sec) else Inf
+    diff_mdy <- if (!is.na(med_mdy)) abs(med_mdy - hint_sec) else Inf
+    if (!is.finite(diff_dmy) && !is.finite(diff_mdy)) next
+    if (diff_mdy < diff_dmy) votes_mdy <- votes_mdy + 1L
+    else if (diff_dmy < diff_mdy) votes_dmy <- votes_dmy + 1L
+  }
+
+  if (votes_dmy == 0 && votes_mdy == 0) {
+    stop("qcCheckR: could not unambiguously detect the date format for ",
+         "AcquiredTime in this cohort. All slash-separated values are ",
+         "<= 12 in both day and month positions, and no plate IDs end ",
+         "with a _YYYYMMDD suffix to use as a hint. Re-run with ",
+         "date_order = 'dmy' or 'mdy' explicitly, or re-run after ",
+         "loading mzML files so ISO 8601 startTimeStamps can be used ",
+         "(see PeakForgeR).",
+         call. = FALSE)
+  }
+  if (votes_mdy > votes_dmy) {
+    message("qcCheckR: cohort AcquiredTime values are digit-ambiguous; ",
+            "plate-name _YYYYMMDD hints (", votes_mdy, " mdy vs ",
+            votes_dmy, " dmy) select month-first. ",
+            "Using date_order='mdy'.")
+    return("mdy")
+  }
+  if (votes_dmy > votes_mdy) {
+    message("qcCheckR: cohort AcquiredTime values are digit-ambiguous; ",
+            "plate-name _YYYYMMDD hints (", votes_dmy, " dmy vs ",
+            votes_mdy, " mdy) select day-first. ",
+            "Using date_order='dmy'.")
+    return("dmy")
+  }
+  stop("qcCheckR: could not unambiguously detect the date format for ",
+       "AcquiredTime in this cohort. Plate-name _YYYYMMDD hints tied ",
+       "(", votes_dmy, " dmy vs ", votes_mdy, " mdy). Re-run with ",
+       "date_order = 'dmy' or 'mdy' explicitly.",
+       call. = FALSE)
 }
 
 
