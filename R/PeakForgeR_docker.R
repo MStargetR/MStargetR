@@ -66,10 +66,16 @@ execute_PeakForgeR_command <- function(master_list, plate_idx) {
   # need more memory than 8 GB on dense lipidomic plates and the cpu cap
   # slows imports unnecessarily. Container-level resource limits belong
   # in user Docker Desktop settings, not hard-coded here.
+  #
+  # DOCK-C6: --security-opt seccomp=unconfined is required for the Wine-
+  # based pwiz image (SkylineCmd runs under Wine). Newer Docker Desktop
+  # seccomp profiles return ENOSYS on Wine's socket syscalls. See the
+  # matching note in msConvertR_Utils.R for the full rationale.
   docker_args <- c(
     "run", "--rm",
     "--cap-drop=ALL",
     "--network=none",
+    "--security-opt", "seccomp=unconfined",
     "-v", paste0(data_mount$safe_path, ":/data"),
     paste0("proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:", MSTARGETR_DOCKER_IMAGE_TAG),
     "wine", "SkylineCmd",

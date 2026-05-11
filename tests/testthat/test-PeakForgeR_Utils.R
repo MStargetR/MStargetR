@@ -305,6 +305,30 @@ test_that("execute_PeakForgeR_command includes expected flags", {
   expect_true(grepl("--chromatogram-file", result_str))
 })
 
+# DOCK-C6: pin --security-opt seccomp=unconfined for the Wine-based pwiz image.
+# SkylineCmd runs under Wine and the default Docker seccomp profile blocks the
+# socket syscalls Wine needs, producing "wine: socket : Function not implemented"
+# on a fresh machine. See R/PeakForgeR_docker.R DOCK-C6 comment.
+test_that("execute_PeakForgeR_command includes --security-opt seccomp=unconfined (DOCK-C6)", {
+  temp <- withr::local_tempdir()
+  plate_dir <- file.path(temp, "plate1", "data")
+  dir.create(plate_dir, recursive = TRUE)
+
+  master_list <- list(
+    project_details = list(
+      project_dir = temp
+    )
+  )
+
+  result <- execute_PeakForgeR_command(master_list, "plate1")
+
+  expect_true("--security-opt" %in% result)
+  expect_true("seccomp=unconfined" %in% result)
+  idx <- which(result == "--security-opt")
+  expect_length(idx, 1)
+  expect_identical(result[idx + 1L], "seccomp=unconfined")
+})
+
 test_that("execute_PeakForgeR_command includes current date in filenames", {
   temp <- withr::local_tempdir()
   plate_dir <- file.path(temp, "plate1", "data")

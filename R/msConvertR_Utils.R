@@ -253,10 +253,18 @@ msConvertR_construct_command_for_terminal <- function(input_directory, output_di
     # for vendors like SCIEX whose .wiff parsers can spike past it on a
     # single large injection, killing the container. Resource limits belong
     # in user-level Docker Desktop settings, not hard-coded in the package.
+    #
+    # DOCK-C6: --security-opt seccomp=unconfined is required for the Wine-
+    # based pwiz image. Newer Docker Desktop seccomp profiles return ENOSYS
+    # on socket-family syscalls Wine relies on, producing
+    #   "wine: socket : Function not implemented"
+    # and exit status 1. --network=none and --cap-drop=ALL remain in place,
+    # and on Windows the WSL2 VM boundary is the real isolation layer.
     docker_args <- c(
       "run", "--rm",
       "--network=none",
       "--cap-drop=ALL",
+      "--security-opt", "seccomp=unconfined",
       user_arg,
       "-v", paste0(input_mount$safe_path,  ":", container_data_path, ":ro"),
       "-v", paste0(output_mount$safe_path, ":", output_data_path),
