@@ -1,5 +1,26 @@
 # Changelog
 
+## MStargetR 1.1.2
+
+Released 2026-05-11
+([compare](https://github.com/MStargetR/MStargetR/compare/v1.1.1...v1.1.2)).
+
+### Bug Fixes
+
+- **ci:** resolve R CMD check WARNINGs blocking build on release/oldrel
+  ([40df0a3](https://github.com/MStargetR/MStargetR/commit/40df0a35b3dc32ed9cd43a2ae8eaaa4466a0c23d))
+- **deps:** promote GUI runtime packages to Imports so they install by
+  default
+  ([7cbe7f4](https://github.com/MStargetR/MStargetR/commit/7cbe7f4b24a5e779a95023251e2d519d0703955b))
+- **qcCheckR:** use mzML startTimeStamp for sample timestamps; resolve
+  dmy/mdy at cohort level
+  ([9ec1dc7](https://github.com/MStargetR/MStargetR/commit/9ec1dc7c27e853c012f4d67378f58e33aa62a987))
+- **reports:** stream-embed resources to avoid pandoc OOM on large
+  cohorts
+  ([0dedae8](https://github.com/MStargetR/MStargetR/commit/0dedae8304c31f35fd59adddc4c2d9dc33ceab06))
+- **reports:** unblock 54-plate cohort report+RDA exports on Windows
+  ([9f1c6eb](https://github.com/MStargetR/MStargetR/commit/9f1c6ebab6b8bc0491c7a3b6e8ccf498e931c052))
+
 ## MStargetR 1.1.1
 
 Released 2026-05-11
