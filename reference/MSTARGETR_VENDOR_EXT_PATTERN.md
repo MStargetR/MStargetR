@@ -12,7 +12,3 @@ the two call-sites from drifting out of sync.
 ``` r
 MSTARGETR_VENDOR_EXT_PATTERN
 ```
-
-## Format
-
-An object of class `character` of length 1.

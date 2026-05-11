@@ -8,7 +8,3 @@ well-known non-plate sub-folders are never treated as plate IDs.
 ``` r
 MSTARGETR_EXCLUDE_DIRS
 ```
-
-## Format
-
-An object of class `character` of length 8.

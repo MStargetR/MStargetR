@@ -12,7 +12,3 @@ helper.
 ``` r
 MSTARGETR_QC_SUPPORT_PATTERN
 ```
-
-## Format
-
-An object of class `character` of length 1.

@@ -68,6 +68,9 @@ Useful links:
 
 Authors:
 
+- Harrison Szemray <Hszemray@live.com.au>
+  ([ORCID](https://orcid.org/0009-0008-5829-540X))
+
 - Vimalnath Nambiar <vimalnath.nambiar@murdoch.edu.au>
   ([ORCID](https://orcid.org/0000-0001-5384-6788))
 

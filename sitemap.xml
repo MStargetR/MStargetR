@@ -73,6 +73,7 @@
 <url><loc>https://mstargetr.github.io/MStargetR/reference/create_user_guide.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/default_mrm_templates.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/delete_source_directory.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/detect_cohort_date_order.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/determine_qc_type.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/execute_PeakForgeR_command.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/export_files.html</loc></url>
@@ -80,6 +81,7 @@
 <url><loc>https://mstargetr.github.io/MStargetR/reference/export_master_list_rda.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/export_xlsx_file.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/extract_acquisition_year.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/extract_plate_date_hint.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/extract_run_order.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/extract_sample_id.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/filter_concentration.html</loc></url>
@@ -135,6 +137,7 @@
 <url><loc>https://mstargetr.github.io/MStargetR/reference/optimise_retention_times.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/parse_sample_timestamp.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/peak_picking.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/pick_first_valid_timestamp.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/plot_control_chart.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/plot_run_order.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/prepare_imputation_matrix.html</loc></url>

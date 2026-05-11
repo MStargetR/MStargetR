@@ -10,7 +10,3 @@ referenced by tests without duplicating the list.
 ``` r
 MSTARGETR_TRANSITION_SUMMARY_COLS
 ```
-
-## Format
-
-An object of class `character` of length 6.

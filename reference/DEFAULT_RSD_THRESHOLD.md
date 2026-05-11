@@ -12,7 +12,3 @@ reference this constant so the two remain in sync.
 ``` r
 DEFAULT_RSD_THRESHOLD
 ```
-
-## Format
-
-An object of class `integer` of length 1.
