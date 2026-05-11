@@ -237,12 +237,31 @@ export_html_report <- function(master_list) {
   knitr::opts_chunk$restore()
 
   tryCatch({
-    rmarkdown::render(
+    # Render unembedded so pandoc never assembles the full base64-inflated
+    # HTML in one allocation; on large cohorts that exhausts the Windows
+    # commit limit. embed_resources_streaming() rebuilds the single-file
+    # HTML in R with bounded per-resource memory.
+    rendered <- rmarkdown::render(
       input = temp_file,
       output_dir = dirname(output_file),
       output_file = basename(output_file),
+      output_options = list(self_contained = FALSE),
       envir = render_env
     )
+    if (is.character(rendered) && length(rendered) == 1L &&
+        file.exists(rendered)) {
+      tryCatch(
+        embed_resources_streaming(rendered),
+        error = function(e) {
+          warning(
+            "qcCheckR: resource embedding failed: ", conditionMessage(e),
+            ". The report's _files/ sidecar directory has been kept and ",
+            "must be distributed alongside the HTML.",
+            call. = FALSE
+          )
+        }
+      )
+    }
     if (interactive()) utils::browseURL(output_file)
   }, error = function(e) {
     warning(

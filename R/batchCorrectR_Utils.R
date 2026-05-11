@@ -809,10 +809,16 @@ bc_export_html_report <- function(result,
   if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
   output_name <- basename(output_file)
 
+  # Render with self_contained = FALSE so pandoc never builds the giant
+  # base64-embedded HTML in one go. On large cohorts pandoc's --embed-resources
+  # pass can exhaust the Windows commit limit ("VirtualAlloc MEM_COMMIT
+  # failed"); the streaming post-processor below produces an equivalent
+  # single-file HTML without that peak memory pressure.
   rendered <- rmarkdown::render(
     input = template,
     output_file = output_name,
     output_dir = output_dir,
+    output_options = list(self_contained = FALSE),
     params = list(
       result = result,
       original_data = original_data,
@@ -821,6 +827,22 @@ bc_export_html_report <- function(result,
     envir = new.env(parent = globalenv()),
     quiet = TRUE
   )
+
+  if (is.character(rendered) && length(rendered) == 1L &&
+      file.exists(rendered)) {
+    tryCatch(
+      embed_resources_streaming(rendered),
+      error = function(e) {
+        warning(
+          "bc_export_html_report: resource embedding failed: ",
+          conditionMessage(e),
+          ". The report's _files/ sidecar directory has been kept and must ",
+          "be distributed alongside the HTML.",
+          call. = FALSE
+        )
+      }
+    )
+  }
 
   message("Report saved to: ", rendered)
   if (open) utils::browseURL(rendered)
