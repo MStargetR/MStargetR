@@ -48,6 +48,14 @@
 #'   the user immediately and fire a separate background job that calls
 #'   \code{\link{export_master_list_rda}} on the returned master_list. The
 #'   XLSX and HTML exports are unaffected.
+#' @param rda_compress Compression option forwarded to \code{\link[base]{save}}.
+#'   Default \code{FALSE} (no compression). R's single-threaded gzip pass
+#'   over the serialized master_list can take hours on ~50+ plate cohorts
+#'   and was producing an apparent hang on a 54-plate run, so we default to
+#'   off and accept a 5-10x larger \code{.rda} on disk in exchange for a
+#'   save that completes in seconds-to-minutes. Pass \code{"gzip"},
+#'   \code{"bzip2"}, or \code{"xz"} to opt into compression for archival
+#'   runs.
 #' @param date_order Controls how the \code{AcquiredTime} column from
 #'   PeakForgeR reports (which Skyline exports in the OS locale of whoever
 #'   ran the export) is parsed. One of \code{"auto"} (default; the
@@ -180,12 +188,25 @@ qcCheckR <- function(user_name,
                      combat_ref.batch = NULL,
                      batch_column = NULL,
                      write_rda = TRUE,
+                     rda_compress = FALSE,
                      date_order = c("auto", "dmy", "mdy", "ymd", "iso")) {
   # validate write_rda early so a bad value fails fast rather than at
   # the export step at the end of a long pipeline.
   if (!is.logical(write_rda) || length(write_rda) != 1 || is.na(write_rda)) {
     stop("qcCheckR: 'write_rda' must be TRUE or FALSE. Got: ",
          deparse(write_rda), call. = FALSE)
+  }
+  # validate rda_compress against what base::save() actually accepts so
+  # the user finds out before the long pipeline runs, not after.
+  rda_compress_ok <-
+    (is.logical(rda_compress) && length(rda_compress) == 1L &&
+       !is.na(rda_compress)) ||
+    (is.character(rda_compress) && length(rda_compress) == 1L &&
+       rda_compress %in% c("gzip", "bzip2", "xz"))
+  if (!rda_compress_ok) {
+    stop("qcCheckR: 'rda_compress' must be TRUE/FALSE or one of ",
+         "'gzip', 'bzip2', 'xz'. Got: ", deparse(rda_compress),
+         call. = FALSE)
   }
   if (missing(date_order)) {
     date_order <- "auto"
@@ -358,6 +379,8 @@ qcCheckR <- function(user_name,
   master_list <- qcCheckR_run_order_plots(master_list)
   master_list <- qcCheckR_target_control_charts(master_list)
   #exports----
-  master_list <- qcCheckR_export_all(master_list, write_rda = write_rda)
+  master_list <- qcCheckR_export_all(master_list,
+                                     write_rda = write_rda,
+                                     rda_compress = rda_compress)
   invisible(master_list)
 }#close of function

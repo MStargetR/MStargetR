@@ -154,11 +154,17 @@ inline_link_tag <- function(match, ref, html_dir) {
 inline_script_tag <- function(match, ref, html_dir) {
   path <- resolve_local_ref(ref, html_dir)
   if (is.null(path)) return(match)
-  js <- read_text_utf8(path)
-  # Strip the src attribute but keep other attrs (defer, async, type, ...).
-  open_tag <- sub('\\s*\\bsrc="[^"]+"', "", match, perl = TRUE)
-  open_tag <- sub('></script>$', '>', open_tag, perl = TRUE)
-  paste0(open_tag, js, "</script>")
+  # Inline as a data: URI rather than splicing the JS body between the
+  # host <script>...</script> tags. JS bundles commonly contain literal
+  # "</script>" strings (notably highlight.js's xml language definition
+  # ships `"</script>"` as a token) which the HTML parser sees as the
+  # end of the host <script> block, terminating it early and dumping the
+  # remainder of the JS file as visible text. Pandoc's --embed-resources
+  # uses the same data-URI approach for the same reason; we mirror it so
+  # the streamed output stays byte-equivalent in behaviour.
+  data_uri <- file_to_data_uri(path)
+  sub('\\bsrc="[^"]+"', paste0('src="', data_uri, '"'),
+      match, perl = TRUE)
 }
 
 #' @noRd

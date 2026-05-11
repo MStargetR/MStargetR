@@ -52,7 +52,10 @@ test_that("embed_resources_streaming inlines local <script> and <link>", {
   out <- paste(readLines(layout$html_path), collapse = "\n")
 
   expect_match(out, "<style>\\.x \\{ color: red; \\}\\s*</style>")
-  expect_match(out, "<script>console\\.log\\('local-js'\\);\\s*</script>")
+  # JS is inlined as a data: URI (not spliced between <script> tags) so the
+  # JS body cannot contain a stray "</script>" that would close the host
+  # block early. See inline_script_tag() comment for the hljs case.
+  expect_match(out, '<script\\s+src="data:[^"]+;base64,[^"]+"></script>')
   expect_false(grepl("report_files/", out, fixed = TRUE))
   expect_false(dir.exists(layout$files_dir))
 })
@@ -159,7 +162,41 @@ test_that("embed_resources_streaming preserves non-src attrs on <script>", {
   embed_resources_streaming(layout$html_path)
 
   out <- paste(readLines(layout$html_path), collapse = "\n")
-  expect_match(out, "<script\\s+defer\\s+type=\"module\">var x = 1;\\s*</script>")
+  # `defer` and `type="module"` survive; src is rewritten to a data: URI.
+  expect_match(
+    out,
+    '<script\\s+defer\\s+src="data:[^"]+;base64,[^"]+"\\s+type="module"></script>'
+  )
+})
+
+test_that("embed_resources_streaming is safe with </script> inside JS bodies", {
+  # Regression: highlight.js's xml language definition ships the literal
+  # token "</script>" inside a JS string. If we splice JS bytes between
+  # the host <script>...</script> tags, the HTML parser sees that string
+  # as the end of the host block, terminates it early, and dumps the
+  # remainder of the JS file as visible text at the top of the page.
+  skip_if_not_installed("xfun")
+
+  layout <- make_fake_report(
+    html_lines = c(
+      "<!doctype html><html><head>",
+      '<script src="report_files/hljs.js"></script>',
+      "</head><body><p data-marker=\"after-script\">after</p></body></html>"
+    ),
+    files_layout = list(
+      "hljs.js" = 'var lang = {b: "<script", e: "</script>", k: "t"};'
+    )
+  )
+  on.exit(unlink(layout$tmp_dir, recursive = TRUE), add = TRUE)
+
+  embed_resources_streaming(layout$html_path)
+
+  out <- paste(readLines(layout$html_path), collapse = "\n")
+  # The raw JS bytes (which contain `</script>` mid-string) must not be
+  # spliced into the document — that's the bug this test guards against.
+  expect_false(grepl('e: "</script>"', out, fixed = TRUE))
+  # Markup following the inlined script must still be parsed as HTML.
+  expect_match(out, '<p data-marker="after-script">after</p>', fixed = TRUE)
 })
 
 test_that("embed_resources_streaming keeps sidecar when delete_files_dir = FALSE", {

@@ -698,6 +698,33 @@ test_that("export_master_list_rda: creates output directory and saves synchronou
   expect_called(save_mock, 1)
 })
 
+test_that("export_master_list_rda: forwards rda_compress to save()", {
+  # Default is FALSE (no compression) because R's single-threaded gzip
+  # pass over a 50+ plate master_list took hours and produced an apparent
+  # hang on a real 54-plate run; the param exists so archival runs can
+  # still opt back into gzip/bzip2/xz.
+  master_list <- list(
+    project_details = list(
+      project_dir = "/tmp/test_project",
+      project_name = "testproj",
+      script_log = list(timestamps = list(plot_generation = Sys.time()))
+    )
+  )
+
+  save_mock <- mock(invisible(NULL))
+  stub(export_master_list_rda, "dir.create", TRUE)
+  stub(export_master_list_rda, "save", save_mock)
+  stub(export_master_list_rda, "update_script_log", function(ml, ...) ml)
+
+  suppressMessages(export_master_list_rda(master_list))
+  expect_equal(mock_args(save_mock)[[1]]$compress, FALSE)
+
+  save_mock <- mock(invisible(NULL))
+  stub(export_master_list_rda, "save", save_mock)
+  suppressMessages(export_master_list_rda(master_list, rda_compress = "gzip"))
+  expect_equal(mock_args(save_mock)[[1]]$compress, "gzip")
+})
+
 test_that("export_master_list_rda: updates script log with completion message", {
   master_list <- list(
     project_details = list(

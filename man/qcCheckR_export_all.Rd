@@ -4,7 +4,7 @@
 \alias{qcCheckR_export_all}
 \title{Export All Project Outputs}
 \usage{
-qcCheckR_export_all(master_list, write_rda = TRUE)
+qcCheckR_export_all(master_list, write_rda = TRUE, rda_compress = FALSE)
 }
 \arguments{
 \item{master_list}{A list containing project details and data.}
@@ -15,6 +15,9 @@ caller intends to write the RDA out-of-band (e.g. the Shiny GUI fires a
 detached background save so results can render before the slow RDA write
 completes). When \code{FALSE}, callers are responsible for invoking
 \code{\link[=export_master_list_rda]{export_master_list_rda()}} themselves.}
+
+\item{rda_compress}{Forwarded to \code{\link[=export_master_list_rda]{export_master_list_rda()}}; see its
+documentation. Default is \code{FALSE} (uncompressed save).}
 }
 \value{
 The updated \code{master_list} with exported files.
