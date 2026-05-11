@@ -13,7 +13,7 @@
 ; Output: MStargetR_Setup.exe in the Output/ directory.
 
 #define MyAppName "MStargetR"
-#define MyAppVersion "1.1.1"
+#define MyAppVersion "1.1.2"
 #define MyAppPublisher "Harrison Szemray"
 #define MyAppURL "https://github.com/MStargetR/MStargetR"
 #define MyAppExeName "MStargetR.bat"
