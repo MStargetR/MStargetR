@@ -20,7 +20,9 @@ qcCheckR(
   combat_mean.only = FALSE,
   combat_ref.batch = NULL,
   batch_column = NULL,
-  write_rda = TRUE
+  write_rda = TRUE,
+  rda_compress = FALSE,
+  date_order = c("auto", "dmy", "mdy", "ymd", "iso")
 )
 }
 \arguments{
@@ -79,6 +81,28 @@ example, the Shiny GUI passes \code{FALSE} so it can surface results to
 the user immediately and fire a separate background job that calls
 \code{\link{export_master_list_rda}} on the returned master_list. The
 XLSX and HTML exports are unaffected.}
+
+\item{rda_compress}{Compression option forwarded to \code{\link[base]{save}}.
+Default \code{FALSE} (no compression). R's single-threaded gzip pass
+over the serialized master_list can take hours on ~50+ plate cohorts
+and was producing an apparent hang on a 54-plate run, so we default to
+off and accept a 5-10x larger \code{.rda} on disk in exchange for a
+save that completes in seconds-to-minutes. Pass \code{"gzip"},
+\code{"bzip2"}, or \code{"xz"} to opt into compression for archival
+runs.}
+
+\item{date_order}{Controls how the \code{AcquiredTime} column from
+PeakForgeR reports (which Skyline exports in the OS locale of whoever
+ran the export) is parsed. One of \code{"auto"} (default; the
+pipeline inspects the cohort, prefers mzML \code{startTimeStamp}
+ISO 8601 headers where available, and chooses an unambiguous order
+from the cohort's parse pattern and any \code{_YYYYMMDD$} plate-name
+hints), \code{"dmy"} (day-first slash/dash formats), \code{"mdy"}
+(month-first slash/dash formats), or \code{"ymd"} / \code{"iso"}
+(ISO 8601 only). If \code{"auto"} cannot resolve the format
+unambiguously, the pipeline stops with a clear message asking you to
+set this argument explicitly rather than silently produce wrong
+dates.}
 }
 \value{
 A list containing the processed data and generated reports.

@@ -1040,7 +1040,7 @@ test_that("qcCheckR_export_all calls all three export functions (lines 3193-3199
     call_log <<- c(call_log, "html")
     ml
   })
-  stub(qcCheckR_export_all, "export_master_list_rda", function(ml) {
+  stub(qcCheckR_export_all, "export_master_list_rda", function(ml, ...) {
     call_log <<- c(call_log, "rda")
     ml
   })

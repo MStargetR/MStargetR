@@ -28,19 +28,24 @@ format_numeric_columns <- function(df) {
 #'   detached background save so results can render before the slow RDA write
 #'   completes). When `FALSE`, callers are responsible for invoking
 #'   [export_master_list_rda()] themselves.
+#' @param rda_compress Forwarded to [export_master_list_rda()]; see its
+#'   documentation. Default is `FALSE` (uncompressed save).
 #' @return The updated `master_list` with exported files.
 #' @examples
 #' \dontrun{
 #' master_list <- qcCheckR_export_all(master_list)
 #' }
-qcCheckR_export_all <- function(master_list, write_rda = TRUE) {
+qcCheckR_export_all <- function(master_list,
+                                write_rda = TRUE,
+                                rda_compress = FALSE) {
   message("Exporting XLSX report...")
   master_list <- export_xlsx_file(master_list)
   message("Exporting HTML report...")
   master_list <- export_html_report(master_list)
   if (isTRUE(write_rda)) {
     message("Exporting master_list RDA file...")
-    master_list <- export_master_list_rda(master_list)
+    master_list <- export_master_list_rda(master_list,
+                                          rda_compress = rda_compress)
   } else {
     message("Skipping RDA export (write_rda = FALSE); ",
             "caller will write the RDA out-of-band.")
@@ -284,13 +289,21 @@ export_html_report <- function(master_list) {
 #' as a detached background job after [qcCheckR()] returns
 #' (`qcCheckR(..., write_rda = FALSE)` followed by a separate
 #' `callr::r_bg()` running this function), letting users view results
-#' immediately while the slow compressed save continues in the background.
+#' immediately while the slow save continues in the background.
 #'
 #' @param master_list A list containing project details and data.
+#' @param rda_compress Passed straight through to [save()]'s `compress`
+#'   argument. Default is `FALSE` (no compression). On large cohorts
+#'   (~50+ plates) R's single-threaded gzip pass over the serialized
+#'   master_list can take hours and was producing an apparent hang in
+#'   the R workflow on 54-plate cohorts; an uncompressed save completes
+#'   in seconds-to-minutes at the cost of a 5-10x larger file on disk.
+#'   Set to `"gzip"`, `"bzip2"`, or `"xz"` to opt into compression for
+#'   archival runs.
 #' @return The updated `master_list` with the RDA file exported.
 #' @keywords internal
 #' @export
-export_master_list_rda <- function(master_list) {
+export_master_list_rda <- function(master_list, rda_compress = FALSE) {
   output_file <- file.path(
     master_list$project_details$project_dir,
     "all/data/rda",
@@ -304,11 +317,7 @@ export_master_list_rda <- function(master_list) {
   dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
   message("  Writing RDA to: ", output_file)
   tryCatch({
-    # gzip (default) is ~5-10x faster than xz for large master_lists at the
-    # cost of a larger file on disk. The Shiny QC tab spawns this in a
-    # detached background subprocess so the user can view results
-    # immediately while the RDA is still being written.
-    save(master_list, file = output_file, compress = "gzip")
+    save(master_list, file = output_file, compress = rda_compress)
     message("  RDA save completed: ", output_file)
   }, error = function(e) {
     warning("RDA save failed: ", conditionMessage(e),
