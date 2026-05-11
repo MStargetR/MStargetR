@@ -51,9 +51,17 @@ RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 biocViews: MassSpectrometry, Metabolomics, QualityControl, Preprocessing, Visualization
 Imports:
+    bslib,
     callr,
     dplyr (>= 1.1.0),
+    DT,
+    htmltools,
+    knitr,
+    rappdirs,
     remotes,
+    rmarkdown,
+    shiny,
+    shinyWidgets,
     stats,
     tools,
     utils,
@@ -85,15 +93,7 @@ Suggests:
     devtools,
     mockr,
     pkgdown,
-    rmarkdown,
     rprojroot,
     rstudioapi,
-    knitr,
-    shiny,
-    bslib,
-    DT,
-    shinyWidgets,
-    htmltools,
-    rappdirs,
     tcltk
 VignetteBuilder: knitr

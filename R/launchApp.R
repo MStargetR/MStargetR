@@ -93,26 +93,11 @@ launchMStargetR <- function(port = NULL,
          shQuote(host), call. = FALSE)
   }
 
-  # Check for required GUI packages.
-  # The authoritative list lives in DESCRIPTION Suggests; we derive it here
-  # so it cannot drift.  The GUI_PKGS constant names the subset of Suggests
-  # that the Shiny app actually requires at runtime.
-  GUI_PKGS <- c("shiny", "bslib", "DT", "shinyWidgets", "htmltools",
-                "plotly", "readr", "ggplot2", "dplyr", "knitr")
-  suggests_raw <- tryCatch(
-    utils::packageDescription("MStargetR", fields = "Suggests"),
-    error = function(e) NA_character_
-  )
-  if (!is.na(suggests_raw) && nzchar(suggests_raw)) {
-    # Parse "pkg (>= x.y), pkg2, ..." into plain package names
-    suggests_pkgs <- trimws(gsub("\\s*\\([^)]*\\)", "",
-                                  strsplit(suggests_raw, ",")[[1]]))
-    gui_deps <- intersect(GUI_PKGS, suggests_pkgs)
-    # Retain any GUI_PKGS entry not yet in Suggests (safety net)
-    gui_deps <- union(gui_deps, GUI_PKGS)
-  } else {
-    gui_deps <- GUI_PKGS
-  }
+  # Check for required GUI packages. These are declared in DESCRIPTION
+  # Imports so they install alongside MStargetR; the runtime check below
+  # is a defensive guard in case the user has manually removed one.
+  gui_deps <- c("shiny", "bslib", "DT", "shinyWidgets", "htmltools",
+                "plotly", "readr", "ggplot2", "dplyr", "knitr", "rappdirs")
   missing <- gui_deps[!vapply(gui_deps, requireNamespace,
                                quietly = TRUE, FUN.VALUE = logical(1))]
 
