@@ -4,17 +4,33 @@
 \alias{extract_run_order}
 \title{Extract Run Order from PeakForgeR Report}
 \usage{
-extract_run_order(report, plate_id)
+extract_run_order(report, plate_id, mzR_entries = NULL, date_order = "auto")
 }
 \arguments{
 \item{report}{The PeakForgeR report data frame.}
 
 \item{plate_id}{The ID of the plate to filter by.}
+
+\item{mzR_entries}{Optional named list of mzR entries (typically
+\code{master_list$data[[plate_id]]$mzR}). Each element should carry an
+\code{mzR_timestamp} character scalar (an ISO 8601 timestamp from the
+mzML \code{startTimeStamp} header). Where present and non-empty, this
+value replaces the report's \code{AcquiredTime} for that sample.}
+
+\item{date_order}{Forwarded to \code{parse_sample_timestamp} for the
+fallback path; see that function for accepted values.}
 }
 \value{
 A data frame containing the sample names, timestamps, and other relevant information.
 }
 \description{
-This function extracts the run order data from a PeakForgeR report, filtering by plate ID.
+Builds the per-plate run order frame used downstream by qcCheckR. mzML
+\code{startTimeStamp} headers (ISO 8601, locale-invariant) are preferred
+on a per-sample basis when \code{mzR_entries} is supplied; Skyline's
+\code{AcquiredTime} string is used as a fallback for any sample whose
+mzML did not carry a usable header. The string-parse path honours
+\code{date_order} so the locale-dependent dmy/mdy ambiguity is resolved
+by the caller's cohort-level decision rather than by silent first-match
+inside the parser.
 }
 \keyword{internal}

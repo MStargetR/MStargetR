@@ -4,10 +4,21 @@
 \alias{qcCheckR_sort_data}
 \title{Sort and QC Check Data}
 \usage{
-qcCheckR_sort_data(master_list)
+qcCheckR_sort_data(
+  master_list,
+  date_order = c("auto", "dmy", "mdy", "ymd", "iso")
+)
 }
 \arguments{
 \item{master_list}{A list containing project details and data.}
+
+\item{date_order}{One of \code{"auto"} (default), \code{"dmy"}, \code{"mdy"},
+or \code{"ymd"} / \code{"iso"}. Forwarded to \code{parse_sample_timestamp}
+for any sample where mzR \code{startTimeStamp} is unavailable. When
+\code{"auto"}, this function inspects the cohort and selects an
+unambiguous order; if every value is ambiguous and no plate-name
+\code{_YYYYMMDD$} hint can break the tie, it errors so the user must
+pick explicitly rather than silently get the wrong dates.}
 }
 \value{
 The updated \code{master_list} with sorted data and QC check results.
@@ -15,6 +26,14 @@ The updated \code{master_list} with sorted data and QC check results.
 \description{
 This function sorts the transposed peak area data by run order and performs QC checks.
 It assigns sample types, validates QC coverage, and sets the appropriate QC type for the project.
+}
+\details{
+Before iterating plates, the cohort-wide date format is resolved once so
+every plate uses the same calendar convention. mzML \code{startTimeStamp}
+headers (ISO 8601, locale-invariant) are preferred per sample where
+available; the \code{date_order} argument controls how to parse any
+Skyline-exported \code{AcquiredTime} strings that fall back to the
+string path.
 }
 \examples{
 \dontrun{

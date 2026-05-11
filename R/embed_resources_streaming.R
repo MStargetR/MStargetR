@@ -216,6 +216,7 @@ read_text_utf8 <- function(path) {
 # Encode a binary resource as a data: URI. Delegates to xfun (a hard dep of
 # knitr/rmarkdown, so guaranteed available on the render path).
 #' @noRd
+#' @importFrom xfun base64_uri
 file_to_data_uri <- function(path) {
   if (!requireNamespace("xfun", quietly = TRUE)) {
     stop("Package 'xfun' is required for resource embedding.", call. = FALSE)

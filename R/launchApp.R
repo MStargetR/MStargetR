@@ -37,6 +37,11 @@
 #'   application and blocks the R session until the app is closed.
 #'
 #' @export
+#' @importFrom bslib bs_theme
+#' @importFrom DT datatable
+#' @importFrom htmltools tags
+#' @importFrom rappdirs user_data_dir
+#' @importFrom shinyWidgets pickerInput
 #'
 #' @examples
 #' \dontrun{
