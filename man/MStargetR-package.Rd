@@ -60,6 +60,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Harrison Szemray \email{Hszemray@live.com.au} (\href{https://orcid.org/0009-0008-5829-540X}{ORCID})
   \item Vimalnath Nambiar \email{vimalnath.nambiar@murdoch.edu.au} (\href{https://orcid.org/0000-0001-5384-6788}{ORCID})
   \item Nathan Lawler (\href{https://orcid.org/0000-0001-9649-425X}{ORCID})
   \item Julien Wist (\href{https://orcid.org/0000-0002-3416-2572}{ORCID})
