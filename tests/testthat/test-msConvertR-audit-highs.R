@@ -209,6 +209,32 @@ test_that("MS-005: Docker args include --network=none and --cap-drop=ALL", {
   expect_true("--cap-drop=ALL" %in% args)
 })
 
+# DOCK-C6: pin --security-opt seccomp=unconfined for the Wine-based pwiz image.
+# Removing this flag reintroduces "wine: socket : Function not implemented" on
+# newer Docker Desktop releases whose default seccomp profile blocks Wine's
+# socket syscalls.
+test_that("DOCK-C6: Docker args include --security-opt seccomp=unconfined for Wine", {
+  input_dir  <- withr::local_tempdir()
+  output_dir <- withr::local_tempdir()
+  raw_dir    <- file.path(input_dir, "raw_data")
+  dir.create(raw_dir, recursive = TRUE)
+
+  file.create(file.path(raw_dir, "plate1.wiff"))
+  dir.create(file.path(output_dir, "plate1", "data", "mzml"), recursive = TRUE)
+
+  result <- suppressMessages(
+    msConvertR_construct_command_for_terminal(input_dir, output_dir, c("plate1"))
+  )
+  args <- result[[1]]$docker_args
+  expect_true("--security-opt" %in% args)
+  expect_true("seccomp=unconfined" %in% args)
+  # And the two must be adjacent in that order, since docker treats them as
+  # flag + value, not a free-floating pair.
+  idx <- which(args == "--security-opt")
+  expect_length(idx, 1)
+  expect_identical(args[idx + 1L], "seccomp=unconfined")
+})
+
 # ============================================================================
 # MS-006: Log output is redacted before writing
 # ============================================================================
