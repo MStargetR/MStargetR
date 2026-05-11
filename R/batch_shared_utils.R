@@ -37,38 +37,84 @@ strip_mzml_suffix <- function(x) {
 #' forms. If every value fails to parse, the original vector is returned
 #' with a warning so callers can decide how to handle it.
 #'
+#' Slash-format inputs like \code{"10/04/2021 12:08:03"} are inherently
+#' locale-dependent: the same mzML files exported by Skyline on different
+#' machines can yield either DMY or MDY strings. When the caller already
+#' knows the format (e.g. it came from a cohort-level detection in
+#' \code{qcCheckR_sort_data}), it can pass \code{date_order} to suppress the
+#' wrong family of slash/dash formats so the parser cannot silently pick the
+#' wrong interpretation. ISO 8601 formats are always tried first and are
+#' format-unambiguous regardless of \code{date_order}.
+#'
 #' @keywords internal
 #' @param x Character, factor, or POSIXct vector of timestamps.
+#' @param date_order One of \code{"auto"} (default; current heuristic - tries
+#'   DMY before MDY), \code{"dmy"} (only day-first slash/dash formats),
+#'   \code{"mdy"} (only month-first slash/dash formats), or \code{"ymd"} /
+#'   \code{"iso"} (only ISO 8601 / year-first formats). The qcCheckR pipeline
+#'   sets this from a cohort-level decision; standalone batchCorrectR keeps
+#'   the default.
 #' @return A POSIXct vector the same length as \code{x} (or \code{x} itself
 #'   when every value fails to parse).
-parse_sample_timestamp <- function(x) {
+parse_sample_timestamp <- function(x, date_order = c("auto", "dmy", "mdy", "ymd", "iso")) {
   if (inherits(x, "POSIXct")) return(x)
   if (is.factor(x)) x <- as.character(x)
   if (!is.character(x)) return(x)
 
-  tryFormats <- c(
-    # ISO 8601 (unambiguous, tried first)
+  if (missing(date_order)) {
+    date_order <- "auto"
+  } else {
+    date_order <- match.arg(date_order)
+  }
+  if (date_order == "iso") date_order <- "ymd"
+
+  # ISO 8601 / year-first time-bearing formats are unambiguous and always
+  # tried first. Date-only formats (last group) match more permissively, so
+  # they must come *after* all slash time formats; otherwise a format like
+  # "%Y/%m/%d" greedily mis-parses "10/04/2021 12:08:03" (year=0010,
+  # day=20) before the correct DMY/MDY parser ever runs.
+  iso_full <- c(
     "%Y-%m-%dT%H:%M:%SZ",           # 2021-03-13T18:12:31Z
     "%Y-%m-%dT%H:%M:%S",            # 2021-03-13T18:12:31
     "%Y-%m-%dT%H:%M:%S%z",          # 2021-03-13T18:12:31+0800
     "%Y-%m-%d %H:%M:%S",            # 2021-03-13 18:12:31
     "%Y/%m/%d %H:%M:%S",            # 2021/03/13 18:12:31
-    # Day-first
+    "%Y-%m-%d %I:%M %p"             # 2021-03-13 6:12 PM
+  )
+  dmy_full <- c(
     "%d/%m/%Y %H:%M",               # 9/02/2022 16:00
-    "%m/%d/%Y %H:%M:%S",            # 09/27/2024 10:41:28
     "%d/%m/%Y %H:%M:%S",            # 13/03/2021 18:12:31
     "%d-%m-%Y %H:%M:%S",            # 13-03-2021 18:12:31
-    # AM/PM
-    "%d/%m/%Y %I:%M %p",            # 13/03/2021 6:12 PM
-    "%Y-%m-%d %I:%M %p",            # 2021-03-13 6:12 PM
-    # Long names
+    "%d/%m/%Y %I:%M %p"             # 13/03/2021 6:12 PM
+  )
+  mdy_full <- c(
+    "%m/%d/%Y %H:%M:%S",            # 09/27/2024 10:41:28
+    "%m/%d/%Y %H:%M",               # 9/27/2024 16:00
+    "%m-%d-%Y %H:%M:%S",            # 09-27-2024 10:41:28
+    "%m/%d/%Y %I:%M %p"             # 09/27/2024 6:12 PM
+  )
+  long_full <- c(
     "%B %d, %Y %H:%M",              # March 13, 2021 18:12
-    "%b %d, %Y %I:%M %p",           # Mar 13, 2021 6:12 PM
-    # Date-only
+    "%b %d, %Y %I:%M %p"            # Mar 13, 2021 6:12 PM
+  )
+  iso_date <- c(
     "%Y-%m-%d",                     # 2021-03-13
-    "%Y/%m/%d",                     # 2024/12/13
-    "%d/%m/%Y",                     # 13/03/2021
-    "%B %d, %Y"                     # March 13, 2021
+    "%Y/%m/%d"                      # 2024/12/13
+  )
+  dmy_date <- "%d/%m/%Y"            # 13/03/2021
+  mdy_date <- "%m/%d/%Y"            # 09/27/2024
+  long_date <- "%B %d, %Y"          # March 13, 2021
+
+  # In "auto" mode, mirror the historical tryFormats order so existing
+  # callers see no behavioural change. Explicit "dmy"/"mdy" excludes the
+  # conflicting slash family entirely so the parser cannot silently pick
+  # the wrong interpretation.
+  tryFormats <- switch(date_order,
+    "auto" = c(iso_full, dmy_full[1], mdy_full[1], dmy_full[2], dmy_full[3],
+               dmy_full[4], long_full, iso_date, dmy_date, long_date),
+    "dmy"  = c(iso_full, dmy_full, long_full, iso_date, dmy_date, long_date),
+    "mdy"  = c(iso_full, mdy_full, long_full, iso_date, mdy_date, long_date),
+    "ymd"  = c(iso_full, iso_date)
   )
 
   # as.POSIXct(tryFormats = ...) applies one format to the whole vector, so

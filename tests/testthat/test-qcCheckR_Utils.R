@@ -368,7 +368,8 @@ test_that("qcCheckR_sort_data populates run_orders and sorted data", {
 
   # Mock dependencies
   local_mocked_bindings(
-    extract_run_order = function(report, plate_id) tibble(sample_name = "S1"),
+    extract_run_order = function(report, plate_id, ...) tibble(sample_name = "S1"),
+    detect_cohort_date_order = function(master_list) "ymd",
     assign_sample_type = function(tags, run_order) run_order,
     validate_qc_types = function(run_order, tags) NULL,
     sort_and_filter_data = function(run_order, data, tags) tibble(sample_name = "S1"),
