@@ -1,5 +1,15 @@
 # Changelog
 
+## MStargetR 1.1.1
+
+Released 2026-05-11
+([compare](https://github.com/MStargetR/MStargetR/compare/v1.1.0...v1.1.1)).
+
+### Bug Fixes
+
+- **docker:** allow Wine syscalls via seccomp=unconfined (DOCK-C6)
+  ([e054e65](https://github.com/MStargetR/MStargetR/commit/e054e6524a17b650d95f4f11700cd01ec18d4016))
+
 ## MStargetR 1.1.0
 
 Released 2026-05-06
