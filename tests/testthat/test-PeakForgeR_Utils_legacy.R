@@ -123,7 +123,7 @@ test_that("setup_project_directories creates required directories", {
   setup_project_directories(master_list)
 
   expected_dirs <- c(
-    "data", "data/mzml", "data/rda", "data/PeakForgeR",
+    "data", "data/mzml", "data/qs2", "data/PeakForgeR",
     "data/raw_data", "data/batch_correction", "html_report"
   )
   for (dir_name in expected_dirs) {
@@ -766,7 +766,7 @@ test_that("save_plate_data calls callr::r_bg with correct arguments", {
               info = "args must contain tmp_rds path, not master_list object")
   expect_true(is.character(captured_args$tmp_rds) && nzchar(captured_args$tmp_rds),
               info = "tmp_rds must be a non-empty path string")
-  expect_match(captured_args$save_path, "Plate001/data/rda")
+  expect_match(captured_args$save_path, "Plate001/data/qs2")
 })
 
 #Tests for archive_file -----

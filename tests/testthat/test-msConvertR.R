@@ -88,7 +88,7 @@ test_that("msConvertR_setup_project_directories creates correct structure", {
   for (plateID in plateIDs) {
     base_path <- file.path(output_dir, plateID)
     expect_true(dir.exists(file.path(base_path, "data", "mzml")))
-    expect_true(dir.exists(file.path(base_path, "data", "rda")))
+    expect_true(dir.exists(file.path(base_path, "data", "qs2")))
     expect_true(dir.exists(file.path(base_path, "data", "PeakForgeR")))
     expect_true(dir.exists(file.path(base_path, "data", "raw_data")))
     expect_true(dir.exists(file.path(base_path, "data", "batch_correction")))
@@ -499,7 +499,7 @@ test_that("msConvertR_setup_project_directories handles single plateID", {
 
   base <- file.path(temp_dir, "SINGLE_PLATE")
   expect_true(dir.exists(file.path(base, "data", "mzml")))
-  expect_true(dir.exists(file.path(base, "data", "rda")))
+  expect_true(dir.exists(file.path(base, "data", "qs2")))
   expect_true(dir.exists(file.path(base, "data", "PeakForgeR")))
   expect_true(dir.exists(file.path(base, "data", "raw_data")))
   expect_true(dir.exists(file.path(base, "data", "batch_correction")))

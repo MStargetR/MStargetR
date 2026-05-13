@@ -675,8 +675,8 @@ test_that("export_xlsx_file: calls write.xlsx with correct output path", {
   expect_true(grepl("testuser", call_args$file))
 })
 
-# --- export_master_list_rda ---
-test_that("export_master_list_rda: creates output directory and saves synchronously", {
+# --- export_master_list_qs ---
+test_that("export_master_list_qs: creates output directory and saves synchronously", {
   master_list <- list(
     project_details = list(
       project_dir = "/tmp/test_project",
@@ -686,23 +686,24 @@ test_that("export_master_list_rda: creates output directory and saves synchronou
   )
 
   dir_create_mock <- mock(TRUE)
-  save_mock <- mock(invisible(NULL))
+  qs_save_mock <- mock(invisible(NULL))
 
-  stub(export_master_list_rda, "dir.create", dir_create_mock)
-  stub(export_master_list_rda, "save", save_mock)
-  stub(export_master_list_rda, "update_script_log", function(ml, ...) ml)
+  stub(export_master_list_qs, "dir.create", dir_create_mock)
+  stub(export_master_list_qs, "qs2::qs_save", qs_save_mock)
+  stub(export_master_list_qs, "update_script_log", function(ml, ...) ml)
 
-  result <- suppressMessages(export_master_list_rda(master_list))
+  result <- suppressMessages(export_master_list_qs(master_list))
 
   expect_called(dir_create_mock, 1)
-  expect_called(save_mock, 1)
+  expect_called(qs_save_mock, 1)
+  # Path should land under all/data/qs2 with .qs2 extension.
+  call_args <- mock_args(qs_save_mock)[[1]]
+  expect_true(grepl("all/data/qs2/", call_args$file, fixed = TRUE) ||
+                grepl("all\\\\data\\\\qs2\\\\", call_args$file))
+  expect_true(grepl("_qcCheckR\\.qs2$", call_args$file))
 })
 
-test_that("export_master_list_rda: forwards rda_compress to save()", {
-  # Default is FALSE (no compression) because R's single-threaded gzip
-  # pass over a 50+ plate master_list took hours and produced an apparent
-  # hang on a real 54-plate run; the param exists so archival runs can
-  # still opt back into gzip/bzip2/xz.
+test_that("export_master_list_qs: forwards qs_nthreads and qs_compress_level to qs2::qs_save", {
   master_list <- list(
     project_details = list(
       project_dir = "/tmp/test_project",
@@ -711,21 +712,22 @@ test_that("export_master_list_rda: forwards rda_compress to save()", {
     )
   )
 
-  save_mock <- mock(invisible(NULL))
-  stub(export_master_list_rda, "dir.create", TRUE)
-  stub(export_master_list_rda, "save", save_mock)
-  stub(export_master_list_rda, "update_script_log", function(ml, ...) ml)
+  qs_save_mock <- mock(invisible(NULL))
+  stub(export_master_list_qs, "dir.create", TRUE)
+  stub(export_master_list_qs, "qs2::qs_save", qs_save_mock)
+  stub(export_master_list_qs, "update_script_log", function(ml, ...) ml)
 
-  suppressMessages(export_master_list_rda(master_list))
-  expect_equal(mock_args(save_mock)[[1]]$compress, FALSE)
-
-  save_mock <- mock(invisible(NULL))
-  stub(export_master_list_rda, "save", save_mock)
-  suppressMessages(export_master_list_rda(master_list, rda_compress = "gzip"))
-  expect_equal(mock_args(save_mock)[[1]]$compress, "gzip")
+  suppressMessages(
+    export_master_list_qs(master_list,
+                          qs_nthreads = 4L,
+                          qs_compress_level = 7L)
+  )
+  call_args <- mock_args(qs_save_mock)[[1]]
+  expect_equal(call_args$nthreads, 4L)
+  expect_equal(call_args$compress_level, 7L)
 })
 
-test_that("export_master_list_rda: updates script log with completion message", {
+test_that("export_master_list_qs: updates script log with completion message", {
   master_list <- list(
     project_details = list(
       project_dir = "/tmp/test_project",
@@ -734,19 +736,13 @@ test_that("export_master_list_rda: updates script log with completion message", 
     )
   )
 
-  mock_bg_proc <- list(
-    wait = function(timeout = NULL) invisible(NULL),
-    is_alive = function() FALSE,
-    get_exit_status = function() 0L
-  )
-
-  stub(export_master_list_rda, "dir.create", TRUE)
-  stub(export_master_list_rda, "callr::r_bg", mock_bg_proc)
+  stub(export_master_list_qs, "dir.create", TRUE)
+  stub(export_master_list_qs, "qs2::qs_save", function(...) invisible(NULL))
 
   log_mock <- mock(master_list)
-  stub(export_master_list_rda, "update_script_log", log_mock)
+  stub(export_master_list_qs, "update_script_log", log_mock)
 
-  result <- suppressWarnings(export_master_list_rda(master_list))
+  result <- suppressWarnings(export_master_list_qs(master_list))
 
   expect_called(log_mock, 1)
   log_call_args <- mock_args(log_mock)[[1]]

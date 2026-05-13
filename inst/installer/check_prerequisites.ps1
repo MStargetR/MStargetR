@@ -329,7 +329,7 @@ if ($pandoc_path) {
         Write-Log "Pandoc is now available at: $pandoc_path"
     } else {
         Write-Log "WARNING: Pandoc not found after install. HTML reports will be unavailable."
-        Write-Log "Other features (XLSX export, RDA export) are unaffected."
+        Write-Log "Other features (XLSX export, qs2 export) are unaffected."
     }
 }
 

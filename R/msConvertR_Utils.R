@@ -115,7 +115,7 @@ msConvertR_setup_project_directories <- function(output_directory, plateIDs) {
       recursive = TRUE
     )
     dir.create(
-      file.path(base_path, "data", "rda"),
+      file.path(base_path, "data", "qs2"),
       showWarnings = FALSE,
       recursive = TRUE
     )

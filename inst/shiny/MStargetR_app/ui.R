@@ -963,12 +963,12 @@ ui <- bslib::page_navbar(
           )
         ),
 
-        # RDA background-save indicator. The qcCheckR pipeline returns the
-        # in-memory result as soon as compute finishes; the slow compressed
-        # RDA write happens in a separate detached background subprocess so
-        # users can interact with results immediately. This banner is only
-        # rendered while that detached save is still running.
-        shiny::uiOutput("qc_rda_save_status"),
+        # qs2 background-save indicator. The qcCheckR pipeline returns
+        # the in-memory result as soon as compute finishes; the qs2
+        # write happens in a separate detached background subprocess so
+        # users can interact with results immediately. This banner is
+        # only rendered while that detached save is still running.
+        shiny::uiOutput("qc_qs_save_status"),
 
         # Results in sub-tabs
         bslib::navset_card_tab(
@@ -2016,10 +2016,10 @@ ui <- bslib::page_navbar(
                   "    data/\n",
                   "      mzml/            # Converted mzML files\n",
                   "      raw_data/        # Copied vendor files\n",
-                  "      rda/             # R data objects\n",
+                  "      qs2/             # R data objects (qs2 format)\n",
                   "    reports/           # Skyline reports\n",
                   "  all/\n",
-                  "    data/rda/          # Combined QC results\n",
+                  "    data/qs2/          # Combined QC results (qs2 format)\n",
                   "    xlsx_report/       # Excel summary reports\n",
                   "  archive/             # Archived raw data\n",
                   "  MStargetR_logs/      # Pipeline log files"

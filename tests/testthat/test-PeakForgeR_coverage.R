@@ -1222,8 +1222,8 @@ test_that("reimport_PeakForgeR_file does not warn on heterogeneous numeric colum
 test_that("save_plate_data initiates background save", {
   tmp_dir <- withr::local_tempdir()
   plate <- "P1"
-  rda_dir <- file.path(tmp_dir, plate, "data", "rda")
-  dir.create(rda_dir, recursive = TRUE)
+  qs_dir <- file.path(tmp_dir, plate, "data", "qs2")
+  dir.create(qs_dir, recursive = TRUE)
 
   master_list <- list(
     project_details = list(
@@ -2099,8 +2099,8 @@ test_that("check_sil_standards returns FALSE when SILs do not match", {
 
 test_that("save_plate_data creates junction for long paths on Windows (lines 1506-1531)", {
   tmp <- withr::local_tempdir()
-  rda_dir <- file.path(tmp, "plate1", "data", "rda")
-  dir.create(rda_dir, recursive = TRUE)
+  qs_dir <- file.path(tmp, "plate1", "data", "qs2")
+  dir.create(qs_dir, recursive = TRUE)
 
   ml <- list(
     project_details = list(
@@ -2110,7 +2110,7 @@ test_that("save_plate_data creates junction for long paths on Windows (lines 150
   )
 
   stub(save_plate_data, "nchar", function(x, ...) {
-    if (is.character(x) && length(x) == 1 && grepl("rda$", x)) 300 else base::nchar(x)
+    if (is.character(x) && length(x) == 1 && grepl("qs2$", x)) 300 else base::nchar(x)
   })
   stub(save_plate_data, ".Platform", list(OS.type = "windows"))
   stub(save_plate_data, "system2", function(...) NULL)
@@ -2124,8 +2124,8 @@ test_that("save_plate_data creates junction for long paths on Windows (lines 150
 
 test_that("save_plate_data saves via callr::r_bg on normal paths (lines 1510-1538)", {
   tmp <- withr::local_tempdir()
-  rda_dir <- file.path(tmp, "plate1", "data", "rda")
-  dir.create(rda_dir, recursive = TRUE)
+  qs_dir <- file.path(tmp, "plate1", "data", "qs2")
+  dir.create(qs_dir, recursive = TRUE)
 
   ml <- list(
     project_details = list(

@@ -235,33 +235,32 @@ test_that("SH-010: qc_run observer dispatches to async subprocess", {
   )
 
   # The qcCheckR worker must be invoked with write_rda = FALSE so the
-  # subprocess returns the in-memory result before the slow compressed
-  # RDA save runs. The save is then fired in a separate detached
-  # subprocess (see mst_spawn_rda_save assertion below). Regressing this
-  # would re-introduce the foreground RDA wait that this contract was
-  # designed to eliminate.
+  # subprocess returns the in-memory result before the qs2 save runs.
+  # The save is then fired in a separate detached subprocess (see
+  # mst_spawn_qs_save assertion below). Regressing this would re-introduce
+  # the foreground save wait that this contract was designed to eliminate.
   expect_true(
     grepl("write_rda\\s*=\\s*FALSE", block_str),
     info = paste0("qc_run args list must include write_rda = FALSE so the ",
-                  "RDA save can run in a detached background subprocess")
+                  "qs2 save can run in a detached background subprocess")
   )
 })
 
-# qc_run completion must spawn the detached RDA save via
-# mst_spawn_rda_save() so users can view results immediately while the
-# .rda file is still being written. The corresponding helper is exercised
+# qc_run completion must spawn the detached qs2 save via
+# mst_spawn_qs_save() so users can view results immediately while the
+# .qs2 file is still being written. The corresponding helper is exercised
 # elsewhere; this test just locks in the structural decision in server.R.
-test_that("qc_run success branch spawns detached RDA save", {
+test_that("qc_run success branch spawns detached qs2 save", {
   skip_if(!file.exists(server_path))
   server_text <- paste(readLines(server_path), collapse = "\n")
   expect_true(
-    grepl("mst_spawn_rda_save\\(", server_text),
-    info = paste0("server must spawn the RDA save in its own subprocess via ",
-                  "mst_spawn_rda_save() after qc_run succeeds")
+    grepl("mst_spawn_qs_save\\(", server_text),
+    info = paste0("server must spawn the qs2 save in its own subprocess via ",
+                  "mst_spawn_qs_save() after qc_run succeeds")
   )
   expect_true(
-    grepl("rv\\$rda_handle", server_text),
-    info = "server must track the detached RDA writer in rv$rda_handle"
+    grepl("rv\\$qs_handle", server_text),
+    info = "server must track the detached qs2 writer in rv$qs_handle"
   )
 })
 

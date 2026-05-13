@@ -64,7 +64,7 @@ qcCheckR_statTarget_batch_correction <- function(master_list) {
 initialise_statTarget_environment <- function(master_list) {
   dirs <- c("data",
             "data/batch_correction",
-            "data/rda",
+            "data/qs2",
             "xlsx_report",
             "html_report")
   lapply(dirs, function(d) {
