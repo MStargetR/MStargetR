@@ -12,10 +12,11 @@ save_plate_data(master_list, plate_idx)
 \item{plate_idx}{The index of the plate to save the data for.}
 }
 \value{
-Saves the master list data to an RDA file in the specified project directory.
+Saves the master list data to a \code{.qs2} file (load with
+\code{\link[qs2:qs_read]{qs2::qs_read()}}) in the specified project directory.
 }
 \description{
-This function saves the master list data for a given plate to an RDA file.
+This function saves the master list data for a given plate to a qs2 file.
 }
 \examples{
 \dontrun{

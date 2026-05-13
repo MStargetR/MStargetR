@@ -29,17 +29,17 @@ function(input, output, session) {
     process_log_offset = 0L,
     process_task       = NULL,
     process_extra      = list(),
-    # Detached RDA save: the qcCheckR pipeline now returns BEFORE the slow
-    # compressed RDA save (qcCheckR(..., write_rda = FALSE)). After results
-    # are surfaced, a second background subprocess is spawned just to call
-    # export_master_list_rda(), tracked in this independent slot so it
-    # cannot stall a follow-up qc_run / batch_run.
-    rda_handle         = NULL,
-    rda_log_file       = NULL,
-    rda_log_offset     = 0L,
-    rda_project_dir    = NULL,
-    rda_started_at     = NULL,
-    rda_status         = NULL  # NULL | "running" | "ok" | "error"
+    # Detached qs2 save: the qcCheckR pipeline returns BEFORE the
+    # master_list .qs2 save (qcCheckR(..., write_rda = FALSE)). After
+    # results are surfaced, a second background subprocess is spawned
+    # just to call export_master_list_qs(), tracked in this independent
+    # slot so it cannot stall a follow-up qc_run / batch_run.
+    qs_handle          = NULL,
+    qs_log_file        = NULL,
+    qs_log_offset      = 0L,
+    qs_project_dir     = NULL,
+    qs_started_at      = NULL,
+    qs_status          = NULL  # NULL | "running" | "ok" | "error"
   )
 
   # -- Session cleanup ---------------------------------------------------------
@@ -55,14 +55,14 @@ function(input, output, session) {
       ),
       error = function(e) NULL
     )
-    # Same for the detached RDA writer. Killing mid-write leaves a
-    # truncated/corrupt .rda on disk, but that's preferable to leaving
+    # Same for the detached qs2 writer. Killing mid-write leaves a
+    # truncated/corrupt .qs2 on disk, but that's preferable to leaving
     # an orphaned R subprocess holding the project directory after the
     # browser tab closes.
     tryCatch(
       mst_cleanup_pipeline(
-        shiny::isolate(rv$rda_handle),
-        shiny::isolate(rv$rda_log_file)
+        shiny::isolate(rv$qs_handle),
+        shiny::isolate(rv$qs_log_file)
       ),
       error = function(e) NULL
     )
@@ -226,50 +226,50 @@ function(input, output, session) {
           message = "QC pipeline complete!", type = "success"
         ))
 
-        # Detached RDA write: qcCheckR was invoked with write_rda = FALSE so
-        # results are already in rv$qc_result above. Now fire the slow
-        # compressed save in its own subprocess so the user can interact
-        # with the results without waiting on disk I/O. If a previous RDA
-        # save is still in flight (rv$rda_handle alive), skip — save() at
-        # the end will overwrite the same date-stamped path anyway and we
-        # don't want to fan out workers.
-        prior_alive <- !is.null(rv$rda_handle) && tryCatch(
-          rv$rda_handle$is_alive(), error = function(e) FALSE
+        # Detached qs2 write: qcCheckR was invoked with write_rda = FALSE
+        # so results are already in rv$qc_result above. Now fire the
+        # qs2 save in its own subprocess so the user can interact with
+        # the results without waiting on disk I/O. If a previous qs2
+        # save is still in flight (rv$qs_handle alive), skip — qs_save()
+        # at the end will overwrite the same date-stamped path anyway
+        # and we don't want to fan out workers.
+        prior_alive <- !is.null(rv$qs_handle) && tryCatch(
+          rv$qs_handle$is_alive(), error = function(e) FALSE
         )
         if (prior_alive) {
           rv$qc_log <- paste0(
             rv$qc_log %||% "",
-            "\n[note] Previous RDA save is still running; skipping new ",
+            "\n[note] Previous qs2 save is still running; skipping new ",
             "background save to avoid fan-out. Results are usable now.\n"
           )
         } else {
           # Drop any stale handle before spawning a new one.
-          if (!is.null(rv$rda_handle)) {
-            tryCatch(mst_cleanup_pipeline(rv$rda_handle, rv$rda_log_file),
+          if (!is.null(rv$qs_handle)) {
+            tryCatch(mst_cleanup_pipeline(rv$qs_handle, rv$qs_log_file),
                      error = function(e) NULL)
           }
-          bg_rda <- tryCatch(
-            mst_spawn_rda_save(result$value),
+          bg_qs <- tryCatch(
+            mst_spawn_qs_save(result$value),
             error = function(e) {
               rv$qc_log <- paste0(
                 rv$qc_log %||% "",
-                "\n[warning] Could not spawn background RDA writer: ",
+                "\n[warning] Could not spawn background qs2 writer: ",
                 conditionMessage(e),
-                ". The .rda file will not be saved this run.\n"
+                ". The .qs2 file will not be saved this run.\n"
               )
               NULL
             }
           )
-          if (!is.null(bg_rda)) {
-            rv$rda_handle      <- bg_rda$handle
-            rv$rda_log_file    <- bg_rda$log_file
-            rv$rda_log_offset  <- 0L
-            rv$rda_project_dir <- result$value$project_details$project_dir
-            rv$rda_started_at  <- Sys.time()
-            rv$rda_status      <- "running"
+          if (!is.null(bg_qs)) {
+            rv$qs_handle      <- bg_qs$handle
+            rv$qs_log_file    <- bg_qs$log_file
+            rv$qs_log_offset  <- 0L
+            rv$qs_project_dir <- result$value$project_details$project_dir
+            rv$qs_started_at  <- Sys.time()
+            rv$qs_status      <- "running"
             rv$qc_log <- paste0(
               rv$qc_log %||% "",
-              "\nRDA save running in background; results are ready to view.\n"
+              "\nqs2 save running in background; results are ready to view.\n"
             )
           }
         }
@@ -351,27 +351,27 @@ function(input, output, session) {
     enable_run_buttons(session)
   })
 
-  # -- Detached RDA-save poller ------------------------------------------------
+  # -- Detached qs2-save poller ------------------------------------------------
   # Independent of the main pipeline poller above. The qcCheckR result is
   # already in rv$qc_result by the time this fires; this observer only
-  # tails the worker's log into rv$qc_log, flips rv$rda_status when the
+  # tails the worker's log into rv$qc_log, flips rv$qs_status when the
   # subprocess exits, and clears the handle slot so the next QC run can
-  # spawn a new RDA writer. Does NOT toggle rv$running — the user must be
-  # free to interact with results, run plots, run batch correction, etc.
-  # while the save is in flight.
+  # spawn a new qs2 writer. Does NOT toggle rv$running — the user must
+  # be free to interact with results, run plots, run batch correction,
+  # etc. while the save is in flight.
   shiny::observe({
-    handle <- rv$rda_handle
+    handle <- rv$qs_handle
     if (is.null(handle)) return()
 
-    log_file <- shiny::isolate(rv$rda_log_file)
-    offset   <- shiny::isolate(rv$rda_log_offset) %||% 0L
+    log_file <- shiny::isolate(rv$qs_log_file)
+    offset   <- shiny::isolate(rv$qs_log_offset) %||% 0L
 
     tick <- mst_poll_pipeline(handle, log_file, offset)
-    rv$rda_log_offset <- tick$new_offset
+    rv$qs_log_offset <- tick$new_offset
 
     if (nzchar(tick$log_text)) {
       rv$qc_log <- paste0(rv$qc_log %||% "",
-                           "[rda] ", tick$log_text)
+                           "[qs2] ", tick$log_text)
     }
 
     if (!tick$done) {
@@ -380,23 +380,23 @@ function(input, output, session) {
     }
 
     if (isTRUE(tick$result$success)) {
-      rv$rda_status <- "ok"
+      rv$qs_status <- "ok"
       rv$qc_log <- paste0(
         rv$qc_log %||% "",
-        "\nBackground RDA save completed.\n"
+        "\nBackground qs2 save completed.\n"
       )
       session$sendCustomMessage("mst-notify", list(
-        message = "RDA file saved.", type = "success", duration = 3000
+        message = "qs2 file saved.", type = "success", duration = 3000
       ))
     } else {
-      rv$rda_status <- "error"
+      rv$qs_status <- "error"
       msg <- tick$result$message %||% "unknown error"
       rv$qc_log <- paste0(
         rv$qc_log %||% "",
-        "\n[error] Background RDA save failed: ", msg, "\n"
+        "\n[error] Background qs2 save failed: ", msg, "\n"
       )
       session$sendCustomMessage("mst-notify", list(
-        message = paste0("Background RDA save failed: ", msg),
+        message = paste0("Background qs2 save failed: ", msg),
         type = "warning", duration = 6000
       ))
     }
@@ -404,20 +404,21 @@ function(input, output, session) {
     if (!is.null(log_file) && file.exists(log_file)) {
       try(unlink(log_file), silent = TRUE)
     }
-    rv$rda_handle     <- NULL
-    rv$rda_log_file   <- NULL
-    rv$rda_log_offset <- 0L
+    rv$qs_handle     <- NULL
+    rv$qs_log_file   <- NULL
+    rv$qs_log_offset <- 0L
   })
 
-  # Banner shown above the QC results tabs while the detached RDA save is
-  # in flight. Once the worker exits, the banner shows a brief success or
-  # error state for the next run; clearing it falls out of starting a new
-  # qc_run (which sets rv$rda_status back to "running" or NULL).
-  output$qc_rda_save_status <- shiny::renderUI({
-    status <- rv$rda_status
+  # Banner shown above the QC results tabs while the detached qs2 save
+  # is in flight. Once the worker exits, the banner shows a brief
+  # success or error state for the next run; clearing it falls out of
+  # starting a new qc_run (which sets rv$qs_status back to "running" or
+  # NULL).
+  output$qc_qs_save_status <- shiny::renderUI({
+    status <- rv$qs_status
     if (is.null(status)) return(NULL)
     if (identical(status, "running")) {
-      started <- rv$rda_started_at
+      started <- rv$qs_started_at
       elapsed_str <- if (!is.null(started)) {
         secs <- as.numeric(difftime(Sys.time(), started, units = "secs"))
         # Re-render every 2s so the elapsed counter stays roughly current
@@ -429,10 +430,10 @@ function(input, output, session) {
         class = "alert alert-info d-flex align-items-center gap-2 mb-3",
         shiny::icon("floppy-disk"),
         htmltools::tags$span(
-          htmltools::tags$strong("Saving RDA in background"),
+          htmltools::tags$strong("Saving qs2 file in background"),
           elapsed_str,
-          " - results below are ready to view; the .rda file is still ",
-          "being written and will appear in the project's all/data/rda ",
+          " - results below are ready to view; the .qs2 file is still ",
+          "being written and will appear in the project's all/data/qs2 ",
           "folder when finished."
         )
       )
@@ -440,14 +441,14 @@ function(input, output, session) {
       htmltools::tags$div(
         class = "alert alert-success d-flex align-items-center gap-2 mb-3",
         shiny::icon("circle-check"),
-        htmltools::tags$span("RDA file saved.")
+        htmltools::tags$span("qs2 file saved.")
       )
     } else if (identical(status, "error")) {
       htmltools::tags$div(
         class = "alert alert-warning d-flex align-items-center gap-2 mb-3",
         shiny::icon("triangle-exclamation"),
         htmltools::tags$span(
-          "Background RDA save failed - see console output above. ",
+          "Background qs2 save failed - see console output above. ",
           "XLSX and HTML reports were unaffected."
         )
       )
@@ -1485,12 +1486,12 @@ function(input, output, session) {
       batch_column      = if (nzchar(input$qc_batch_column %||% "")) {
         input$qc_batch_column
       } else NULL,
-      # The RDA save is the slowest tail-end step in the pipeline. Skip it
-      # here so qcCheckR returns the in-memory result as soon as the
+      # The qs2 save is the slowest tail-end step in the pipeline. Skip
+      # it here so qcCheckR returns the in-memory result as soon as the
       # XLSX/HTML exports finish, then the qc_run completion handler
       # (above) spawns a separate background subprocess that calls
-      # export_master_list_rda(master_list) so the user can view results
-      # immediately while the compressed save runs in the background.
+      # export_master_list_qs(master_list) so the user can view results
+      # immediately while the save runs in the background.
       write_rda         = FALSE
     )
 
@@ -1517,8 +1518,8 @@ function(input, output, session) {
     rv$process_task       <- "qc_run"
     rv$process_extra      <- list(project_dir = input$qc_project_dir)
     # Clear any stale post-save banner from a previous run. The detached
-    # RDA writer sets this to "running" once it spawns, post-completion.
-    rv$rda_status         <- NULL
+    # qs2 writer sets this to "running" once it spawns, post-completion.
+    rv$qs_status         <- NULL
     disable_run_buttons(session)
   })
 

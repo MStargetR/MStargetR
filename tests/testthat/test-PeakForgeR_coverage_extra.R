@@ -129,8 +129,8 @@ test_that("save_plate_data prefers Sys.junction() over shell() on long paths (DO
   testthat::skip_if(Sys.info()[["sysname"]] != "Windows")
   tmp_dir <- withr::local_tempdir()
   plate <- "P1"
-  rda_dir <- file.path(tmp_dir, plate, "data", "rda")
-  dir.create(rda_dir, recursive = TRUE)
+  qs_dir <- file.path(tmp_dir, plate, "data", "qs2")
+  dir.create(qs_dir, recursive = TRUE)
 
   ml <- list(project_details = list(
     project_dir = tmp_dir, project_name = "proj"
@@ -160,8 +160,8 @@ test_that("save_plate_data falls back to shell(mklink /J) when Sys.junction retu
   testthat::skip_if(Sys.info()[["sysname"]] != "Windows")
   tmp_dir <- withr::local_tempdir()
   plate <- "P1"
-  rda_dir <- file.path(tmp_dir, plate, "data", "rda")
-  dir.create(rda_dir, recursive = TRUE)
+  qs_dir <- file.path(tmp_dir, plate, "data", "qs2")
+  dir.create(qs_dir, recursive = TRUE)
   ml <- list(project_details = list(project_dir = tmp_dir, project_name = "proj"))
 
   captured_cmd <- NULL
@@ -201,7 +201,7 @@ test_that("save_plate_data falls back to shell(mklink /J) when Sys.junction retu
 test_that("save_plate_data returns cleanly on successful background save (BC-C2 happy path)", {
   tmp_dir <- withr::local_tempdir()
   plate <- "P1"
-  dir.create(file.path(tmp_dir, plate, "data", "rda"), recursive = TRUE)
+  dir.create(file.path(tmp_dir, plate, "data", "qs2"), recursive = TRUE)
   ml <- list(project_details = list(project_dir = tmp_dir, project_name = "proj"))
 
   stub(save_plate_data, "callr::r_bg", function(...) {
@@ -216,7 +216,7 @@ test_that("save_plate_data returns cleanly on successful background save (BC-C2 
 test_that("save_plate_data kills child and stops on timeout (BC-C2 timeout path)", {
   tmp_dir <- withr::local_tempdir()
   plate <- "P1"
-  dir.create(file.path(tmp_dir, plate, "data", "rda"), recursive = TRUE)
+  dir.create(file.path(tmp_dir, plate, "data", "qs2"), recursive = TRUE)
   ml <- list(project_details = list(project_dir = tmp_dir, project_name = "proj"))
 
   killed <- FALSE
@@ -242,7 +242,7 @@ test_that("save_plate_data kills child and stops on timeout (BC-C2 timeout path)
 test_that("save_plate_data stops with child stderr on non-zero exit (BC-C2 failure path)", {
   tmp_dir <- withr::local_tempdir()
   plate <- "P1"
-  dir.create(file.path(tmp_dir, plate, "data", "rda"), recursive = TRUE)
+  dir.create(file.path(tmp_dir, plate, "data", "qs2"), recursive = TRUE)
   ml <- list(project_details = list(project_dir = tmp_dir, project_name = "proj"))
 
   stub(save_plate_data, "callr::r_bg", function(...) {

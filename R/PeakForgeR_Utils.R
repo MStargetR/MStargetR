@@ -283,7 +283,7 @@ setup_project_directories <- function(master_list) {
       recursive = TRUE
     )
     dir.create(
-      file.path(base_path, "data", "rda"),
+      file.path(base_path, "data", "qs2"),
       showWarnings = FALSE,
       recursive = TRUE
     )
@@ -810,12 +810,13 @@ check_sil_standards <- function(master_list, plate_idx, current_version) {
 
 #' save_plate_data
 #'
-#' This function saves the master list data for a given plate to an RDA file.
+#' This function saves the master list data for a given plate to a qs2 file.
 #' @keywords internal
 #' @importFrom callr r_bg
 #' @param master_list A list containing project details and data.
 #' @param plate_idx The index of the plate to save the data for.
-#' @return Saves the master list data to an RDA file in the specified project directory.
+#' @return Saves the master list data to a `.qs2` file (load with
+#'   [qs2::qs_read()]) in the specified project directory.
 #' @examples
 #' \dontrun{
 #' save_plate_data(master_list, plate_idx)
@@ -825,8 +826,8 @@ save_plate_data <- function(master_list, plate_idx) {
   long_path <- file.path(master_list$project_details$project_dir,
                          plate_idx,
                          "data",
-                         "rda")
-  short_junction <- tempfile(pattern = "rda_")
+                         "qs2")
+  short_junction <- tempfile(pattern = "qs2_")
   if (nchar(long_path) > 260 && .Platform$OS.type == "windows") {
     message("Path exceeds 260 chars; creating junction: ", short_junction, " -> ", long_path)
     # Prefer Sys.junction(); see REVIEW_REPORT DOCK-C2. Fall back to a
@@ -844,7 +845,7 @@ save_plate_data <- function(master_list, plate_idx) {
     save_path <- file.path(master_list$project_details$project_dir,
                            plate_idx,
                            "data",
-                           "rda")
+                           "qs2")
   }
 
   # Serialise master_list to a tempfile in the parent so the callr child only
@@ -854,20 +855,24 @@ save_plate_data <- function(master_list, plate_idx) {
   saveRDS(master_list, file = tmp_rds, compress = FALSE)
   on.exit(unlink(tmp_rds), add = TRUE)
 
+  qs_nthreads <- max(1L, parallel::detectCores() - 1L)
+
   # Capture the background handle so we can wait on / inspect exit status.
   # Previously the handle was discarded, allowing the save to race against
   # session exit and any junction cleanup to leak silently on child crash.
   # See REVIEW_REPORT BC-C2.
-  handle <- callr::r_bg(function(tmp_rds, save_path, plate_idx, short_junction) {
+  handle <- callr::r_bg(function(tmp_rds, save_path, plate_idx,
+                                 short_junction, qs_nthreads) {
     master_list <- readRDS(tmp_rds)
-    save(
+    qs2::qs_save(
       master_list,
       file = file.path(
         save_path,
         paste0(Sys.Date(), "_", master_list$project_details$project_name, "_",
-               plate_idx, "_PeakForgeR.rda")
+               plate_idx, "_PeakForgeR.qs2")
       ),
-      compress = FALSE
+      compress_level = 3L,
+      nthreads = qs_nthreads
     )
     # Clean up junction after save completes (avoids race condition)
     if (!is.null(short_junction) && dir.exists(short_junction)) {
@@ -877,7 +882,8 @@ save_plate_data <- function(master_list, plate_idx) {
     tmp_rds = tmp_rds,
     save_path = save_path,
     plate_idx = plate_idx,
-    short_junction = if (nchar(long_path) > 260 && .Platform$OS.type == "windows") short_junction else NULL
+    short_junction = if (nchar(long_path) > 260 && .Platform$OS.type == "windows") short_junction else NULL,
+    qs_nthreads = qs_nthreads
   ))
 
   # Wait up to 10 minutes for the save to finish (large master_list).

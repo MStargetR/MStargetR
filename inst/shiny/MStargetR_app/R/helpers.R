@@ -922,25 +922,25 @@ mst_poll_pipeline <- function(handle, log_file, offset = 0L) {
   )
 }
 
-#' Spawn a detached background RDA save.
+#' Spawn a detached background qs2 save.
 #'
-#' Used by the QC tab to fire `MStargetR::export_master_list_rda(master_list)`
+#' Used by the QC tab to fire `MStargetR::export_master_list_qs(master_list)`
 #' in its own subprocess after `qcCheckR(..., write_rda = FALSE)` returns,
-#' so users can view results in the GUI while the slow compressed save
-#' continues. Distinct from `mst_spawn_pkg_fn()` only in that the worker
-#' takes a pre-built `master_list` rather than calling a pipeline entry
-#' point with raw user inputs — same log/handle contract so the existing
+#' so users can view results in the GUI while the save continues.
+#' Distinct from `mst_spawn_pkg_fn()` only in that the worker takes a
+#' pre-built `master_list` rather than calling a pipeline entry point
+#' with raw user inputs — same log/handle contract so the existing
 #' `mst_poll_pipeline()` / `mst_cleanup_pipeline()` helpers work unchanged.
 #'
 #' @param master_list The completed qcCheckR result.
 #' @return List with `handle` (callr r_process) and `log_file` (path).
 #' @keywords internal
-mst_spawn_rda_save <- function(master_list) {
+mst_spawn_qs_save <- function(master_list) {
   if (!requireNamespace("callr", quietly = TRUE)) {
-    stop("The 'callr' package is required for the detached RDA save. ",
+    stop("The 'callr' package is required for the detached qs2 save. ",
          "Install.packages('callr').", call. = FALSE)
   }
-  log_file <- tempfile("mst_rda_", fileext = ".log")
+  log_file <- tempfile("mst_qs_", fileext = ".log")
   file.create(log_file)
 
   handle <- callr::r_bg(
@@ -954,7 +954,7 @@ mst_spawn_rda_save <- function(master_list) {
         try(close(con), silent = TRUE)
       }, add = TRUE)
       requireNamespace("MStargetR", quietly = TRUE)
-      fn <- getExportedValue("MStargetR", "export_master_list_rda")
+      fn <- getExportedValue("MStargetR", "export_master_list_qs")
       withCallingHandlers(
         fn(master_list),
         warning = function(w) {

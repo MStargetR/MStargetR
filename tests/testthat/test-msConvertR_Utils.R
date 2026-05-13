@@ -250,7 +250,7 @@ test_that("msConvertR_setup_project_directories creates expected structure", {
 
   expect_true(dir.exists(file.path(temp, "user_files")))
   expect_true(dir.exists(file.path(temp, "plate1", "data", "mzml")))
-  expect_true(dir.exists(file.path(temp, "plate1", "data", "rda")))
+  expect_true(dir.exists(file.path(temp, "plate1", "data", "qs2")))
   expect_true(dir.exists(file.path(temp, "plate1", "data", "PeakForgeR")))
   expect_true(dir.exists(file.path(temp, "plate1", "data", "raw_data")))
   expect_true(dir.exists(file.path(temp, "plate1", "data", "batch_correction")))

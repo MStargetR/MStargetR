@@ -1040,22 +1040,22 @@ test_that("qcCheckR_export_all calls all three export functions (lines 3193-3199
     call_log <<- c(call_log, "html")
     ml
   })
-  stub(qcCheckR_export_all, "export_master_list_rda", function(ml, ...) {
-    call_log <<- c(call_log, "rda")
+  stub(qcCheckR_export_all, "export_master_list_qs", function(ml, ...) {
+    call_log <<- c(call_log, "qs")
     ml
   })
 
   result <- suppressMessages(qcCheckR_export_all(master_list))
 
-  expect_equal(call_log, c("xlsx", "html", "rda"))
+  expect_equal(call_log, c("xlsx", "html", "qs"))
 })
 
-# Locks in the detached-RDA contract: when callers (e.g. the Shiny QC tab)
-# pass write_rda = FALSE, qcCheckR_export_all must run XLSX and HTML but
-# skip export_master_list_rda so the caller can fire that step in its own
-# background subprocess. Regressing this would silently re-introduce the
-# slow xz/gzip save into the foreground pipeline.
-test_that("qcCheckR_export_all skips RDA export when write_rda = FALSE", {
+# Locks in the detached-qs2 contract: when callers (e.g. the Shiny QC
+# tab) pass write_rda = FALSE, qcCheckR_export_all must run XLSX and
+# HTML but skip export_master_list_qs so the caller can fire that step
+# in its own background subprocess. Regressing this would silently
+# re-introduce the slow tail-end save into the foreground pipeline.
+test_that("qcCheckR_export_all skips qs2 export when write_rda = FALSE", {
   master_list <- list(dummy = TRUE)
   call_log <- character(0)
 
@@ -1067,8 +1067,8 @@ test_that("qcCheckR_export_all skips RDA export when write_rda = FALSE", {
     call_log <<- c(call_log, "html")
     ml
   })
-  stub(qcCheckR_export_all, "export_master_list_rda", function(ml) {
-    call_log <<- c(call_log, "rda")
+  stub(qcCheckR_export_all, "export_master_list_qs", function(ml, ...) {
+    call_log <<- c(call_log, "qs")
     ml
   })
 
@@ -1077,7 +1077,7 @@ test_that("qcCheckR_export_all skips RDA export when write_rda = FALSE", {
   )
 
   expect_equal(call_log, c("xlsx", "html"))
-  expect_false("rda" %in% call_log)
+  expect_false("qs" %in% call_log)
 })
 
 # ============================================================================
@@ -1811,10 +1811,10 @@ test_that("export_html_report handles render failure gracefully (lines 3368-3374
 })
 
 # ============================================================================
-# export_master_list_rda - callr::r_bg branch (line 3401)
+# export_master_list_qs - synchronous save branch
 # ============================================================================
 
-test_that("export_master_list_rda saves RDA synchronously (line 3401)", {
+test_that("export_master_list_qs saves qs2 synchronously", {
   tmp <- withr::local_tempdir()
 
   ml <- list(
@@ -1829,16 +1829,16 @@ test_that("export_master_list_rda saves RDA synchronously (line 3401)", {
     )
   )
 
-  save_called <- FALSE
-  stub(export_master_list_rda, "save", function(...) {
-    save_called <<- TRUE
+  qs_save_called <- FALSE
+  stub(export_master_list_qs, "qs2::qs_save", function(...) {
+    qs_save_called <<- TRUE
     invisible(NULL)
   })
-  stub(export_master_list_rda, "update_script_log", function(ml, ...) ml)
+  stub(export_master_list_qs, "update_script_log", function(ml, ...) ml)
 
-  result <- suppressMessages(export_master_list_rda(ml))
+  result <- suppressMessages(export_master_list_qs(ml))
 
-  expect_true(save_called)
+  expect_true(qs_save_called)
 })
 
 # ============================================================================

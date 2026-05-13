@@ -21,7 +21,8 @@ qcCheckR(
   combat_ref.batch = NULL,
   batch_column = NULL,
   write_rda = TRUE,
-  rda_compress = FALSE,
+  qs_nthreads = max(1L, parallel::detectCores() - 1L),
+  qs_compress_level = 3L,
   date_order = c("auto", "dmy", "mdy", "ymd", "iso")
 )
 }
@@ -74,22 +75,29 @@ user-named column (e.g. \code{plate}, \code{run_batch}); the chosen
 column's values become the valid choices for \code{combat_ref.batch}.
 Only used when \code{batch_method = "ComBat"}.}
 
-\item{write_rda}{Logical. When \code{TRUE} (default) the master_list RDA
-file is written synchronously as the final step of the pipeline. Set to
-\code{FALSE} when the caller intends to write the RDA out-of-band — for
-example, the Shiny GUI passes \code{FALSE} so it can surface results to
-the user immediately and fire a separate background job that calls
-\code{\link{export_master_list_rda}} on the returned master_list. The
-XLSX and HTML exports are unaffected.}
+\item{write_rda}{Logical. When \code{TRUE} (default) the master_list
+\code{.qs2} file is written synchronously as the final step of the
+pipeline. Set to \code{FALSE} when the caller intends to write it
+out-of-band — for example, the Shiny GUI passes \code{FALSE} so it
+can surface results to the user immediately and fire a separate
+background job that calls
+\code{\link{export_master_list_qs}} on the returned master_list. The
+XLSX and HTML exports are unaffected. The argument name is retained
+from the previous \code{.rda} API to avoid churning every caller;
+the underlying output is now \code{.qs2}.}
 
-\item{rda_compress}{Compression option forwarded to \code{\link[base]{save}}.
-Default \code{FALSE} (no compression). R's single-threaded gzip pass
-over the serialized master_list can take hours on ~50+ plate cohorts
-and was producing an apparent hang on a 54-plate run, so we default to
-off and accept a 5-10x larger \code{.rda} on disk in exchange for a
-save that completes in seconds-to-minutes. Pass \code{"gzip"},
-\code{"bzip2"}, or \code{"xz"} to opt into compression for archival
-runs.}
+\item{qs_nthreads}{Integer worker threads forwarded to
+\code{\link[qs2]{qs_save}}. Defaults to
+\code{max(1L, parallel::detectCores() - 1L)}. Multi-threaded zstd is
+what makes large-cohort saves complete in reasonable time; the
+previous single-threaded gzip path via \code{base::save()} stalled
+for hours on a 54-plate cohort.}
+
+\item{qs_compress_level}{Integer zstd compression level forwarded to
+\code{\link[qs2]{qs_save}}. Default \code{3L} (qs2 default; fast
+with good ratio). Higher values (up to 22) shrink the file further
+at the cost of CPU time; negative values trade ratio for more
+speed.}
 
 \item{date_order}{Controls how the \code{AcquiredTime} column from
 PeakForgeR reports (which Skyline exports in the OS locale of whoever

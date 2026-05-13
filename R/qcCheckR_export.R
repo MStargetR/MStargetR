@@ -19,36 +19,45 @@ format_numeric_columns <- function(df) {
 ###Primary Function ----
 #' Export All Project Outputs
 #'
-#' Exports the `master_list` to XLSX, HTML, and RDA formats, including summary tables, QC metrics, and processed data.
+#' Exports the `master_list` to XLSX, HTML, and qs2 formats, including summary tables, QC metrics, and processed data.
 #' @keywords internal
 #' @param master_list A list containing project details and data.
-#' @param write_rda Logical. When `TRUE` (default) the master_list RDA file is
+#' @param write_rda Logical. When `TRUE` (default) the master_list qs2 file is
 #'   written synchronously as part of the export step. Set to `FALSE` when the
-#'   caller intends to write the RDA out-of-band (e.g. the Shiny GUI fires a
-#'   detached background save so results can render before the slow RDA write
+#'   caller intends to write it out-of-band (e.g. the Shiny GUI fires a
+#'   detached background save so results can render before the qs2 write
 #'   completes). When `FALSE`, callers are responsible for invoking
-#'   [export_master_list_rda()] themselves.
-#' @param rda_compress Forwarded to [export_master_list_rda()]; see its
-#'   documentation. Default is `FALSE` (uncompressed save).
+#'   [export_master_list_qs()] themselves. The name is retained from the
+#'   prior `.rda` API to avoid churning every caller; the underlying
+#'   output is now `.qs2`.
+#' @param qs_nthreads Forwarded to [export_master_list_qs()]; see its
+#'   documentation for the default.
+#' @param qs_compress_level Forwarded to [export_master_list_qs()]; see
+#'   its documentation for the default.
 #' @return The updated `master_list` with exported files.
 #' @examples
 #' \dontrun{
 #' master_list <- qcCheckR_export_all(master_list)
 #' }
-qcCheckR_export_all <- function(master_list,
-                                write_rda = TRUE,
-                                rda_compress = FALSE) {
+qcCheckR_export_all <- function(
+    master_list,
+    write_rda = TRUE,
+    qs_nthreads = max(1L, parallel::detectCores() - 1L),
+    qs_compress_level = 3L) {
   message("Exporting XLSX report...")
   master_list <- export_xlsx_file(master_list)
   message("Exporting HTML report...")
   master_list <- export_html_report(master_list)
   if (isTRUE(write_rda)) {
-    message("Exporting master_list RDA file...")
-    master_list <- export_master_list_rda(master_list,
-                                          rda_compress = rda_compress)
+    message("Exporting master_list qs2 file...")
+    master_list <- export_master_list_qs(
+      master_list,
+      qs_nthreads = qs_nthreads,
+      qs_compress_level = qs_compress_level
+    )
   } else {
-    message("Skipping RDA export (write_rda = FALSE); ",
-            "caller will write the RDA out-of-band.")
+    message("Skipping qs2 export (write_rda = FALSE); ",
+            "caller will write the qs2 file out-of-band.")
   }
   return(master_list)
 }
@@ -223,7 +232,7 @@ export_html_report <- function(master_list) {
   if (!rmarkdown::pandoc_available("1.12.3")) {
     warning(
       "qcCheckR: pandoc >= 1.12.3 is required for HTML reports but was not found. ",
-      "Skipping HTML report generation. All other outputs (XLSX, RDA) are unaffected.",
+      "Skipping HTML report generation. All other outputs (XLSX, qs2) are unaffected.",
       call. = FALSE
     )
     unlink(temp_file)
@@ -271,7 +280,7 @@ export_html_report <- function(master_list) {
   }, error = function(e) {
     warning(
       "qcCheckR: HTML report generation failed: ", conditionMessage(e),
-      ". All other outputs (XLSX, RDA) are unaffected.",
+      ". All other outputs (XLSX, qs2) are unaffected.",
       call. = FALSE
     )
   })
@@ -280,47 +289,58 @@ export_html_report <- function(master_list) {
   return(master_list)
 }
 
-#' Export Master List as RDA File
+#' Export Master List as QS2 File
 #'
-#' Exports the `master_list` to an RDA file under
-#' `<project_dir>/all/data/rda/`, suitable for re-loading or sharing.
+#' Exports the `master_list` to a `.qs2` file (qs2 package's
+#' multi-threaded zstd serialization format) under
+#' `<project_dir>/all/data/qs2/`, suitable for re-loading or sharing.
+#' Load with [qs2::qs_read()].
 #'
 #' Exported (rather than internal) so that the Shiny GUI can fire this
 #' as a detached background job after [qcCheckR()] returns
 #' (`qcCheckR(..., write_rda = FALSE)` followed by a separate
 #' `callr::r_bg()` running this function), letting users view results
-#' immediately while the slow save continues in the background.
+#' immediately while the save continues in the background.
 #'
 #' @param master_list A list containing project details and data.
-#' @param rda_compress Passed straight through to [save()]'s `compress`
-#'   argument. Default is `FALSE` (no compression). On large cohorts
-#'   (~50+ plates) R's single-threaded gzip pass over the serialized
-#'   master_list can take hours and was producing an apparent hang in
-#'   the R workflow on 54-plate cohorts; an uncompressed save completes
-#'   in seconds-to-minutes at the cost of a 5-10x larger file on disk.
-#'   Set to `"gzip"`, `"bzip2"`, or `"xz"` to opt into compression for
-#'   archival runs.
-#' @return The updated `master_list` with the RDA file exported.
+#' @param qs_nthreads Integer. Worker threads passed to
+#'   [qs2::qs_save()]. Defaults to `max(1L, parallel::detectCores() - 1L)`.
+#'   Multi-threaded zstd is what makes large-cohort saves complete in
+#'   reasonable time; on a 54-plate cohort the previous single-threaded
+#'   gzip pass via `base::save()` stalled for hours.
+#' @param qs_compress_level Integer. zstd compression level forwarded
+#'   to [qs2::qs_save()]. Default `3L` (qs2 default; fast with good
+#'   ratio). Higher values (up to 22) shrink the file further at the
+#'   cost of CPU time; negative values trade ratio for more speed.
+#' @return The updated `master_list` with the qs2 file exported.
 #' @keywords internal
 #' @export
-export_master_list_rda <- function(master_list, rda_compress = FALSE) {
+export_master_list_qs <- function(
+    master_list,
+    qs_nthreads = max(1L, parallel::detectCores() - 1L),
+    qs_compress_level = 3L) {
   output_file <- file.path(
     master_list$project_details$project_dir,
-    "all/data/rda",
+    "all/data/qs2",
     paste0(
       Sys.Date(),
       "_",
       master_list$project_details$project_name,
-      "_qcCheckR.rda"
+      "_qcCheckR.qs2"
     )
   )
   dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
-  message("  Writing RDA to: ", output_file)
+  message("  Writing qs2 to: ", output_file)
   tryCatch({
-    save(master_list, file = output_file, compress = rda_compress)
-    message("  RDA save completed: ", output_file)
+    qs2::qs_save(
+      master_list,
+      file = output_file,
+      compress_level = qs_compress_level,
+      nthreads = qs_nthreads
+    )
+    message("  qs2 save completed: ", output_file)
   }, error = function(e) {
-    warning("RDA save failed: ", conditionMessage(e),
+    warning("qs2 save failed: ", conditionMessage(e),
             ". File may be missing: ", output_file, call. = FALSE)
   })
 

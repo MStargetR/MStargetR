@@ -41,21 +41,27 @@
 #'   user-named column (e.g. \code{plate}, \code{run_batch}); the chosen
 #'   column's values become the valid choices for \code{combat_ref.batch}.
 #'   Only used when \code{batch_method = "ComBat"}.
-#' @param write_rda Logical. When \code{TRUE} (default) the master_list RDA
-#'   file is written synchronously as the final step of the pipeline. Set to
-#'   \code{FALSE} when the caller intends to write the RDA out-of-band — for
-#'   example, the Shiny GUI passes \code{FALSE} so it can surface results to
-#'   the user immediately and fire a separate background job that calls
-#'   \code{\link{export_master_list_rda}} on the returned master_list. The
-#'   XLSX and HTML exports are unaffected.
-#' @param rda_compress Compression option forwarded to \code{\link[base]{save}}.
-#'   Default \code{FALSE} (no compression). R's single-threaded gzip pass
-#'   over the serialized master_list can take hours on ~50+ plate cohorts
-#'   and was producing an apparent hang on a 54-plate run, so we default to
-#'   off and accept a 5-10x larger \code{.rda} on disk in exchange for a
-#'   save that completes in seconds-to-minutes. Pass \code{"gzip"},
-#'   \code{"bzip2"}, or \code{"xz"} to opt into compression for archival
-#'   runs.
+#' @param write_rda Logical. When \code{TRUE} (default) the master_list
+#'   \code{.qs2} file is written synchronously as the final step of the
+#'   pipeline. Set to \code{FALSE} when the caller intends to write it
+#'   out-of-band — for example, the Shiny GUI passes \code{FALSE} so it
+#'   can surface results to the user immediately and fire a separate
+#'   background job that calls
+#'   \code{\link{export_master_list_qs}} on the returned master_list. The
+#'   XLSX and HTML exports are unaffected. The argument name is retained
+#'   from the previous \code{.rda} API to avoid churning every caller;
+#'   the underlying output is now \code{.qs2}.
+#' @param qs_nthreads Integer worker threads forwarded to
+#'   \code{\link[qs2]{qs_save}}. Defaults to
+#'   \code{max(1L, parallel::detectCores() - 1L)}. Multi-threaded zstd is
+#'   what makes large-cohort saves complete in reasonable time; the
+#'   previous single-threaded gzip path via \code{base::save()} stalled
+#'   for hours on a 54-plate cohort.
+#' @param qs_compress_level Integer zstd compression level forwarded to
+#'   \code{\link[qs2]{qs_save}}. Default \code{3L} (qs2 default; fast
+#'   with good ratio). Higher values (up to 22) shrink the file further
+#'   at the cost of CPU time; negative values trade ratio for more
+#'   speed.
 #' @param date_order Controls how the \code{AcquiredTime} column from
 #'   PeakForgeR reports (which Skyline exports in the OS locale of whoever
 #'   ran the export) is parsed. One of \code{"auto"} (default; the
@@ -188,7 +194,8 @@ qcCheckR <- function(user_name,
                      combat_ref.batch = NULL,
                      batch_column = NULL,
                      write_rda = TRUE,
-                     rda_compress = FALSE,
+                     qs_nthreads = max(1L, parallel::detectCores() - 1L),
+                     qs_compress_level = 3L,
                      date_order = c("auto", "dmy", "mdy", "ymd", "iso")) {
   # validate write_rda early so a bad value fails fast rather than at
   # the export step at the end of a long pipeline.
@@ -196,18 +203,23 @@ qcCheckR <- function(user_name,
     stop("qcCheckR: 'write_rda' must be TRUE or FALSE. Got: ",
          deparse(write_rda), call. = FALSE)
   }
-  # validate rda_compress against what base::save() actually accepts so
-  # the user finds out before the long pipeline runs, not after.
-  rda_compress_ok <-
-    (is.logical(rda_compress) && length(rda_compress) == 1L &&
-       !is.na(rda_compress)) ||
-    (is.character(rda_compress) && length(rda_compress) == 1L &&
-       rda_compress %in% c("gzip", "bzip2", "xz"))
-  if (!rda_compress_ok) {
-    stop("qcCheckR: 'rda_compress' must be TRUE/FALSE or one of ",
-         "'gzip', 'bzip2', 'xz'. Got: ", deparse(rda_compress),
-         call. = FALSE)
+  # qs2::qs_save accepts integer nthreads >= 1 and compress_level in
+  # the zstd-supported range [-22, 22]. Catch bad values up-front so the
+  # user finds out before the long pipeline runs, not after.
+  if (!is.numeric(qs_nthreads) || length(qs_nthreads) != 1L ||
+      is.na(qs_nthreads) || qs_nthreads < 1) {
+    stop("qcCheckR: 'qs_nthreads' must be a single integer >= 1. Got: ",
+         deparse(qs_nthreads), call. = FALSE)
   }
+  qs_nthreads <- as.integer(qs_nthreads)
+  if (!is.numeric(qs_compress_level) || length(qs_compress_level) != 1L ||
+      is.na(qs_compress_level) ||
+      qs_compress_level < -22 || qs_compress_level > 22) {
+    stop("qcCheckR: 'qs_compress_level' must be a single integer in ",
+         "[-22, 22] (zstd range used by qs2). Got: ",
+         deparse(qs_compress_level), call. = FALSE)
+  }
+  qs_compress_level <- as.integer(qs_compress_level)
   if (missing(date_order)) {
     date_order <- "auto"
   } else {
@@ -381,6 +393,7 @@ qcCheckR <- function(user_name,
   #exports----
   master_list <- qcCheckR_export_all(master_list,
                                      write_rda = write_rda,
-                                     rda_compress = rda_compress)
+                                     qs_nthreads = qs_nthreads,
+                                     qs_compress_level = qs_compress_level)
   invisible(master_list)
 }#close of function

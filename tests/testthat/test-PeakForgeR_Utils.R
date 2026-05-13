@@ -489,7 +489,7 @@ test_that("setup_project_directories creates expected directory structure", {
   expect_true(dir.exists(base))
   expect_true(dir.exists(file.path(base, "data")))
   expect_true(dir.exists(file.path(base, "data", "mzml")))
-  expect_true(dir.exists(file.path(base, "data", "rda")))
+  expect_true(dir.exists(file.path(base, "data", "qs2")))
   expect_true(dir.exists(file.path(base, "data", "PeakForgeR")))
   expect_true(dir.exists(file.path(base, "data", "raw_data")))
   expect_true(dir.exists(file.path(base, "data", "batch_correction")))

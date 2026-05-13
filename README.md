@@ -243,13 +243,13 @@ following structure:
       all/
         data/
           batch_correction/             # Batch and signal drift correction outputs
-          rda/                          # Saved R data objects from qcCheckR
+          qs2/                          # Saved R data objects from qcCheckR (qs2 format; load with qs2::qs_read())
         html_report/                    # HTML report with PCA and control charts
         xlsx_report/                    # Excel files for downstream analysis
       PLATE_NAME/                       # One folder per plate
         data/
           mzml/                         # Converted mzML files
-          rda/                          # Saved R data objects from PeakForgeR
+          qs2/                          # Saved R data objects from PeakForgeR (qs2 format; load with qs2::qs_read())
           raw_data/                     # Original vendor files
           reports/                      # Peak picking reports
           chromatograms/                # Exported chromatogram files
