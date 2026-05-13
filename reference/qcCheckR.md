@@ -23,7 +23,8 @@ qcCheckR(
   combat_ref.batch = NULL,
   batch_column = NULL,
   write_rda = TRUE,
-  rda_compress = FALSE,
+  qs_nthreads = max(1L, parallel::detectCores() - 1L),
+  qs_compress_level = 3L,
   date_order = c("auto", "dmy", "mdy", "ymd", "iso")
 )
 ```
@@ -116,24 +117,33 @@ qcCheckR(
 
 - write_rda:
 
-  Logical. When `TRUE` (default) the master_list RDA file is written
+  Logical. When `TRUE` (default) the master_list `.qs2` file is written
   synchronously as the final step of the pipeline. Set to `FALSE` when
-  the caller intends to write the RDA out-of-band — for example, the
-  Shiny GUI passes `FALSE` so it can surface results to the user
-  immediately and fire a separate background job that calls
-  [`export_master_list_rda`](https://mstargetr.github.io/MStargetR/reference/export_master_list_rda.md)
+  the caller intends to write it out-of-band — for example, the Shiny
+  GUI passes `FALSE` so it can surface results to the user immediately
+  and fire a separate background job that calls
+  [`export_master_list_qs`](https://mstargetr.github.io/MStargetR/reference/export_master_list_qs.md)
   on the returned master_list. The XLSX and HTML exports are unaffected.
+  The argument name is retained from the previous `.rda` API to avoid
+  churning every caller; the underlying output is now `.qs2`.
 
-- rda_compress:
+- qs_nthreads:
 
-  Compression option forwarded to
-  [`save`](https://rdrr.io/r/base/save.html). Default `FALSE` (no
-  compression). R's single-threaded gzip pass over the serialized
-  master_list can take hours on ~50+ plate cohorts and was producing an
-  apparent hang on a 54-plate run, so we default to off and accept a
-  5-10x larger `.rda` on disk in exchange for a save that completes in
-  seconds-to-minutes. Pass `"gzip"`, `"bzip2"`, or `"xz"` to opt into
-  compression for archival runs.
+  Integer worker threads forwarded to
+  [`qs_save`](https://rdrr.io/pkg/qs2/man/qs_save.html). Defaults to
+  `max(1L, parallel::detectCores() - 1L)`. Multi-threaded zstd is what
+  makes large-cohort saves complete in reasonable time; the previous
+  single-threaded gzip path via
+  [`base::save()`](https://rdrr.io/r/base/save.html) stalled for hours
+  on a 54-plate cohort.
+
+- qs_compress_level:
+
+  Integer zstd compression level forwarded to
+  [`qs_save`](https://rdrr.io/pkg/qs2/man/qs_save.html). Default `3L`
+  (qs2 default; fast with good ratio). Higher values (up to 22) shrink
+  the file further at the cost of CPU time; negative values trade ratio
+  for more speed.
 
 - date_order:
 

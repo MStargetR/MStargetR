@@ -66,9 +66,9 @@
                         <h4 data-toc-skip class="author">Harrison
 Szemray</h4>
             
-            <h4 data-toc-skip class="date">2026-05-11</h4>
+            <h4 data-toc-skip class="date">2026-05-13</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/MStargetR/MStargetR/blob/v1.1.2/vignettes/MStargetR-vignette.Rmd" class="external-link"><code>vignettes/MStargetR-vignette.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/MStargetR/MStargetR/blob/main/vignettes/MStargetR-vignette.Rmd" class="external-link"><code>vignettes/MStargetR-vignette.Rmd</code></a></small>
       <div class="d-none name"><code>MStargetR-vignette.Rmd</code></div>
     </div>
 
@@ -667,9 +667,11 @@ plots, run-order plots, control charts, and summary statistics.</li>
 concentration data, filtering summaries, and a navigation guide on the
 first sheet.</li>
 <li>
-<strong>RDA file</strong> – A saved R data object containing the
+<strong>qs2 file</strong> – A saved R data object (qs2 package
+format, written with multi-threaded zstd compression) containing the
 full <code>master_list</code> for programmatic access to all
-intermediate results.</li>
+intermediate results. Load with
+<code>qs2::qs_read("path/to/file.qs2")</code>.</li>
 </ol>
 <hr>
 </div>
@@ -1305,7 +1307,8 @@ following structure:</p>
 |-- all/                               # Combined outputs from qcCheckR
 |   |-- *_qcCheckR_report.html         # Interactive HTML QC report
 |   |-- *_qcCheckR_data.xlsx           # Excel workbook with concentration data
-|   |-- *_qcCheckR_master_list.rda     # R data object with all intermediate results
+|   |-- data/qs2/
+|   |   |-- *_qcCheckR.qs2             # R data object (qs2 format) with all intermediate results
 |
 |-- MStargetR_logs/                    # Per-plate processing logs
 |   |-- PLATE_ID_1_MStargetR_log.txt
@@ -1352,10 +1355,12 @@ navigation guide. Subsequent sheets contain filtered concentration data,
 QC summaries, and batch correction diagnostics.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>all/*_qcCheckR_master_list.rda</code></td>
-<td align="left">An R data object (<code>.rda</code>) containing the
-full <code>master_list</code>, enabling programmatic access to all
-intermediate processing results.</td>
+<td align="left"><code>all/data/qs2/*_qcCheckR.qs2</code></td>
+<td align="left">An R data object in the <code>qs2</code> package’s
+multi-threaded zstd format, containing the full <code>master_list</code>
+for programmatic access to all intermediate processing results. Load
+with <code>qs2::qs_read("path/to/file.qs2")</code> (not
+<code><a href="https://rdrr.io/r/base/load.html" class="external-link">base::load()</a></code>).</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>MStargetR_logs/</code></td>

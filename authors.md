@@ -23,7 +23,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/MStargetR/MStargetR/blob/v1.1.2/inst/CITATION)
+[`inst/CITATION`](https://github.com/MStargetR/MStargetR/blob/main/inst/CITATION)
 
 Szemray H, Nambiar V, Lawler N, Wist J, Lodge S, Whiley L (2026).
 *MStargetR*.

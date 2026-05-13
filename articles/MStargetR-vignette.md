@@ -434,8 +434,10 @@ qcCheckR(
 2.  **Excel workbook** – A multi-sheet workbook with final concentration
     data, filtering summaries, and a navigation guide on the first
     sheet.
-3.  **RDA file** – A saved R data object containing the full
+3.  **qs2 file** – A saved R data object (qs2 package format, written
+    with multi-threaded zstd compression) containing the full
     `master_list` for programmatic access to all intermediate results.
+    Load with `qs2::qs_read("path/to/file.qs2")`.
 
 ------------------------------------------------------------------------
 
@@ -857,7 +859,8 @@ following structure:
     |-- all/                               # Combined outputs from qcCheckR
     |   |-- *_qcCheckR_report.html         # Interactive HTML QC report
     |   |-- *_qcCheckR_data.xlsx           # Excel workbook with concentration data
-    |   |-- *_qcCheckR_master_list.rda     # R data object with all intermediate results
+    |   |-- data/qs2/
+    |   |   |-- *_qcCheckR.qs2             # R data object (qs2 format) with all intermediate results
     |
     |-- MStargetR_logs/                    # Per-plate processing logs
     |   |-- PLATE_ID_1_MStargetR_log.txt
@@ -874,7 +877,7 @@ following structure:
 | `PLATE_ID/chromatograms/` | Chromatogram images for visual inspection of peak quality. |
 | `all/*_qcCheckR_report.html` | Interactive HTML report with PCA, run-order plots, control charts, and summary statistics. |
 | `all/*_qcCheckR_data.xlsx` | Multi-sheet Excel workbook. The first sheet provides a navigation guide. Subsequent sheets contain filtered concentration data, QC summaries, and batch correction diagnostics. |
-| `all/*_qcCheckR_master_list.rda` | An R data object (`.rda`) containing the full `master_list`, enabling programmatic access to all intermediate processing results. |
+| `all/data/qs2/*_qcCheckR.qs2` | An R data object in the `qs2` package’s multi-threaded zstd format, containing the full `master_list` for programmatic access to all intermediate processing results. Load with `qs2::qs_read("path/to/file.qs2")` (not [`base::load()`](https://rdrr.io/r/base/load.html)). |
 | `MStargetR_logs/` | Text log files recording the processing status and any errors for each plate. |
 
 ------------------------------------------------------------------------
