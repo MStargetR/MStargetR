@@ -56,6 +56,12 @@ This vignette describes:
   containerised ProteoWizard and Skyline tools.
 - An active internet connection for the initial Docker image pulls.
 
+> **HPC users:** Docker is typically forbidden on HPC clusters. Pass
+> `enable_HPC = TRUE` (or set `options(MStargetR.enable_HPC = TRUE)`) to
+> route `msConvertR()` and `PeakForgeR()` through Apptainer / Singularity
+> instead. See the "Running on HPC" section of the README for SIF setup
+> instructions.
+
 ---
 
 # Installation

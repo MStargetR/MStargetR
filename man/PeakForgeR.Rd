@@ -9,7 +9,8 @@ PeakForgeR(
   project_directory,
   mrm_template_list = NULL,
   QC_sample_label = NULL,
-  plateID_outputs = NULL
+  plateID_outputs = NULL,
+  enable_HPC = getOption("MStargetR.enable_HPC", FALSE)
 )
 }
 \arguments{
@@ -45,6 +46,14 @@ An appropriate input would be:
 \item plateID_outputs = c("JANE_DOE_C5_URI_MS-LIPIDS_PLATE_1",
 "JANE_DOE_C5_URI_MS-LIPIDS_PLATE_2")
 }}
+
+\item{enable_HPC}{Logical. When \code{TRUE}, Skyline is run via Apptainer
+(Singularity) instead of Docker. This is the intended runtime on HPC
+clusters where Docker is typically forbidden. The default is
+\code{getOption("MStargetR.enable_HPC", FALSE)} so HPC users can set
+\code{options(MStargetR.enable_HPC = TRUE)} once in their \code{.Rprofile}
+and never pass the argument explicitly. See the "Running on HPC" section
+of the README for SIF setup instructions.}
 }
 \value{
 A curated project directory with sub folders for each plate containing Skyline exports.

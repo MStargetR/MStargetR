@@ -16,6 +16,13 @@ NULL
 #' @param output_directory A character string specifying the path to the
 #'   directory where the converted \code{.mzML} files and project structure
 #'   will be created.
+#' @param enable_HPC Logical. When \code{TRUE}, the ProteoWizard container is
+#'   invoked via Apptainer (Singularity) instead of Docker. This is the
+#'   intended runtime on HPC clusters where Docker is typically forbidden.
+#'   The default is \code{getOption("MStargetR.enable_HPC", FALSE)} so HPC
+#'   users can set \code{options(MStargetR.enable_HPC = TRUE)} once in their
+#'   \code{.Rprofile} and never pass the argument explicitly. See the
+#'   "Running on HPC" section of the README for SIF setup instructions.
 #' @param ... Reserved for forward compatibility. Any unrecognised named
 #'   arguments trigger a warning and are otherwise ignored.
 #' @return Called for its side effects. The function creates a project
@@ -63,12 +70,19 @@ NULL
 #' }
 
 
-msConvertR <- function (input_directory, output_directory, ...) {
+msConvertR <- function (input_directory, output_directory,
+                        enable_HPC = getOption("MStargetR.enable_HPC", FALSE),
+                        ...) {
   # Warn callers who supply unexpected named arguments (forward-compat guard).
   dots <- list(...)
   if (length(dots) > 0) {
     warning("msConvertR: unknown argument(s) ignored: ",
             paste(names(dots), collapse = ", "), call. = FALSE)
+  }
+
+  if (!is.logical(enable_HPC) || length(enable_HPC) != 1L || is.na(enable_HPC)) {
+    stop("msConvertR: 'enable_HPC' must be a single logical (TRUE or FALSE).",
+         call. = FALSE)
   }
 
   # Validate input_directory
@@ -145,8 +159,15 @@ msConvertR <- function (input_directory, output_directory, ...) {
     )
   }
 
-  #Check install and run status of docker
-  check_docker()
+  # Check runtime availability: Docker for the default path, Apptainer for
+  # enable_HPC = TRUE. resolve_sif() is called inside msConvertR_execute_command()
+  # so the (potentially slow) one-time pull happens once on the main session
+  # rather than racing across workers.
+  if (isTRUE(enable_HPC)) {
+    assert_runtime_available("apptainer")
+  } else {
+    check_docker()
+  }
 
   # Process vendor files
   tryCatch({
@@ -154,7 +175,8 @@ msConvertR <- function (input_directory, output_directory, ...) {
                                output_directory,
                                raw_plateIDs,
                                vendor_extension_patterns,
-                               sanitized_plateIDs)
+                               sanitized_plateIDs,
+                               enable_HPC = enable_HPC)
 
   }, error = function(e) {
     stop("msConvertR conversion failed: ", conditionMessage(e), call. = FALSE)

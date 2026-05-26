@@ -298,7 +298,7 @@ test_that("msConvertR_mzml_conversion delegates planning to construct and execut
   stub(msConvertR_mzml_conversion, "msConvertR_set_working_directory", function(...) NULL)
   stub(msConvertR_mzml_conversion, "msConvertR_setup_project_directories", function(...) NULL)
   stub(msConvertR_mzml_conversion, "msConvertR_construct_command_for_terminal",
-       function(inp, out, raw, san = raw) {
+       function(inp, out, raw, san = raw, ...) {
          construct_called <<- TRUE
          cmds <- list()
          attr(cmds, "active_plateIDs") <- character(0)

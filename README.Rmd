@@ -70,6 +70,42 @@ function that can be used on its own or combined into a single script.
 currently unable to run `msConvertR()` or `PeakForgeR()` (with method set to
 Skyline) due to Docker image architecture constraints on ARM processors.
 
+## Running on HPC (Apptainer / Singularity)
+
+Most HPC clusters forbid Docker. `msConvertR()` and `PeakForgeR()` accept an
+`enable_HPC = TRUE` argument that swaps Docker for Apptainer (formerly
+Singularity), which converts the same ProteoWizard image to a `.sif` and runs
+it as the invoking user with no daemon required.
+
+**Step 1 -- pull the SIF on a login node (one-time, ~GB):**
+
+```bash
+module load apptainer
+apptainer pull mstargetr-pwiz.sif \
+    docker://proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:skyline_26.1.0.057-c07debd
+```
+
+(Substitute the tag pinned by your installed MStargetR version --
+`MStargetR:::MSTARGETR_DOCKER_IMAGE_TAG` prints it.)
+
+**Step 2 -- point MStargetR at the SIF in your `.Rprofile` so every job picks
+it up automatically:**
+
+```{r hpc-rprofile, eval=FALSE}
+options(
+  MStargetR.enable_HPC = TRUE,
+  MStargetR.sif_path   = "/path/to/mstargetr-pwiz.sif"
+)
+```
+
+With these set you can call `msConvertR()` and `PeakForgeR()` exactly as on a
+workstation -- no other code changes needed.
+
+If `MStargetR.sif_path` is unset and the compute node has outbound network,
+MStargetR will auto-pull the SIF into `tools::R_user_dir("MStargetR", "cache")`
+on first use. HPC compute nodes typically lack internet, so set the option
+explicitly.
+
 ## Installation
 
 ### Windows installer (recommended for GUI users)
