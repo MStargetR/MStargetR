@@ -62,6 +62,15 @@
 #'   with good ratio). Higher values (up to 22) shrink the file further
 #'   at the cost of CPU time; negative values trade ratio for more
 #'   speed.
+#' @param advanced_plots Logical. When \code{TRUE}, every plot the GUI's
+#'   QC Check tab renders (PCA scores, run-order, per-metabolite control
+#'   charts, %RSD histogram, missing values, sample-type pie, plate
+#'   distribution) is also written to
+#'   \code{<project_directory>/all/figures/qcCheckR/} as both a static
+#'   \code{.pdf} (via \code{ggplot2::ggsave}) and an interactive
+#'   \code{.html} (via \code{htmlwidgets::saveWidget} on the plotly
+#'   widget). Default \code{FALSE} -- opt-in so existing scripts continue
+#'   to behave identically.
 #' @param date_order Controls how the \code{AcquiredTime} column from
 #'   PeakForgeR reports (which Skyline exports in the OS locale of whoever
 #'   ran the export) is parsed. One of \code{"auto"} (default; the
@@ -196,7 +205,15 @@ qcCheckR <- function(user_name,
                      write_rda = TRUE,
                      qs_nthreads = max(1L, parallel::detectCores() - 1L),
                      qs_compress_level = 3L,
-                     date_order = c("auto", "dmy", "mdy", "ymd", "iso")) {
+                     date_order = c("auto", "dmy", "mdy", "ymd", "iso"),
+                     advanced_plots = FALSE) {
+  # validate advanced_plots early -- typo'd values would otherwise be
+  # silently coerced by isTRUE() at the bottom of the pipeline.
+  if (!is.logical(advanced_plots) || length(advanced_plots) != 1L ||
+      is.na(advanced_plots)) {
+    stop("qcCheckR: 'advanced_plots' must be TRUE or FALSE. Got: ",
+         deparse(advanced_plots), call. = FALSE)
+  }
   # validate write_rda early so a bad value fails fast rather than at
   # the export step at the end of a long pipeline.
   if (!is.logical(write_rda) || length(write_rda) != 1 || is.na(write_rda)) {
@@ -395,5 +412,20 @@ qcCheckR <- function(user_name,
                                      write_rda = write_rda,
                                      qs_nthreads = qs_nthreads,
                                      qs_compress_level = qs_compress_level)
+  #advanced plots (R-side parity with GUI)----
+  if (isTRUE(advanced_plots)) {
+    message("Writing advanced plots to all/figures/qcCheckR/ ...")
+    tryCatch({
+      plots <- qcCheckR_collect_plots(master_list)
+      save_figure_list(
+        plots,
+        project_dir = master_list$project_details$project_dir,
+        module = "qcCheckR"
+      )
+    }, error = function(e) {
+      warning("qcCheckR: advanced_plots write failed: ",
+              conditionMessage(e), call. = FALSE)
+    })
+  }
   invisible(master_list)
 }#close of function

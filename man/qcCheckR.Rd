@@ -23,7 +23,8 @@ qcCheckR(
   write_rda = TRUE,
   qs_nthreads = max(1L, parallel::detectCores() - 1L),
   qs_compress_level = 3L,
-  date_order = c("auto", "dmy", "mdy", "ymd", "iso")
+  date_order = c("auto", "dmy", "mdy", "ymd", "iso"),
+  advanced_plots = FALSE
 )
 }
 \arguments{
@@ -111,6 +112,16 @@ hints), \code{"dmy"} (day-first slash/dash formats), \code{"mdy"}
 unambiguously, the pipeline stops with a clear message asking you to
 set this argument explicitly rather than silently produce wrong
 dates.}
+
+\item{advanced_plots}{Logical. When \code{TRUE}, every plot the GUI's
+QC Check tab renders (PCA scores, run-order, per-metabolite control
+charts, \%RSD histogram, missing values, sample-type pie, plate
+distribution) is also written to
+\code{<project_directory>/all/figures/qcCheckR/} as both a static
+\code{.pdf} (via \code{ggplot2::ggsave}) and an interactive
+\code{.html} (via \code{htmlwidgets::saveWidget} on the plotly
+widget). Default \code{FALSE} -- opt-in so existing scripts continue
+to behave identically.}
 }
 \value{
 A list containing the processed data and generated reports.

@@ -20,6 +20,7 @@ batchCorrectR(
   output_dir = tempdir(),
   project_dir = NULL,
   plot = TRUE,
+  advanced_plots = FALSE,
   report = TRUE
 )
 }
@@ -96,8 +97,25 @@ intermediate files. Default is \code{tempdir()}.}
 and correction summary are saved into a \code{batch_correction} subfolder
 inside this directory. Default is \code{NULL} (no file output).}
 
-\item{plot}{Logical. Whether to generate before/after correction plots.
-Default is \code{TRUE}.}
+\item{plot}{Logical. Whether to populate \code{result$plots} with the base
+before/after correction ggplots (RSD comparison, run-order facet, PCA).
+Default \code{TRUE}.
+
+\strong{Deprecated.} The argument is retained for backwards
+compatibility but will be removed in a future release. Use
+\code{advanced_plots = TRUE} to populate \code{result$plots} with the
+full GUI plot set AND save the figures to disk under
+\code{<project_dir>/all/figures/batch_corrector/}. Passing \code{plot}
+explicitly emits a deprecation warning.}
+
+\item{advanced_plots}{Logical. When \code{TRUE}, every plot the GUI's
+Batch Correction tab renders (RSD comparison, run-order, PCA
+before/after, signal drift, RSD by class, per-metabolite RSD) is
+attached to \code{result$plots} \emph{and} -- if \code{project_dir}
+is supplied -- written to
+\code{<project_dir>/all/figures/batch_corrector/} as both a static
+\code{.pdf} and an interactive \code{.html}. Default \code{FALSE} --
+opt-in so existing scripts behave identically.}
 
 \item{report}{Logical. Whether to generate an HTML summary report. Default
 is \code{TRUE}.}

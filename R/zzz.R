@@ -83,6 +83,19 @@ utils::globalVariables(c(
   "synthetic_qc"   # bc_prepare_pheno_file dplyr column reference
 ))
 
+# --- R/figures_export.R / R/resultsExplorer*.R / advanced_plots wiring ---
+utils::globalVariables(c(
+  "type",           # qc_plot_sample_type_distribution / plate_distribution
+  "plate",
+  "count",
+  "category"        # re_plot_passfail_donut
+))
+
+# Internal null-coalescing operator, used by figures_export, advanced
+# plot constructors, and the resultsExplorerR dispatch. Defined once so
+# multiple R/ source files can rely on it without redefining.
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
 .onLoad <- function(libname, pkgname) {
   # Set MStargetR package options if not already set by the user (e.g. in
   # their .Rprofile). `MStargetR.docker.image_tag` is intentionally NOT set

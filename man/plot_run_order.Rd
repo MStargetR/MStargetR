@@ -16,7 +16,9 @@ plot_run_order(scores, pc, boundaries, plot_settings)
 \item{plot_settings}{A list containing plot settings such as colors, shapes, and sizes.}
 }
 \value{
-A \code{ggplot} object representing the run order plot.
+A \code{plotly} object (the inner ggplot is exposed separately via
+\code{\link[=plot_run_order_static]{plot_run_order_static()}} so the same figure can be written to disk as
+a static PDF for R users).
 }
 \description{
 This function generates a run order plot for PCA scores using \code{ggplot2}.
