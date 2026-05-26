@@ -1,3 +1,19 @@
+## Unreleased
+
+### Features
+
+- **container:** add Apptainer/HPC support for `msConvertR()` and
+  `PeakForgeR()`. Both functions accept a new `enable_HPC` argument
+  (default `FALSE`); when `TRUE` the ProteoWizard container is invoked
+  via Apptainer/Singularity instead of Docker, with the SIF resolved
+  from `getOption("MStargetR.sif_path")`, the user cache
+  (`tools::R_user_dir("MStargetR", "cache")`), or pulled on demand from
+  the same pinned image tag. HPC users can set
+  `options(MStargetR.enable_HPC = TRUE)` once in `.Rprofile` and never
+  pass the argument explicitly. Docker remains the default and
+  workstation behaviour is unchanged. See the "Running on HPC" sections
+  of the README and vignette for SIF setup.
+
 ## MStargetR 1.1.2
 
 Released 2026-05-11 ([compare](https://github.com/MStargetR/MStargetR/compare/v1.1.1...v1.1.2)).

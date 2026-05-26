@@ -31,9 +31,24 @@ NULL
 #' @export
 #' @examples
 #' \dontrun{
-#' # example code
-#'  msConvertR(input_directory = "path/to/input_directory",
-#'             output_directory = "path/to/output_directory")
+#' # Default (Docker) on a workstation
+#' msConvertR(input_directory  = "path/to/input_directory",
+#'            output_directory = "path/to/output_directory")
+#'
+#' # HPC (Apptainer): pre-pull the SIF on a login node, then run a job:
+#' #   apptainer pull mstargetr-pwiz.sif \
+#' #     docker://proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:<tag>
+#' options(
+#'   MStargetR.enable_HPC = TRUE,
+#'   MStargetR.sif_path   = "/scratch/me/mstargetr-pwiz.sif"
+#' )
+#' msConvertR(input_directory  = "/scratch/me/MyProject/raw_data",
+#'            output_directory = "/scratch/me/MyProject")
+#'
+#' # Or enable HPC mode for a single call without setting the option:
+#' msConvertR(input_directory  = "/scratch/me/MyProject/raw_data",
+#'            output_directory = "/scratch/me/MyProject",
+#'            enable_HPC       = TRUE)
 #'  }
 #'
 #' @details
