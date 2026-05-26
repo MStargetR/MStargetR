@@ -2,6 +2,24 @@
 
 ### Features
 
+- **plots:** R-side parity with the GUI for every Quality Check, Batch
+  Correction, and Results Explorer figure. `qcCheckR()` and
+  `batchCorrectR()` gain an opt-in `advanced_plots = FALSE` argument and
+  a new exported `resultsExplorerR()` function wraps the Results Explorer
+  tab as a callable API. When `advanced_plots = TRUE` (and a
+  `project_dir` is supplied), every plot the GUI renders is written to
+  `<project_dir>/all/figures/{qcCheckR|batch_corrector|results_explorer}/`
+  as both a static `.pdf` (via `ggplot2::ggsave`) and an interactive
+  `.html` (via `htmlwidgets::saveWidget`). The Shiny app's signal-drift
+  and run-order helpers now delegate to the same package-internal
+  constructors, so GUI and R users always see the byte-identical figure.
+  Default behaviour is unchanged -- existing scripts that don't set
+  `advanced_plots` write nothing extra.
+- **batchCorrectR:** soft-deprecate the `plot` argument in favour of
+  `advanced_plots`. `plot = TRUE` still populates `result$plots` for
+  back-compat; passing it explicitly now emits a one-time deprecation
+  warning suggesting `advanced_plots = TRUE` (which both attaches the
+  extended GUI plot set to `result$plots` and saves it to disk).
 - **container:** add Apptainer/HPC support for `msConvertR()` and
   `PeakForgeR()`. Both functions accept a new `enable_HPC` argument
   (default `FALSE`); when `TRUE` the ProteoWizard container is invoked

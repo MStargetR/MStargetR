@@ -12,7 +12,9 @@ generate_pca_ggplot(master_list, fill_var)
 \item{fill_var}{The variable to color the points by (e.g., "sample_type_factor", "sample_plate_id").}
 }
 \value{
-A \code{ggplot} object representing the PCA scores.
+A \code{plotly} object representing the PCA scores (the inner \code{ggplot}
+is exposed separately via \code{\link[=generate_pca_ggplot_static]{generate_pca_ggplot_static()}} so the same
+figure can be written to disk as a static PDF for R users).
 }
 \description{
 This function generates a PCA plot using \code{ggplot2} for the PCA scores stored in the \code{master_list}.

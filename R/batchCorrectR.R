@@ -63,8 +63,24 @@
 #' @param project_dir Character or NULL. If provided, the corrected data CSV
 #'   and correction summary are saved into a \code{batch_correction} subfolder
 #'   inside this directory. Default is \code{NULL} (no file output).
-#' @param plot Logical. Whether to generate before/after correction plots.
-#'   Default is \code{TRUE}.
+#' @param plot Logical. Whether to populate \code{result$plots} with the base
+#'   before/after correction ggplots (RSD comparison, run-order facet, PCA).
+#'   Default \code{TRUE}.
+#'
+#'   \strong{Deprecated.} The argument is retained for backwards
+#'   compatibility but will be removed in a future release. Use
+#'   \code{advanced_plots = TRUE} to populate \code{result$plots} with the
+#'   full GUI plot set AND save the figures to disk under
+#'   \code{<project_dir>/all/figures/batch_corrector/}. Passing \code{plot}
+#'   explicitly emits a deprecation warning.
+#' @param advanced_plots Logical. When \code{TRUE}, every plot the GUI's
+#'   Batch Correction tab renders (RSD comparison, run-order, PCA
+#'   before/after, signal drift, RSD by class, per-metabolite RSD) is
+#'   attached to \code{result$plots} \emph{and} -- if \code{project_dir}
+#'   is supplied -- written to
+#'   \code{<project_dir>/all/figures/batch_corrector/} as both a static
+#'   \code{.pdf} and an interactive \code{.html}. Default \code{FALSE} --
+#'   opt-in so existing scripts behave identically.
 #' @param report Logical. Whether to generate an HTML summary report. Default
 #'   is \code{TRUE}.
 #'
@@ -174,7 +190,30 @@ batchCorrectR <- function(data,
                           output_dir = tempdir(),
                           project_dir = NULL,
                           plot = TRUE,
+                          advanced_plots = FALSE,
                           report = TRUE) {
+
+  # Soft deprecation for `plot`: warn only when the user typed it
+  # explicitly (positional callers and unchanged defaults are silent).
+  if ("plot" %in% names(match.call())) {
+    warning(
+      "batchCorrectR(): the 'plot' argument is deprecated and will be ",
+      "removed in a future release. Use 'advanced_plots = TRUE' to ",
+      "build the full GUI plot set and save it under ",
+      "<project_dir>/all/figures/batch_corrector/.",
+      call. = FALSE
+    )
+  }
+
+  # Validate advanced_plots early so a typo'd value fails before the long
+  # statTarget run, not after.
+  if (!is.logical(advanced_plots) || length(advanced_plots) != 1L ||
+      is.na(advanced_plots)) {
+    stop("batchCorrectR: 'advanced_plots' must be TRUE or FALSE. Got: ",
+         deparse(advanced_plots), call. = FALSE)
+  }
+  # advanced_plots = TRUE forces plot generation regardless of plot=.
+  build_plots <- isTRUE(plot) || isTRUE(advanced_plots)
 
   message("batchCorrectR: Starting interbatch correction pipeline...")
 
@@ -369,7 +408,7 @@ batchCorrectR <- function(data,
       failed_qc = character(0)
     )
 
-    if (plot && has_qc) {
+    if (build_plots && has_qc) {
       message("  [8/8] Generating correction plots...")
       result$plots <- bc_plot_correction_results(
         original_data = data,
@@ -381,7 +420,8 @@ batchCorrectR <- function(data,
       )
     } else {
       message("  [8/8] Skipping plot generation",
-              if (!has_qc) " (no QC samples for comparison)." else " (plot = FALSE).")
+              if (!has_qc) " (no QC samples for comparison)."
+              else " (plot = FALSE and advanced_plots = FALSE).")
     }
 
     if (report) {
@@ -434,6 +474,13 @@ batchCorrectR <- function(data,
     # Save to project directory if specified
     if (!is.null(project_dir)) {
       bc_save_to_project(result, project_dir)
+    }
+
+    if (isTRUE(advanced_plots) && has_qc) {
+      result <- bc_apply_advanced_plots(result, data, qc_label, project_dir)
+    } else if (isTRUE(advanced_plots) && !has_qc) {
+      message("  advanced_plots: no QC samples available; skipping ",
+              "advanced plot generation.")
     }
 
     return(result)
@@ -545,7 +592,7 @@ batchCorrectR <- function(data,
     failed_qc = failed_qc
   )
 
-  if (plot) {
+  if (build_plots) {
     message("  [8/8] Generating correction plots...")
     result$plots <- bc_plot_correction_results(
       original_data = data,
@@ -556,7 +603,8 @@ batchCorrectR <- function(data,
       qc_rsd_after = qc_rsd_after
     )
   } else {
-    message("  [8/8] Skipping plot generation (plot = FALSE).")
+    message("  [8/8] Skipping plot generation (plot = FALSE and ",
+            "advanced_plots = FALSE).")
   }
 
   if (report) {
@@ -606,5 +654,46 @@ batchCorrectR <- function(data,
     bc_save_to_project(result, project_dir)
   }
 
+  if (isTRUE(advanced_plots)) {
+    result <- bc_apply_advanced_plots(result, data, qc_label, project_dir)
+  }
+
   return(result)
+}
+
+# Internal: attach the extended plot bundle to result$plots and (when
+# project_dir is supplied) write every plot to disk under
+# <project_dir>/all/figures/batch_corrector/. Called from both the
+# ComBat and QCRFSC return paths so the behaviour is identical.
+bc_apply_advanced_plots <- function(result, data, qc_label, project_dir) {
+  message("Collecting advanced batch correction plots ...")
+  plots <- tryCatch(
+    bc_collect_plots(result, original_data = data, qc_label = qc_label),
+    error = function(e) {
+      warning("batchCorrectR: advanced_plots collection failed: ",
+              conditionMessage(e), call. = FALSE)
+      NULL
+    }
+  )
+  if (is.null(plots) || !length(plots)) return(result)
+
+  # Merge into result$plots so users get both ggplot objects (e.g.
+  # plots$rsd_comparison$static) and the corresponding plotly widgets.
+  result$plots <- plots
+
+  if (!is.null(project_dir)) {
+    message("Writing advanced plots to all/figures/batch_corrector/ ...")
+    tryCatch(
+      save_figure_list(plots, project_dir = project_dir,
+                       module = "batch_corrector"),
+      error = function(e) {
+        warning("batchCorrectR: advanced_plots write failed: ",
+                conditionMessage(e), call. = FALSE)
+      }
+    )
+  } else {
+    message("  advanced_plots: project_dir is NULL; plots attached to ",
+            "result$plots but no files written.")
+  }
+  result
 }
