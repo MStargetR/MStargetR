@@ -61,9 +61,12 @@ used on its own or combined into a single script.
 ## Requirements
 
 - **R** \>= 4.1.0
-- **Docker Desktop** – required for `msConvertR()` and `PeakForgeR()`.
-  Download from <https://www.docker.com/get-started/>. Ensure Docker is
-  running in the background before calling these functions.
+- **Container runtime** for `msConvertR()` and `PeakForgeR()`:
+  - **Docker Desktop** on workstations (default). Download from
+    <https://www.docker.com/get-started/>. Ensure Docker is running in
+    the background before calling these functions.
+  - **Apptainer / Singularity** on HPC clusters (set
+    `enable_HPC = TRUE`, see "Running on HPC" below).
 - **Bioconductor dependencies** – the packages `mzR`, `ropls`, and
   `statTarget` are installed automatically when using the helper
   installation function below. `sva` is also required when using
@@ -303,7 +306,15 @@ following structure:
 - **Run R as administrator** on Windows to ensure Docker communication
   works correctly.
 - **Verify Docker is installed and running.** Both `msConvertR()` and
-  `PeakForgeR()` require Docker Desktop to be active in the background.
+  `PeakForgeR()` require Docker Desktop to be active in the background
+  – unless you are on HPC, in which case set `enable_HPC = TRUE` and
+  use Apptainer (see "Running on HPC" above).
+- **HPC: pre-pull the SIF on a login node.** Auto-pull fails on
+  compute nodes without outbound network; set
+  `options(MStargetR.sif_path = "/path/to/mstargetr-pwiz.sif")` after
+  pulling once on a login node.
+- **HPC: load the Apptainer module.** Most HPC sites require
+  `module load apptainer` (or `singularity`) before R is launched.
 - **Keep software up to date.** Ensure R, RStudio, and all package
   dependencies are current.
 - **Check for file corruption.** Corrupted vendor files or incomplete

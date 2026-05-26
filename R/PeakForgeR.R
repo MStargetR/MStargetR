@@ -50,7 +50,7 @@
 #'   file_path <- system.file("extdata", "LGW_lipid_mrm_template_v1.tsv", package = "MStargetR")
 #'   example_mrm_template <- readr::read_tsv(file_path)
 #'
-#' #Run PeakForgeR function
+#' #Default (Docker) on a workstation
 #' PeakForgeR(user_name = "Mad_max",
 #'            project_directory = "USER/PATH/TO/PROJECT/DIRECTORY",
 #'            mrm_template_list = list("User/path/to/user_mrm_guide_v1.tsv",
@@ -58,6 +58,18 @@
 #'            QC_sample_label = "LTR",
 #'            plateID_outputs = NULL
 #'           )
+#'
+#' # HPC (Apptainer): pre-pull the SIF on a login node, then run a job:
+#' #   apptainer pull mstargetr-pwiz.sif \
+#' #     docker://proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:<tag>
+#' options(
+#'   MStargetR.enable_HPC = TRUE,
+#'   MStargetR.sif_path   = "/scratch/me/mstargetr-pwiz.sif"
+#' )
+#' PeakForgeR(user_name         = "Mad_max",
+#'            project_directory = "/scratch/me/MyProject",
+#'            mrm_template_list = list("/scratch/me/templates/lipid_mrm_v1.tsv"),
+#'            QC_sample_label   = "LTR")
 #'}
 #'
 #' @details
