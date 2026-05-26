@@ -85,7 +85,7 @@ test_that("msConvertR_execute_command runs without error and produces messages",
     list(plateID = f$pid, success = TRUE)
   })
   stub(msConvertR_execute_command, "dir.create", function(...) NULL)
-  stub(msConvertR_execute_command, "getOption", function(name) NULL)
+  stub(msConvertR_execute_command, "getOption", function(name, default = NULL) default)
   stub(msConvertR_execute_command, "options", function(...) NULL)
 
   temp <- withr::local_tempdir()

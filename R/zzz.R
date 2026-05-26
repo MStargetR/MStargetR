@@ -83,6 +83,21 @@ utils::globalVariables(c(
   "synthetic_qc"   # bc_prepare_pheno_file dplyr column reference
 ))
 
+.onLoad <- function(libname, pkgname) {
+  # Set MStargetR package options if not already set by the user (e.g. in
+  # their .Rprofile). `MStargetR.docker.image_tag` is intentionally NOT set
+  # here -- it is consumed lazily at load time in R/config.R, where users
+  # who set it via .Rprofile or env var still take effect.
+  op <- options()
+  defaults <- list(
+    MStargetR.sif_path   = NULL,
+    MStargetR.enable_HPC = FALSE
+  )
+  toset <- !(names(defaults) %in% names(op))
+  if (any(toset)) options(defaults[toset])
+  invisible()
+}
+
 .onAttach <- function(libname, pkgname) {
   if (requireNamespace("shiny", quietly = TRUE)) {
     packageStartupMessage(

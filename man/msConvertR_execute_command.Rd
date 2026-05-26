@@ -4,7 +4,12 @@
 \alias{msConvertR_execute_command}
 \title{msConvertR_execute_command}
 \usage{
-msConvertR_execute_command(commands, output_directory, plateIDs)
+msConvertR_execute_command(
+  commands,
+  output_directory,
+  plateIDs,
+  enable_HPC = getOption("MStargetR.enable_HPC", FALSE)
+)
 }
 \arguments{
 \item{commands}{List of lists, each containing \code{docker_args} (character

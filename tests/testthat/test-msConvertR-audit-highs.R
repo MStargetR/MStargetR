@@ -37,7 +37,7 @@ test_that("MS-001: msConvertR_mzml_conversion accepts sanitized_plateIDs argumen
   stub(msConvertR_mzml_conversion, "msConvertR_setup_project_directories",
        function(out, ids) { call_args$dirs_ids <<- ids })
   stub(msConvertR_mzml_conversion, "msConvertR_construct_command_for_terminal",
-       function(inp, out, raw, san = raw) {
+       function(inp, out, raw, san = raw, ...) {
          call_args$raw_ids  <<- raw
          call_args$sane_ids <<- san
          cmds <- list()

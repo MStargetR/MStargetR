@@ -4,12 +4,19 @@
 \alias{peak_picking}
 \title{peak_picking}
 \usage{
-peak_picking(plateID, master_list)
+peak_picking(
+  plateID,
+  master_list,
+  enable_HPC = getOption("MStargetR.enable_HPC", FALSE)
+)
 }
 \arguments{
 \item{plateID}{Plate ID for the current plate.}
 
 \item{master_list}{Master list generated internally.}
+
+\item{enable_HPC}{Logical. \code{FALSE} (default) runs Skyline via Docker;
+\code{TRUE} runs it via Apptainer using the cached SIF.}
 }
 \value{
 The updated \code{master_list} object with peak picking details.

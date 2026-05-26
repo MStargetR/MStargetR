@@ -4,7 +4,12 @@
 \alias{msConvertR}
 \title{Convert Vendor Mass Spectrometry Files to mzML Format}
 \usage{
-msConvertR(input_directory, output_directory, ...)
+msConvertR(
+  input_directory,
+  output_directory,
+  enable_HPC = getOption("MStargetR.enable_HPC", FALSE),
+  ...
+)
 }
 \arguments{
 \item{input_directory}{A character string specifying the path to the
@@ -13,6 +18,14 @@ directory containing vendor files to convert.}
 \item{output_directory}{A character string specifying the path to the
 directory where the converted \code{.mzML} files and project structure
 will be created.}
+
+\item{enable_HPC}{Logical. When \code{TRUE}, the ProteoWizard container is
+invoked via Apptainer (Singularity) instead of Docker. This is the
+intended runtime on HPC clusters where Docker is typically forbidden.
+The default is \code{getOption("MStargetR.enable_HPC", FALSE)} so HPC
+users can set \code{options(MStargetR.enable_HPC = TRUE)} once in their
+\code{.Rprofile} and never pass the argument explicitly. See the
+"Running on HPC" section of the README for SIF setup instructions.}
 
 \item{...}{Reserved for forward compatibility. Any unrecognised named
 arguments trigger a warning and are otherwise ignored.}

@@ -320,12 +320,15 @@ setup_project_directories <- function(master_list) {
 #' @keywords internal
 #' @param plateID Plate ID for the current plate.
 #' @param master_list Master list generated internally.
+#' @param enable_HPC Logical. \code{FALSE} (default) runs Skyline via Docker;
+#'   \code{TRUE} runs it via Apptainer using the cached SIF.
 #' @return The updated `master_list` object with peak picking details.
 #' @examples
 #' \dontrun{
 #' peak_picking(plateID, master_list)
 #' }
-peak_picking <- function(plateID, master_list) {
+peak_picking <- function(plateID, master_list,
+                         enable_HPC = getOption("MStargetR.enable_HPC", FALSE)) {
   validate_master_list_project_directory(master_list)
   plate_idx <- plateID
   message(paste("Processing plate:", plateID))
@@ -375,7 +378,8 @@ peak_picking <- function(plateID, master_list) {
           paste0(plate_idx, "_MStargetR_log.txt")
         )
 
-        run_system_command(PeakForgeR_command, output_file)
+        run_system_command(PeakForgeR_command, output_file,
+                           enable_HPC = enable_HPC)
         TRUE
 
       }, error = function(e) {

@@ -23,15 +23,17 @@ SKYLINE_INSTRUMENT_MZ_TOLERANCE <- 0.055
 #' execute_PeakForgeR_command(master_list, plate_idx)
 #' }
 execute_PeakForgeR_command <- function(master_list, plate_idx) {
-  message("Building Docker Skyline command for plate: ", plate_idx)
+  message("Building Skyline container command for plate: ", plate_idx)
   # Get absolute path to data directory; convert backslashes for Docker -v mount
   data_dir <- gsub("\\\\", "/", normalizePath(file.path(master_list$project_details$project_dir, plate_idx, "data")))
 
   # DOCK-C3: route the host path through a Sys.junction alias when it contains
   # spaces (OneDrive, "Program Files", etc.) so Docker's CLI parser doesn't
   # mis-split the -v value into "invalid reference format". The returned
-  # junction is attached to the docker_args vector via attr(); run_system_command
-  # is responsible for cleanup after the docker invocation completes.
+  # junction is attached to the result vector via attr(); run_system_command
+  # is responsible for cleanup after the container invocation completes.
+  # mst_make_safe_mount_path() is a no-op on non-Windows so it is harmless
+  # when enable_HPC = TRUE (Linux/HPC).
   data_mount <- mst_make_safe_mount_path(data_dir, prefix = "mst_pfr_")
 
   # Build filenames
@@ -52,32 +54,11 @@ execute_PeakForgeR_command <- function(master_list, plate_idx) {
   chromatogram_file <- file.path(base_path,
                                  paste0(date_str, "_", plate_idx, "_chromatograms.tsv"))
 
-  # DOCK-C4: --user=1000:1000 was never set here, but keep this comment
-  # alongside the msConvertR copy so future hardening passes know to
-  # apply the same OS guard if added.
-  # Build Docker command as argument vector (matching msConvertR pattern).
-  # Using system2("docker", args) avoids cmd.exe shell interpretation issues
-  # (newlines, quotes, special chars). IMPORTANT: do NOT shQuote() individual
-  # args here -- system2() already quotes each element of `args` before passing
-  # to the process. Double-quoting breaks Docker -v mounts on Windows paths
-  # containing spaces (e.g. OneDrive, "Program Files"). See REVIEW_REPORT
-  # DOCK-C1. Keep the raw "host:container" string as a single arg.
-  # DOCK-C5: dropped --memory=8g and --cpus=4. Skyline can legitimately
-  # need more memory than 8 GB on dense lipidomic plates and the cpu cap
-  # slows imports unnecessarily. Container-level resource limits belong
-  # in user Docker Desktop settings, not hard-coded here.
-  #
-  # DOCK-C6: --security-opt seccomp=unconfined is required for the Wine-
-  # based pwiz image (SkylineCmd runs under Wine). Newer Docker Desktop
-  # seccomp profiles return ENOSYS on Wine's socket syscalls. See the
-  # matching note in msConvertR_Utils.R for the full rationale.
-  docker_args <- c(
-    "run", "--rm",
-    "--cap-drop=ALL",
-    "--network=none",
-    "--security-opt", "seccomp=unconfined",
-    "-v", paste0(data_mount$safe_path, ":/data"),
-    paste0("proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:", MSTARGETR_DOCKER_IMAGE_TAG),
+  # SkylineCmd runs under Wine inside the image. image_command is the part
+  # that goes *inside* the container (identical across Docker and Apptainer);
+  # the runtime wrapper (run_container) is responsible for adding the
+  # appropriate hardening flags and bind syntax.
+  image_command <- c(
     "wine", "SkylineCmd",
     "--dir=/data",
     paste0("--in=", in_file),
@@ -99,40 +80,70 @@ execute_PeakForgeR_command <- function(master_list, plate_idx) {
     "--chromatogram-base-peaks",
     "--chromatogram-tics"
   )
+  binds <- list(
+    list(host = data_mount$safe_path, container = "/data", ro = FALSE)
+  )
 
-  message("Docker command constructed for plate: ", plate_idx,
+  # Compute the legacy Docker argv shape so tests that inspect the return
+  # value as a character vector (and run_system_command's legacy single-arg
+  # path) keep working unchanged. The runtime-aware dispatch in
+  # run_system_command reads the mst_image_command / mst_binds attributes
+  # below; the legacy argv body is only used as a fallback.
+  docker_args <- c(
+    "run", "--rm",
+    "--cap-drop=ALL",
+    "--network=none",
+    "--security-opt", "seccomp=unconfined",
+    "-v", paste0(data_mount$safe_path, ":/data"),
+    mstargetr_image_ref(),
+    image_command
+  )
+
+  message("Skyline container command constructed for plate: ", plate_idx,
           " with data directory: ", data_dir)
-  # Stash the junction (if any) so run_system_command can clean it up after
-  # the docker process exits, regardless of success or failure.
+
+  # Stash the structured payload as attributes so run_system_command can
+  # dispatch via run_container() (and therefore honour enable_HPC) without
+  # parsing the docker argv back into pieces.
+  attr(docker_args, "mst_image_command") <- image_command
+  attr(docker_args, "mst_binds")         <- binds
   if (!is.null(data_mount$junction)) {
     attr(docker_args, "mst_junctions") <- data_mount$junction
   }
-  return(docker_args)
+  docker_args
 }
 
 
 #' run_system_command
 #'
-#' This function wraps the system command to run docker skyline allowing for
-#' unit testing. It captures all output (stdout and stderr) and writes it to a .txt file.
+#' This function wraps the container invocation that runs Skyline, allowing
+#' for unit testing. It captures all output (stdout and stderr) and writes
+#' it to a .txt file.
 #' @keywords internal
-#' @param PeakForgeR_command Docker argument vector (character vector) from execute_PeakForgeR_command
+#' @param PeakForgeR_command Docker argument vector returned by
+#'   \code{execute_PeakForgeR_command()}. The vector carries the structured
+#'   payload (\code{image_command}, \code{binds}) as attributes so the
+#'   dispatcher can route the call to either Docker or Apptainer.
 #' @param output_file optional path to save the command output
 #' @param expected_output_files Optional character vector of host-side file paths that
 #'   Skyline is expected to have produced (e.g. the report CSV and sky file).
 #'   When supplied, the function checks that every path exists and has non-zero
 #'   size after the command returns, providing a safety net for Skyline crash
 #'   signatures that change across Skyline builds.
+#' @param enable_HPC Logical. \code{FALSE} (default) -> Docker. \code{TRUE}
+#'   -> Apptainer via the cached SIF.
 #' @examples
 #' \dontrun{
 #' run_system_command(c("run", "--rm", "image", "wine", "SkylineCmd"), "output.txt")
 #' }
-run_system_command <- function(PeakForgeR_command, output_file, expected_output_files = NULL) {
-  # Build display string for logging; PeakForgeR_command is always a character vector
+run_system_command <- function(PeakForgeR_command, output_file,
+                               expected_output_files = NULL,
+                               enable_HPC = getOption("MStargetR.enable_HPC", FALSE)) {
   if (!is.character(PeakForgeR_command) || length(PeakForgeR_command) == 0) {
     stop("run_system_command: 'PeakForgeR_command' must be a non-empty character vector.",
          call. = FALSE)
   }
+
   # DOCK-C3: clean up any safe-mount junctions the command builder attached.
   # Done in on.exit so the junctions are released on success, error, or
   # interrupt. recursive = FALSE inside mst_cleanup_mount_junctions is
@@ -142,6 +153,16 @@ run_system_command <- function(PeakForgeR_command, output_file, expected_output_
     mst_cleanup_mount_junctions(attr(PeakForgeR_command, "mst_junctions")),
     add = TRUE
   )
+
+  # Prefer the structured payload attached as attributes by
+  # execute_PeakForgeR_command(); this lets run_container() honour
+  # enable_HPC without re-parsing the docker argv. The legacy character-
+  # vector single-string / docker-argv path remains for tests that stub
+  # system2 directly.
+  image_command <- attr(PeakForgeR_command, "mst_image_command")
+  binds         <- attr(PeakForgeR_command, "mst_binds")
+  use_dispatcher <- !is.null(image_command) && !is.null(binds)
+
   command_str <- paste("docker", paste(PeakForgeR_command, collapse = " "))
   preview_str <- if (nchar(command_str) > 120) {
     paste0(substr(command_str, 1, 120), "...")
@@ -164,7 +185,7 @@ run_system_command <- function(PeakForgeR_command, output_file, expected_output_
   # backward compatibility but is deprecated: passing a length-1 string routes
   # through cmd.exe / sh which is shell-injection-prone if the string contains
   # user-influenced content.
-  if (!(is.character(PeakForgeR_command) && length(PeakForgeR_command) > 1)) {
+  if (length(PeakForgeR_command) <= 1L) {
     warning("run_system_command: passing a single-string command is deprecated and ",
             "will be removed in a future version. Pass a character vector with ",
             "length > 1 (e.g. from execute_PeakForgeR_command()).",
@@ -173,8 +194,17 @@ run_system_command <- function(PeakForgeR_command, output_file, expected_output_
 
   result <- tryCatch({
     suppressWarnings(
-      if (is.character(PeakForgeR_command) && length(PeakForgeR_command) > 1) {
-        # Argument vector: call docker directly (avoids cmd.exe shell issues)
+      if (use_dispatcher) {
+        # New runtime-aware path: dispatch via run_container() so enable_HPC
+        # selects between Docker and Apptainer.
+        run_container(image_command = image_command,
+                      binds         = binds,
+                      enable_HPC    = enable_HPC,
+                      stdout        = TRUE,
+                      stderr        = TRUE)
+      } else if (length(PeakForgeR_command) > 1L) {
+        # Legacy direct-docker path (used by tests that synthesise a raw
+        # docker argv without the mst_* attributes).
         system2("docker", args = PeakForgeR_command, stdout = TRUE, stderr = TRUE)
       } else if (.Platform$OS.type == "windows") {
         system2("cmd", args = c("/c", PeakForgeR_command), stdout = TRUE, stderr = TRUE)
