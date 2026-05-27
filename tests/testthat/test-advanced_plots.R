@@ -122,6 +122,9 @@ test_that("qcCheckR_collect_plots returns a named list with the new plots", {
   df <- make_bc_data(n_samples = 24, n_batches = 2, n_qc_per_batch = 4,
                      include_extras = TRUE)
   df$sample_type_factor <- df$sample_type
+  # qcCheckR run-order plots select sample_run_index; the batchCorrectR-style
+  # fixture only carries run_order, so mirror it under the qcCheckR name.
+  df$sample_run_index <- df$run_order
   ml <- list(
     project_details = list(project_name = "test",
                            plot_shape = c(qc = 23, sample = 21),

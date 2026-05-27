@@ -107,7 +107,7 @@ test_that("batchCorrectR rejects non-existent project_dir", {
 test_that("batchCorrectR rejects non-logical plot parameter", {
   df <- make_bc_data()
   expect_error(
-    suppressMessages(batchCorrectR(data = df, plot = "yes")),
+    suppressWarnings(suppressMessages(batchCorrectR(data = df, plot = "yes"))),
     "plot.*must be TRUE or FALSE"
   )
 })
@@ -115,7 +115,7 @@ test_that("batchCorrectR rejects non-logical plot parameter", {
 test_that("batchCorrectR rejects NA plot parameter", {
   df <- make_bc_data()
   expect_error(
-    suppressMessages(batchCorrectR(data = df, plot = NA)),
+    suppressWarnings(suppressMessages(batchCorrectR(data = df, plot = NA))),
     "plot.*must be TRUE or FALSE"
   )
 })

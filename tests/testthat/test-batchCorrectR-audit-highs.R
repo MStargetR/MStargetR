@@ -87,8 +87,10 @@ test_that("batchCorrectR stops cleanly when sample_tags contains NA (BC-004)", {
     stringsAsFactors = FALSE
   )
   expect_error(
-    batchCorrectR(df, qc_label = "qc", sample_tags = c("sample", NA),
-                  method = "QCRFSC", plot = FALSE, report = FALSE),
+    suppressWarnings(
+      batchCorrectR(df, qc_label = "qc", sample_tags = c("sample", NA),
+                    method = "QCRFSC", plot = FALSE, report = FALSE)
+    ),
     "sample_tags"
   )
 })

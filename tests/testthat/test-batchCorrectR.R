@@ -390,11 +390,16 @@ test_that("batchCorrectR warns when failed QC injections are found", {
     data.frame(metabolite = "metab_A", rsd_before = 10, rsd_after = 5)
   })
 
+  # Two warnings fire: the (incidental) `plot` soft-deprecation and the
+  # failed-QC warning under test. Nest expect_warning() to consume both.
   expect_warning(
-    suppressMessages(
-      batchCorrectR(data = df, plot = FALSE, report = FALSE)
+    expect_warning(
+      suppressMessages(
+        batchCorrectR(data = df, plot = FALSE, report = FALSE)
+      ),
+      "Flagged 2 failed QC injection"
     ),
-    "Flagged 2 failed QC injection"
+    "deprecated"
   )
 })
 
@@ -422,7 +427,7 @@ test_that("batchCorrectR emits completion message with RSD improvement count", {
   })
 
   msgs <- capture.output(type = "message",
-    batchCorrectR(data = df, plot = FALSE, report = FALSE)
+    suppressWarnings(batchCorrectR(data = df, plot = FALSE, report = FALSE))
   )
   expect_true(any(grepl("2/2 metabolites showed RSD improvement", msgs)))
 })
@@ -502,7 +507,9 @@ test_that("batchCorrectR accepts method = 'ComBat'", {
     met_B = rnorm(20, 500, 50)
   )
   result <- tryCatch(
-    batchCorrectR(data = df, method = "ComBat", plot = FALSE, report = FALSE),
+    suppressWarnings(
+      batchCorrectR(data = df, method = "ComBat", plot = FALSE, report = FALSE)
+    ),
     error = function(e) e
   )
   if (requireNamespace("sva", quietly = TRUE)) {
@@ -527,8 +534,10 @@ test_that("batchCorrectR ComBat works without QC samples", {
     met_B = rnorm(20, 500, 50)
   )
   result <- tryCatch(
-    batchCorrectR(data = df, qc_label = "qc", method = "ComBat",
-                  plot = FALSE, report = FALSE),
+    suppressWarnings(
+      batchCorrectR(data = df, qc_label = "qc", method = "ComBat",
+                    plot = FALSE, report = FALSE)
+    ),
     error = function(e) e
   )
   if (requireNamespace("sva", quietly = TRUE)) {
@@ -577,8 +586,9 @@ test_that("batchCorrectR QCRLSC requires QC samples", {
   df <- make_bc_data()
   df$sample_type <- "sample"
   expect_error(
-    suppressMessages(batchCorrectR(data = df, qc_label = "qc",
-                                   method = "QCRLSC", plot = FALSE, report = FALSE)),
+    suppressWarnings(suppressMessages(
+      batchCorrectR(data = df, qc_label = "qc",
+                    method = "QCRLSC", plot = FALSE, report = FALSE))),
     "No QC samples found"
   )
 })

@@ -952,9 +952,12 @@ qcCheckR_collect_plots <- function(master_list, fail_thr = 30) {
   # Run-order: per-PC. Recompute boundaries the same way
   # qcCheckR_run_order_plots() did so the static and interactive lay out
   # identically.
+  # Use [["scores"]] (exact match) rather than $scores: `$` partial-matches
+  # `scoresRunOrder` when `scores` is absent, which would make this guard pass
+  # spuriously and feed an empty frame into the select below.
   if (!is.null(master_list$pca$scoresRunOrder) &&
-      !is.null(master_list$pca$scores)) {
-    all_scores <- dplyr::bind_rows(master_list$pca$scores)
+      !is.null(master_list$pca[["scores"]])) {
+    all_scores <- dplyr::bind_rows(master_list$pca[["scores"]])
     boundary_data <- all_scores %>%
       dplyr::select(sample_run_index, sample_plate_id) %>%
       dplyr::distinct()
