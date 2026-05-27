@@ -64,6 +64,17 @@ save_figure <- function(plot, name, project_dir, module,
   # --- PDF (static) ---
   if (!is.null(static)) {
     pdf_path <- paste0(stem, ".pdf")
+    # cairo_pdf gives better font embedding on Linux/Windows, but the Cairo
+    # PDF device can crash the R process (SIGSEGV) in headless macOS
+    # environments. A segfault is NOT catchable by the tryCatch below, so we
+    # must avoid the call there: use the base pdf device on macOS (and
+    # anywhere Cairo is unavailable) and keep cairo_pdf elsewhere.
+    pdf_device <- if (isTRUE(capabilities("cairo")) &&
+                      !identical(Sys.info()[["sysname"]], "Darwin")) {
+      grDevices::cairo_pdf
+    } else {
+      grDevices::pdf
+    }
     tryCatch(
       ggplot2::ggsave(
         filename = pdf_path,
@@ -72,10 +83,10 @@ save_figure <- function(plot, name, project_dir, module,
         height = height,
         units = "in",
         dpi = dpi,
-        device = grDevices::cairo_pdf
+        device = pdf_device
       ),
       error = function(e) {
-        # Fall back to default pdf device if cairo is unavailable.
+        # Fall back to ggsave's own default device on any catchable error.
         ggplot2::ggsave(
           filename = pdf_path,
           plot = static,
