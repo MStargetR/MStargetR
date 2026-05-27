@@ -90,7 +90,7 @@ re_plot_rsd_histogram <- function(rsd_values, warn_thr = 20, fail_thr = 30) {
 #'
 #' @keywords internal
 #' @param status_vector Named character vector with values in
-#'   `c("pass", "warning", "fail")` (typically from [re_status_from_rsd()]).
+#'   `c("pass", "warning", "fail")` (typically from `re_status_from_rsd()`).
 #' @return `list(static, interactive)`, or `NULL`.
 re_plot_passfail_donut <- function(status_vector) {
   status <- status_vector[!is.na(status_vector)]

@@ -1,5 +1,5 @@
 ---
-title: "MStargetR <img src='man/figures/logo.png' style='float: right; height:100px;' />"
+title: "MStargetR"
 author: "Harrison Szemray"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
