@@ -63,6 +63,8 @@ Helper and validation functions
   : Convert Vendor Mass Spectrometry Files to mzML Format
 - [`qcCheckR()`](https://mstargetr.github.io/MStargetR/reference/qcCheckR.md)
   : QC Assessment and Batch Correction for Targeted LC-MS Data
+- [`resultsExplorerR()`](https://mstargetr.github.io/MStargetR/reference/resultsExplorerR.md)
+  : Generate Results Explorer plots and summary from R
 - [`transition_checkR()`](https://mstargetr.github.io/MStargetR/reference/transition_checkR.md)
   : Check MRM Transition List for Unique Q1/Q3 Pairs
 - [`use_workflow()`](https://mstargetr.github.io/MStargetR/reference/use_workflow.md)

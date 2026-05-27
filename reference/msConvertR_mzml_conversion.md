@@ -12,7 +12,8 @@ msConvertR_mzml_conversion(
   output_directory,
   plateIDs,
   vendor_extension_patterns,
-  sanitized_plateIDs = plateIDs
+  sanitized_plateIDs = plateIDs,
+  enable_HPC = getOption("MStargetR.enable_HPC", FALSE)
 )
 ```
 

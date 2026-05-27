@@ -1,4 +1,4 @@
-# MStargetR \<img src='man/figures/logo.png' style='float: right; height:100px;' /\>
+# MStargetR
 
 > **Note:** Code examples in this vignette use `eval=FALSE` because the
 > pipeline requires Docker containers for file conversion and peak
@@ -26,7 +26,7 @@ This vignette describes:
 - Installation and prerequisites
 - The three-step core pipeline (`msConvertR` -\> `PeakForgeR` -\>
   `qcCheckR`)
-- Batch correction methods (QC-based and QC-free ComBat)
+- Batch correction methods (QC-based QCRFSC and QC-RLSC, QC-free ComBat)
 - Standalone batch correction with `batchCorrectR`
 - The interactive Shiny application
 - Utility functions for template validation
@@ -41,6 +41,15 @@ This vignette describes:
   `msConvertR` and `PeakForgeR` steps, which use containerised
   ProteoWizard and Skyline tools.
 - An active internet connection for the initial Docker image pulls.
+
+> **HPC users:** Docker is typically forbidden on HPC clusters. Pass
+> `enable_HPC = TRUE` (or set `options(MStargetR.enable_HPC = TRUE)`) to
+> route
+> [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+> and
+> [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+> through Apptainer / Singularity instead. See the “Running on HPC”
+> section of the README for SIF setup instructions.
 
 ------------------------------------------------------------------------
 
@@ -95,6 +104,128 @@ remotes::install_github("MStargetR/MStargetR")
 ``` r
 
 library(MStargetR)
+```
+
+------------------------------------------------------------------------
+
+## Running on HPC (Apptainer / Singularity)
+
+Docker is forbidden on most HPC clusters.
+[`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+and
+[`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+accept an `enable_HPC` argument that swaps Docker for **Apptainer**
+(formerly Singularity) without changing anything else in the pipeline.
+The same pinned ProteoWizard image is used; Apptainer pulls it into a
+`.sif` file and runs it as the invoking user, no daemon required.
+
+If you are running on a workstation with Docker, you can skip this
+section – the default (`enable_HPC = FALSE`) keeps Docker behaviour
+unchanged.
+
+### One-time setup on the login node
+
+HPC compute nodes typically have no outbound network, so build the
+`.sif` once on a login node and stash the path. The image tag is pinned
+by your installed MStargetR version; print it with
+`MStargetR:::MSTARGETR_DOCKER_IMAGE_TAG`.
+
+``` bash
+# On a login node (shell), with Apptainer available:
+module load apptainer
+
+apptainer pull \
+  /scratch/$USER/mstargetr-pwiz.sif \
+  docker://proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:skyline_26.1.0.057-c07debd
+```
+
+The pull is ~GB and only needs to be repeated when the MStargetR image
+tag changes (a major release).
+
+### Per-job R configuration
+
+Set the two MStargetR options once – either in your project script, your
+`~/.Rprofile`, or via `R_PROFILE_USER` in your job script. With these
+set, you call
+[`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+and
+[`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+exactly as on a workstation.
+
+``` r
+
+options(
+  MStargetR.enable_HPC = TRUE,
+  MStargetR.sif_path   = "/scratch/your_user/mstargetr-pwiz.sif"
+)
+
+library(MStargetR)
+
+msConvertR(
+  input_directory  = "/scratch/your_user/MyProject/raw_data",
+  output_directory = "/scratch/your_user/MyProject"
+)
+
+PeakForgeR(
+  user_name         = "your_user",
+  project_directory = "/scratch/your_user/MyProject",
+  mrm_template_list = list("/scratch/your_user/templates/lipid_mrm_v1.tsv"),
+  QC_sample_label   = "LTR"
+)
+```
+
+You can also enable HPC mode for a single call without setting the
+option:
+
+``` r
+
+msConvertR(
+  input_directory  = "/scratch/your_user/MyProject/raw_data",
+  output_directory = "/scratch/your_user/MyProject",
+  enable_HPC       = TRUE
+)
+```
+
+### SIF resolution order
+
+`enable_HPC = TRUE` looks for a `.sif` in this order:
+
+1.  `getOption("MStargetR.sif_path")` – the explicit option (most
+    reliable on HPC because it bypasses any pull attempt).
+2.  `tools::R_user_dir("MStargetR", "cache")/mstargetr-pwiz-<tag>.sif` –
+    a tag-versioned cache populated by step 3.
+3.  `apptainer pull docker://...` into the cache – only succeeds if the
+    node has outbound network. The pull is one-time per tag; older
+    `.sif` files stay on disk so prior analyses remain reproducible.
+
+If you forget to set `MStargetR.sif_path` on a network-less compute
+node, the auto-pull fails with a clear error pointing you back at the
+login-node command above.
+
+### Sample SLURM script
+
+A minimal sketch – adapt module names and resource requests to your
+site:
+
+``` bash
+#!/bin/bash
+#SBATCH --job-name=mstargetr
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=32G
+#SBATCH --time=04:00:00
+
+module load apptainer
+module load r/4.4.0
+
+Rscript -e '
+  options(
+    MStargetR.enable_HPC = TRUE,
+    MStargetR.sif_path   = "/scratch/$USER/mstargetr-pwiz.sif"
+  )
+  library(MStargetR)
+  msConvertR("/scratch/$USER/MyProject/raw_data",
+             "/scratch/$USER/MyProject")
+'
 ```
 
 ------------------------------------------------------------------------
@@ -317,7 +448,7 @@ is the final step in the core pipeline. It performs:
 | `QC_sample_label` | Character | Tag to identify QC samples in file names (e.g., `"LTR"`, `"qc"`). Default is `"LTR"`. |
 | `sample_tags` | Character vector | Tags that identify sample types in file names (e.g., `c("sample", "control", "qc")`). |
 | `mv_threshold` | Numeric | Percentage threshold for missing value filtering (0–100). Features with a higher percentage of missing values than this threshold are removed. Default is `50`. |
-| `batch_method` | Character | Batch correction method: `"QCRFSC"` (random forest, default) or `"ComBat"` (empirical Bayes, QC-free). |
+| `batch_method` | Character | Batch correction method: `"QCRFSC"` (random forest, default), `"ComBat"` (empirical Bayes, QC-free), or `"QCRLSC"` (robust LOESS, requires QC samples). |
 | `batch_ntree` | Integer | Number of trees for random forest correction. Ignored for other methods. Default is `500`. |
 | `batch_coCV` | Numeric | Coefficient of variation cutoff (%, 1–100) for feature filtering inside statTarget. Features with QC CV above this threshold are removed. Default is `100` (no filtering). |
 | `batch_Frule` | Numeric | Filtering rule (0–1) for missing values inside statTarget. Default is `0`. |
@@ -325,6 +456,9 @@ is the final step in the core pipeline. It performs:
 | `combat_par.prior` | Logical | Use parametric priors in ComBat. Only used when `batch_method = "ComBat"`. Default is `TRUE`. |
 | `combat_mean.only` | Logical | Correct only batch mean (not variance). Only used when `batch_method = "ComBat"`. Default is `FALSE`. |
 | `combat_ref.batch` | Character or NULL | Reference batch for ComBat. Only used when `batch_method = "ComBat"`. Default is `NULL`. |
+| `qcrlsc_method` | Character | QC-RLSC scaling: `"subtract"` (default, Dunn et al. protocol) or `"divide"` (preserves non-negativity). Only used when `batch_method = "QCRLSC"`. |
+| `qcrlsc_intra` | Logical | Intra-batch (`TRUE`) vs inter-batch (`FALSE`, default) QC-RLSC. Only used when `batch_method = "QCRLSC"`. |
+| `qcrlsc_opti` / `qcrlsc_log10` / `qcrlsc_outl` / `qcrlsc_shift` | Logical | Optimise LOESS span by GCV, log10-transform before fitting, QC outlier detection, and apply `batch.shift` after correction. All default `TRUE`. Only used when `batch_method = "QCRLSC"`. |
 
 #### The mrm_template_list structure
 
@@ -423,6 +557,23 @@ qcCheckR(
   combat_par.prior   = TRUE,
   combat_mean.only   = FALSE
 )
+
+# Using QC-RLSC (QC-based robust LOESS signal correction; requires QC samples)
+qcCheckR(
+  user_name          = "HSzemray",
+  project_directory  = "/path/to/my_project",
+  mrm_template_list  = list(
+    v1 = list(
+      SIL_guide  = "/path/to/LGW_lipid_mrm_template_v1.tsv",
+      conc_guide = "/path/to/LGW_SIL_batch_103.tsv"
+    )
+  ),
+  QC_sample_label    = "LTR",
+  sample_tags        = c("sample", "control", "qc"),
+  mv_threshold       = 50,
+  batch_method       = "QCRLSC",
+  qcrlsc_method      = "subtract"
+)
 ```
 
 #### Outputs
@@ -457,7 +608,7 @@ correction to any tabular metabolomics dataset.
 |:---|:---|:---|:---|
 | `data` | data.frame | (required) | Input data with samples as rows. Must contain columns: `sample_name`, `batch`, `sample_type`, `run_order`, plus numeric metabolite columns. |
 | `qc_label` | Character | `"qc"` | String identifying QC samples in the `sample_type` column. |
-| `method` | Character | `"QCRFSC"` | Correction method: `"QCRFSC"` (random forest, default) or `"ComBat"` (empirical Bayes, QC-free). |
+| `method` | Character | `"QCRFSC"` | Correction method: `"QCRFSC"` (random forest, default), `"ComBat"` (empirical Bayes, QC-free), or `"QCRLSC"` (robust LOESS, requires QC samples). |
 | `ntree` | Integer | `500` | Number of trees for the random forest method. Ignored for other methods. |
 | `coCV` | Numeric | `100` | Coefficient of variation cutoff (%, 1–100) for feature filtering in statTarget. Features with QC CV above this threshold are removed. |
 | `Frule` | Numeric | `0` | Filtering rule percentage for missing values in statTarget. |
@@ -465,6 +616,8 @@ correction to any tabular metabolomics dataset.
 | `combat_par.prior` | Logical | `TRUE` | Use parametric empirical Bayes priors. Only applies when `method = "ComBat"`. |
 | `combat_mean.only` | Logical | `FALSE` | If TRUE, correct only batch mean (not variance). Only applies when `method = "ComBat"`. |
 | `combat_ref.batch` | Character or NULL | `NULL` | Reference batch for ComBat adjustment. Only applies when `method = "ComBat"`. |
+| `qcrlsc_method` | Character | `"subtract"` | QC-RLSC scaling: `"subtract"` (Dunn et al. protocol) or `"divide"` (preserves non-negativity). Only applies when `method = "QCRLSC"`. |
+| `qcrlsc_intra` / `qcrlsc_opti` / `qcrlsc_log10` / `qcrlsc_outl` / `qcrlsc_shift` | Logical | `FALSE` / `TRUE` / `TRUE` / `TRUE` / `TRUE` | Intra-batch correction, LOESS span GCV optimisation, log10 transform, QC outlier detection, and `batch.shift`. Only apply when `method = "QCRLSC"`. |
 | `sample_tags` | Character vector or NULL | `NULL` | Optional sample-type labels to include in correction (in addition to QC). Rows whose type does not match `qc_label` or any of `sample_tags` are dropped before correction. Useful for excluding blanks or other low-signal types. |
 | `output_dir` | Character | [`tempdir()`](https://rdrr.io/r/base/tempfile.html) | Directory for statTarget intermediate files. |
 | `project_dir` | Character or NULL | `NULL` | If provided, the corrected data CSV and correction summary are saved into a `batch_correction` subfolder inside this directory. |
@@ -485,6 +638,16 @@ correction to any tabular metabolomics dataset.
   available. ComBat can correct both location (mean) and scale
   (variance) batch effects, or mean-only if `combat_mean.only = TRUE`.
   Install `sva` via `BiocManager::install("sva")`.
+- **QC-RLSC** (QC-based Robust LOESS Signal Correction; Dunn et al.
+  2011): Fits a robust LOESS trend through the QC injections (ordered by
+  acquisition) for each feature and corrects samples against it, then
+  optionally re-aligns batch means with `batch.shift`. Like QCRFSC it
+  **requires** QC samples. The `qcrlsc_method` argument chooses additive
+  (`"subtract"`, default) or multiplicative (`"divide"`) scaling; the
+  latter preserves non-negativity, useful for concentration data.
+  Implemented via
+  [`qcrlscR::qc.rlsc.wrap()`](https://rdrr.io/pkg/qcrlscR/man/qc.rlsc.wrap.html);
+  install `qcrlscR` via `install.packages("qcrlscR")`.
 
 ### Return value
 
@@ -557,6 +720,16 @@ result_combat_mean <- batchCorrectR(
 )
 ```
 
+``` r
+
+# QC-RLSC correction (QC-based robust LOESS; requires QC samples)
+result_qcrlsc <- batchCorrectR(
+  data          = my_data,
+  method        = "QCRLSC",
+  qcrlsc_method = "subtract"   # or "divide" to preserve non-negativity
+)
+```
+
 ------------------------------------------------------------------------
 
 ## Interactive Application (launchMStargetR)
@@ -596,11 +769,15 @@ install.packages(c("shiny", "bslib", "DT", "shinyWidgets", "htmltools"))
 ```
 
 **Note:** The Shiny GUI exposes batch correction method selection in
-both the `qcCheckR` and `batchCorrectR` tabs. Both methods (`QCRFSC` and
-`ComBat`) are available from the interface, including the
-ComBat-specific parameters (`combat_par.prior`, `combat_mean.only`, and
-`combat_ref.batch`). When `ComBat` is selected, the QC-specific options
-are hidden automatically since ComBat does not require QC samples.
+both the `qcCheckR` and `batchCorrectR` tabs. All three methods
+(`QCRFSC`, `ComBat`, and `QC-RLSC`) are available from the interface,
+with each method’s options shown in its own panel: the ComBat-specific
+parameters (`combat_par.prior`, `combat_mean.only`, `combat_ref.batch`)
+and the QC-RLSC-specific parameters (scaling, intra-batch, span
+optimisation, log10, outlier detection, batch shift). When `ComBat` is
+selected, the QC-specific options are hidden automatically since ComBat
+does not require QC samples; `QCRFSC` and `QC-RLSC` both require QC
+samples.
 
 ------------------------------------------------------------------------
 
@@ -895,7 +1072,33 @@ stops with a Docker-related error.
 **Solution:** Ensure Docker Desktop is installed and running. On Windows
 and macOS, open Docker Desktop and wait for the engine to start before
 calling these functions. On Linux, verify that the Docker daemon is
-active with `systemctl status docker`.
+active with `systemctl status docker`. If you are on an HPC cluster that
+forbids Docker, set `enable_HPC = TRUE` (see “Running on HPC” above).
+
+### Apptainer pull fails on an HPC compute node
+
+**Symptom:** With `enable_HPC = TRUE`, the function errors during the
+first call with a message referencing `apptainer pull docker://...` and
+`MStargetR.sif_path`.
+
+**Solution:** Most HPC compute nodes have no outbound network, so the
+auto-pull cannot reach Docker Hub. Pull the `.sif` once on a login node
+(which usually does have network access) and point MStargetR at it via
+`options(MStargetR.sif_path = "/path/to/mstargetr-pwiz.sif")` in your
+`.Rprofile` or job script. See the “Running on HPC” section above for
+the full pull command.
+
+### Apptainer is not found on PATH
+
+**Symptom:** With `enable_HPC = TRUE`, the function errors with
+“apptainer (or singularity) not found on PATH”.
+
+**Solution:** On most HPC sites Apptainer is provided as an environment
+module that must be loaded explicitly. Add `module load apptainer` (or
+`module load singularity` on older installations) to your job script
+before invoking R. MStargetR accepts either name – the legacy
+`singularity` binary is recognised as a fallback when `apptainer` is
+absent.
 
 ### No vendor files found
 
@@ -962,6 +1165,24 @@ BiocManager::install("sva")
 ComBat is an optional dependency. It is only required when you select
 `method = "ComBat"` or `batch_method = "ComBat"`.
 
+### QC-RLSC method requires the qcrlscR package
+
+**Symptom:**
+[`batchCorrectR()`](https://mstargetr.github.io/MStargetR/reference/batchCorrectR.md)
+or
+[`qcCheckR()`](https://mstargetr.github.io/MStargetR/reference/qcCheckR.md)
+stops with an error about the `qcrlscR` package not being installed.
+
+**Solution:** Install `qcrlscR` from CRAN:
+
+``` r
+
+install.packages("qcrlscR")
+```
+
+`qcrlscR` is an optional dependency. It is only required when you select
+`method = "QCRLSC"` or `batch_method = "QCRLSC"`.
+
 ### Shiny application fails to launch
 
 **Symptom:**
@@ -1007,9 +1228,9 @@ sessionInfo()
 #>  [5] tidyselect_1.2.1  parallel_4.6.0    jquerylib_0.1.4   systemfonts_1.3.2
 #>  [9] textshaping_1.0.5 yaml_2.3.12       fastmap_1.2.0     readr_2.2.0      
 #> [13] R6_2.6.1          knitr_1.51        htmlwidgets_1.6.4 tibble_3.3.1     
-#> [17] desc_1.4.3        bslib_0.10.0      pillar_1.11.1     tzdb_0.5.0       
+#> [17] desc_1.4.3        bslib_0.11.0      pillar_1.11.1     tzdb_0.5.0       
 #> [21] rlang_1.2.0       utf8_1.2.6        cachem_1.1.0      xfun_0.57        
-#> [25] fs_2.1.0          sass_0.4.10       bit64_4.8.0       otel_0.2.0       
+#> [25] fs_2.1.0          sass_0.4.10       bit64_4.8.2       otel_0.2.0       
 #> [29] cli_3.6.6         pkgdown_2.2.0     magrittr_2.0.5    digest_0.6.39    
 #> [33] vroom_1.7.1       hms_1.1.4         lifecycle_1.0.5   vctrs_0.7.3      
 #> [37] evaluate_1.0.5    glue_1.8.1        ragg_1.5.2        rmarkdown_2.31   

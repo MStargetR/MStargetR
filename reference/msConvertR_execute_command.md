@@ -5,7 +5,12 @@ This function executes the command to convert files to mzML format.
 ## Usage
 
 ``` r
-msConvertR_execute_command(commands, output_directory, plateIDs)
+msConvertR_execute_command(
+  commands,
+  output_directory,
+  plateIDs,
+  enable_HPC = getOption("MStargetR.enable_HPC", FALSE)
+)
 ```
 
 ## Arguments

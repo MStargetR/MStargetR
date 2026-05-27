@@ -49,5 +49,7 @@ plot_control_chart(
 
 ## Value
 
-A `ggplot` object representing the control chart for the specified
-metabolite.
+A `plotly` object representing the control chart for the specified
+metabolite (the inner ggplot is exposed separately via
+[`plot_control_chart_static()`](https://mstargetr.github.io/MStargetR/reference/plot_control_chart_static.md)
+so the same figure can be written to disk as a static PDF for R users).

@@ -21,11 +21,18 @@ qcCheckR(
   combat_par.prior = TRUE,
   combat_mean.only = FALSE,
   combat_ref.batch = NULL,
+  qcrlsc_method = c("subtract", "divide"),
+  qcrlsc_intra = FALSE,
+  qcrlsc_opti = TRUE,
+  qcrlsc_log10 = TRUE,
+  qcrlsc_outl = TRUE,
+  qcrlsc_shift = TRUE,
   batch_column = NULL,
   write_rda = TRUE,
   qs_nthreads = max(1L, parallel::detectCores() - 1L),
   qs_compress_level = 3L,
-  date_order = c("auto", "dmy", "mdy", "ymd", "iso")
+  date_order = c("auto", "dmy", "mdy", "ymd", "iso"),
+  advanced_plots = FALSE
 )
 ```
 
@@ -65,8 +72,10 @@ qcCheckR(
 - batch_method:
 
   Character string specifying the batch correction method. One of
-  `"QCRFSC"` (random forest, default) or `"ComBat"` (empirical Bayes,
-  QC-free).
+  `"QCRFSC"` (QC-based random forest signal correction, default),
+  `"ComBat"` (empirical Bayes, QC-free), or `"QCRLSC"` (QC-based robust
+  LOESS signal correction; Dunn et al. 2011, via the `qcrlscR` package).
+  Like `"QCRFSC"`, `"QCRLSC"` requires QC samples.
 
 - batch_ntree:
 
@@ -106,6 +115,42 @@ qcCheckR(
   the column selected by `batch_column` (or in `sample_plate_id` when
   `batch_column` is NULL).
 
+- qcrlsc_method:
+
+  Character. QC-RLSC scaling, one of `"subtract"` (default) or
+  `"divide"`. `"subtract"` matches the Dunn et al. protocol but can
+  yield small negative values for low-abundance features; `"divide"`
+  preserves non-negativity (better for concentrations) but is less
+  stable when the fitted QC trend nears zero. Only used when
+  `batch_method = "QCRLSC"`.
+
+- qcrlsc_intra:
+
+  Logical. If TRUE, correct within each batch (intra-batch); if FALSE
+  (default), correct across batches (inter-batch). Only meaningful with
+  two or more batches. Only used when `batch_method = "QCRLSC"`.
+
+- qcrlsc_opti:
+
+  Logical. If TRUE (default), optimise the LOESS span by generalised
+  cross-validation. Only used when `batch_method = "QCRLSC"`.
+
+- qcrlsc_log10:
+
+  Logical. If TRUE (default), log10-transform before fitting (zeros
+  become missing). Only used when `batch_method = "QCRLSC"`.
+
+- qcrlsc_outl:
+
+  Logical. If TRUE (default), perform QC outlier detection before
+  fitting. Only used when `batch_method = "QCRLSC"`.
+
+- qcrlsc_shift:
+
+  Logical. If TRUE (default), apply `batch.shift` to re-align batch
+  means after signal correction. Only used when
+  `batch_method = "QCRLSC"`.
+
 - batch_column:
 
   Optional character. Name of the column in the imputed concentration
@@ -113,7 +158,7 @@ qcCheckR(
   (default) the canonical `sample_plate_id` column is used. Set this to
   drive the correction off an arbitrary user-named column (e.g. `plate`,
   `run_batch`); the chosen column's values become the valid choices for
-  `combat_ref.batch`. Only used when `batch_method = "ComBat"`.
+  `combat_ref.batch`. Used when `batch_method = "ComBat"` or `"QCRLSC"`.
 
 - write_rda:
 
@@ -157,6 +202,19 @@ qcCheckR(
   only). If `"auto"` cannot resolve the format unambiguously, the
   pipeline stops with a clear message asking you to set this argument
   explicitly rather than silently produce wrong dates.
+
+- advanced_plots:
+
+  Logical. When `TRUE`, every plot the GUI's QC Check tab renders (PCA
+  scores, run-order, per-metabolite control charts, %RSD histogram,
+  missing values, sample-type pie, plate distribution) is also written
+  to `<project_directory>/all/figures/qcCheckR/` as both a static `.pdf`
+  (via
+  [`ggplot2::ggsave`](https://ggplot2.tidyverse.org/reference/ggsave.html))
+  and an interactive `.html` (via
+  [`htmlwidgets::saveWidget`](https://rdrr.io/pkg/htmlwidgets/man/saveWidget.html)
+  on the plotly widget). Default `FALSE` – opt-in so existing scripts
+  continue to behave identically.
 
 ## Value
 

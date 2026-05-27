@@ -67,12 +67,15 @@ used on its own or combined into a single script.
 ## Requirements
 
 - **R** \>= 4.1.0
-- **Docker Desktop** – required for
+- **Container runtime** for
   [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
   and
-  [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md).
-  Download from <https://www.docker.com/get-started/>. Ensure Docker is
-  running in the background before calling these functions.
+  [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md):
+  - **Docker Desktop** on workstations (default). Download from
+    <https://www.docker.com/get-started/>. Ensure Docker is running in
+    the background before calling these functions.
+  - **Apptainer / Singularity** on HPC clusters (set
+    `enable_HPC = TRUE`, see “Running on HPC” below).
 - **Bioconductor dependencies** – the packages `mzR`, `ropls`, and
   `statTarget` are installed automatically when using the helper
   installation function below. `sva` is also required when using
@@ -88,6 +91,49 @@ or
 [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
 (with method set to Skyline) due to Docker image architecture
 constraints on ARM processors.
+
+## Running on HPC (Apptainer / Singularity)
+
+Most HPC clusters forbid Docker.
+[`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+and
+[`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+accept an `enable_HPC = TRUE` argument that swaps Docker for Apptainer
+(formerly Singularity), which converts the same ProteoWizard image to a
+`.sif` and runs it as the invoking user with no daemon required.
+
+**Step 1 – pull the SIF on a login node (one-time, ~GB):**
+
+``` bash
+module load apptainer
+apptainer pull mstargetr-pwiz.sif \
+    docker://proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:skyline_26.1.0.057-c07debd
+```
+
+(Substitute the tag pinned by your installed MStargetR version –
+`MStargetR:::MSTARGETR_DOCKER_IMAGE_TAG` prints it.)
+
+**Step 2 – point MStargetR at the SIF in your `.Rprofile` so every job
+picks it up automatically:**
+
+``` r
+
+options(
+  MStargetR.enable_HPC = TRUE,
+  MStargetR.sif_path   = "/path/to/mstargetr-pwiz.sif"
+)
+```
+
+With these set you can call
+[`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+and
+[`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+exactly as on a workstation – no other code changes needed.
+
+If `MStargetR.sif_path` is unset and the compute node has outbound
+network, MStargetR will auto-pull the SIF into
+`tools::R_user_dir("MStargetR", "cache")` on first use. HPC compute
+nodes typically lack internet, so set the option explicitly.
 
 ## Installation
 
@@ -303,7 +349,15 @@ MyProject/
   [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
   and
   [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
-  require Docker Desktop to be active in the background.
+  require Docker Desktop to be active in the background – unless you are
+  on HPC, in which case set `enable_HPC = TRUE` and use Apptainer (see
+  “Running on HPC” above).
+- **HPC: pre-pull the SIF on a login node.** Auto-pull fails on compute
+  nodes without outbound network; set
+  `options(MStargetR.sif_path = "/path/to/mstargetr-pwiz.sif")` after
+  pulling once on a login node.
+- **HPC: load the Apptainer module.** Most HPC sites require
+  `module load apptainer` (or `singularity`) before R is launched.
 - **Keep software up to date.** Ensure R, RStudio, and all package
   dependencies are current.
 - **Check for file corruption.** Corrupted vendor files or incomplete

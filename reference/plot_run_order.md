@@ -30,4 +30,6 @@ plot_run_order(scores, pc, boundaries, plot_settings)
 
 ## Value
 
-A `ggplot` object representing the run order plot.
+A `plotly` object (the inner ggplot is exposed separately via
+[`plot_run_order_static()`](https://mstargetr.github.io/MStargetR/reference/plot_run_order_static.md)
+so the same figure can be written to disk as a static PDF for R users).
