@@ -90,6 +90,7 @@ Imports:
 Suggests:
     BiocManager,
     covr,
+    qcrlscR,
     sva,
     testthat (>= 3.0.0),
     mockery,

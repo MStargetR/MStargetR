@@ -15,8 +15,10 @@
 #' @param user_name A character string specifying the name of the user.
 #' @param mv_threshold A numeric value  between 0 and 100 specifying the threshold for missing values in the data. Default is 50(50%).
 #' @param batch_method Character string specifying the batch correction method.
-#'   One of \code{"QCRFSC"} (random forest, default) or \code{"ComBat"}
-#'   (empirical Bayes, QC-free).
+#'   One of \code{"QCRFSC"} (QC-based random forest signal correction, default),
+#'   \code{"ComBat"} (empirical Bayes, QC-free), or \code{"QCRLSC"} (QC-based
+#'   robust LOESS signal correction; Dunn et al. 2011, via the \code{qcrlscR}
+#'   package). Like \code{"QCRFSC"}, \code{"QCRLSC"} requires QC samples.
 #' @param batch_ntree Integer. Number of trees for the random forest method.
 #'   Default is \code{500}. Ignored when \code{batch_method} is not \code{"QCRFSC"}.
 #' @param batch_coCV Numeric. Coefficient of variation cutoff (percentage,
@@ -34,13 +36,33 @@
 #'   batch. Default is NULL. Only used when \code{batch_method = "ComBat"}.
 #'   Must match a value in the column selected by \code{batch_column} (or in
 #'   \code{sample_plate_id} when \code{batch_column} is NULL).
+#' @param qcrlsc_method Character. QC-RLSC scaling, one of \code{"subtract"}
+#'   (default) or \code{"divide"}. \code{"subtract"} matches the Dunn et al.
+#'   protocol but can yield small negative values for low-abundance features;
+#'   \code{"divide"} preserves non-negativity (better for concentrations) but
+#'   is less stable when the fitted QC trend nears zero. Only used when
+#'   \code{batch_method = "QCRLSC"}.
+#' @param qcrlsc_intra Logical. If TRUE, correct within each batch
+#'   (intra-batch); if FALSE (default), correct across batches (inter-batch).
+#'   Only meaningful with two or more batches. Only used when
+#'   \code{batch_method = "QCRLSC"}.
+#' @param qcrlsc_opti Logical. If TRUE (default), optimise the LOESS span by
+#'   generalised cross-validation. Only used when \code{batch_method = "QCRLSC"}.
+#' @param qcrlsc_log10 Logical. If TRUE (default), log10-transform before
+#'   fitting (zeros become missing). Only used when
+#'   \code{batch_method = "QCRLSC"}.
+#' @param qcrlsc_outl Logical. If TRUE (default), perform QC outlier detection
+#'   before fitting. Only used when \code{batch_method = "QCRLSC"}.
+#' @param qcrlsc_shift Logical. If TRUE (default), apply \code{batch.shift} to
+#'   re-align batch means after signal correction. Only used when
+#'   \code{batch_method = "QCRLSC"}.
 #' @param batch_column Optional character. Name of the column in the
 #'   imputed concentration data that holds the batch identifier used by
 #'   ComBat. When \code{NULL} (default) the canonical \code{sample_plate_id}
 #'   column is used. Set this to drive the correction off an arbitrary
 #'   user-named column (e.g. \code{plate}, \code{run_batch}); the chosen
 #'   column's values become the valid choices for \code{combat_ref.batch}.
-#'   Only used when \code{batch_method = "ComBat"}.
+#'   Used when \code{batch_method = "ComBat"} or \code{"QCRLSC"}.
 #' @param write_rda Logical. When \code{TRUE} (default) the master_list
 #'   \code{.qs2} file is written synchronously as the final step of the
 #'   pipeline. Set to \code{FALSE} when the caller intends to write it
@@ -201,6 +223,12 @@ qcCheckR <- function(user_name,
                      combat_par.prior = TRUE,
                      combat_mean.only = FALSE,
                      combat_ref.batch = NULL,
+                     qcrlsc_method = c("subtract", "divide"),
+                     qcrlsc_intra = FALSE,
+                     qcrlsc_opti = TRUE,
+                     qcrlsc_log10 = TRUE,
+                     qcrlsc_outl = TRUE,
+                     qcrlsc_shift = TRUE,
                      batch_column = NULL,
                      write_rda = TRUE,
                      qs_nthreads = max(1L, parallel::detectCores() - 1L),
@@ -314,8 +342,8 @@ qcCheckR <- function(user_name,
 
   # validate batch_method
   if (!is.character(batch_method) || length(batch_method) != 1 ||
-      !batch_method %in% c("QCRFSC", "ComBat")) {
-    stop("qcCheckR: 'batch_method' must be one of 'QCRFSC' or 'ComBat'. Got: ",
+      !batch_method %in% c("QCRFSC", "ComBat", "QCRLSC")) {
+    stop("qcCheckR: 'batch_method' must be one of 'QCRFSC', 'ComBat', or 'QCRLSC'. Got: ",
          deparse(batch_method), call. = FALSE)
   }
 
@@ -367,6 +395,18 @@ qcCheckR <- function(user_name,
     }
   }
 
+  # validate / resolve QC-RLSC-specific parameters. match.arg() and the logical
+  # checks run unconditionally so a typo fails fast regardless of batch_method.
+  qcrlsc_method <- match.arg(qcrlsc_method)
+  for (.nm in c("qcrlsc_intra", "qcrlsc_opti", "qcrlsc_log10",
+                "qcrlsc_outl", "qcrlsc_shift")) {
+    .val <- get(.nm)
+    if (!is.logical(.val) || length(.val) != 1 || is.na(.val)) {
+      stop("qcCheckR: '", .nm, "' must be TRUE or FALSE. Got: ",
+           deparse(.val), call. = FALSE)
+    }
+  }
+
   # process data----
   ##project setup----
   master_list <- qcCheckR_setup_project(
@@ -386,6 +426,12 @@ qcCheckR <- function(user_name,
   master_list$project_details$combat_par.prior <- combat_par.prior
   master_list$project_details$combat_mean.only <- combat_mean.only
   master_list$project_details$combat_ref.batch <- combat_ref.batch
+  master_list$project_details$qcrlsc_method <- qcrlsc_method
+  master_list$project_details$qcrlsc_intra <- qcrlsc_intra
+  master_list$project_details$qcrlsc_opti <- qcrlsc_opti
+  master_list$project_details$qcrlsc_log10 <- qcrlsc_log10
+  master_list$project_details$qcrlsc_outl <- qcrlsc_outl
+  master_list$project_details$qcrlsc_shift <- qcrlsc_shift
   master_list$project_details$batch_column <- batch_column
 
   ##data preparation----

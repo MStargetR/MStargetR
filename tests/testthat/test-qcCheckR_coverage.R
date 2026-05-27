@@ -558,6 +558,96 @@ test_that("qcCheckR_combat_correction stops if sva package not available (line 1
 })
 
 # ============================================================================
+# qcCheckR_Utils.R -- QC-RLSC dispatch and qcCheckR_qcrlsc_correction
+# ============================================================================
+
+test_that("qcCheckR_statTarget_batch_correction dispatches to QC-RLSC when batch_method is QCRLSC", {
+  master_list <- list(
+    project_details = list(
+      batch_method = "QCRLSC",
+      script_log = list(timestamps = list(), milestones = list())
+    )
+  )
+
+  qcrlsc_called <- FALSE
+  stub(qcCheckR_statTarget_batch_correction, "qcCheckR_qcrlsc_correction", function(ml) {
+    qcrlsc_called <<- TRUE
+    ml$qcrlsc_done <- TRUE
+    ml
+  })
+  stub(qcCheckR_statTarget_batch_correction, "update_script_log", function(ml, ...) ml)
+
+  result <- suppressMessages(
+    qcCheckR_statTarget_batch_correction(master_list)
+  )
+
+  expect_true(qcrlsc_called)
+  expect_true(result$qcrlsc_done)
+})
+
+test_that("qcCheckR_qcrlsc_correction runs QC-RLSC and tags output concentration.QCRLSC", {
+  skip_if_not_installed("qcrlscR")
+  set.seed(42)
+  n <- 24
+
+  combined_data <- tibble::tibble(
+    sample_name = paste0("s", 1:n),
+    sample_plate_id = rep(c("plate1", "plate2"), each = n / 2),
+    sample_type_factor = rep(c("qc", "sample", "sample"), length.out = n),
+    sample_type = rep(c("qc", "sample", "sample"), length.out = n),
+    metab_A = rnorm(n, 100, 10),
+    metab_B = rnorm(n, 200, 20)
+  )
+
+  master_list <- list(
+    project_details = list(
+      qcrlsc_method = "subtract",
+      qcrlsc_intra = FALSE,
+      qcrlsc_opti = TRUE,
+      qcrlsc_log10 = TRUE,
+      qcrlsc_outl = TRUE,
+      qcrlsc_shift = TRUE,
+      statTarget_qc_type = "qc",
+      qc_type = "qc"
+    ),
+    data = list(
+      concentration = list(
+        imputed = list(
+          plate1 = combined_data %>% filter(sample_plate_id == "plate1"),
+          plate2 = combined_data %>% filter(sample_plate_id == "plate2")
+        )
+      ),
+      peakArea = list()
+    )
+  )
+
+  result <- suppressWarnings(suppressMessages(
+    qcCheckR_qcrlsc_correction(master_list)
+  ))
+
+  expect_false(is.null(result$data$concentration$corrected))
+  expect_equal(sort(names(result$data$concentration$corrected)),
+               c("plate1", "plate2"))
+  tags <- unlist(lapply(result$data$peakArea$statTargetProcessed,
+                        function(b) unique(b$sample_data_source)))
+  expect_true(all(tags == "concentration.QCRLSC"))
+})
+
+test_that("qcCheckR_qcrlsc_correction stops if qcrlscR package not available", {
+  master_list <- list(
+    project_details = list(batch_method = "QCRLSC"),
+    data = list(concentration = list(imputed = list()))
+  )
+
+  stub(qcCheckR_qcrlsc_correction, "requireNamespace", FALSE)
+
+  expect_error(
+    suppressMessages(qcCheckR_qcrlsc_correction(master_list)),
+    "qcrlscR.*package is required"
+  )
+})
+
+# ============================================================================
 # qcCheckR_Utils.R -- qcCheckR_summary_report (lines 2417-2475)
 # ============================================================================
 

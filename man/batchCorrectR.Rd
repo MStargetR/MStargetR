@@ -15,6 +15,12 @@ batchCorrectR(
   combat_par.prior = TRUE,
   combat_mean.only = FALSE,
   combat_ref.batch = NULL,
+  qcrlsc_method = c("subtract", "divide"),
+  qcrlsc_intra = FALSE,
+  qcrlsc_opti = TRUE,
+  qcrlsc_log10 = TRUE,
+  qcrlsc_outl = TRUE,
+  qcrlsc_shift = TRUE,
   batch_column = NULL,
   sample_tags = NULL,
   output_dir = tempdir(),
@@ -39,8 +45,10 @@ for QC matching against \code{qc_label} when present.}
 Default is \code{"qc"}.}
 
 \item{method}{Correction method.
-One of \code{"QCRFSC"} (random forest, default) or \code{"ComBat"}
-(empirical Bayes, QC-free).}
+One of \code{"QCRFSC"} (QC-based random forest signal correction, default),
+\code{"ComBat"} (empirical Bayes, QC-free), or \code{"QCRLSC"} (QC-based
+robust LOESS signal correction; Dunn et al. 2011, via the \code{qcrlscR}
+package). Like \code{"QCRFSC"}, \code{"QCRLSC"} requires QC samples.}
 
 \item{ntree}{Integer. Number of trees for the random forest method. Default
 is \code{500}. Ignored when \code{method} is not \code{"QCRFSC"}.}
@@ -73,6 +81,31 @@ batch as the reference for ComBat adjustment. Default is NULL. Only used
 when \code{method = "ComBat"}. Must match a value present in the column
 selected by \code{batch_column} (or in \code{sample_plate_id}/\code{batch}
 when \code{batch_column} is NULL).}
+
+\item{qcrlsc_method}{Character. QC-RLSC scaling, one of \code{"subtract"}
+(default) or \code{"divide"}. \code{"subtract"} matches the Dunn et al.
+protocol but can yield small negative values for low-abundance features;
+\code{"divide"} preserves non-negativity (better for concentrations) but
+is less stable when the fitted QC trend nears zero. Only used when
+\code{method = "QCRLSC"}.}
+
+\item{qcrlsc_intra}{Logical. If TRUE, correct within each batch
+(intra-batch); if FALSE (default), correct across batches (inter-batch).
+Only meaningful with two or more batches. Only used when
+\code{method = "QCRLSC"}.}
+
+\item{qcrlsc_opti}{Logical. If TRUE (default), optimise the LOESS span by
+generalised cross-validation. Only used when \code{method = "QCRLSC"}.}
+
+\item{qcrlsc_log10}{Logical. If TRUE (default), log10-transform before
+fitting (zeros become missing). Only used when \code{method = "QCRLSC"}.}
+
+\item{qcrlsc_outl}{Logical. If TRUE (default), perform QC outlier detection
+before fitting. Only used when \code{method = "QCRLSC"}.}
+
+\item{qcrlsc_shift}{Logical. If TRUE (default), apply \code{batch.shift} to
+re-align batch means after signal correction. Only used when
+\code{method = "QCRLSC"}.}
 
 \item{batch_column}{Optional character. Name of the column in \code{data}
 that holds the batch identifier. When \code{NULL} (default) the function
@@ -206,5 +239,8 @@ result$correction_summary
 
 # Use ComBat (empirical Bayes, QC-free) instead of the default QCRFSC
 result_combat <- batchCorrectR(my_data, method = "ComBat")
+
+# Use QC-RLSC (QC-based robust LOESS signal correction)
+result_qcrlsc <- batchCorrectR(my_data, method = "QCRLSC")
 }
 }

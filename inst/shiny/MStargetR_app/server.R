@@ -1483,9 +1483,22 @@ function(input, output, session) {
       combat_ref.batch  = if (nzchar(input$qc_combat_ref_batch %||% "")) {
         input$qc_combat_ref_batch
       } else NULL,
-      batch_column      = if (nzchar(input$qc_batch_column %||% "")) {
-        input$qc_batch_column
-      } else NULL,
+      qcrlsc_method     = input$qc_qcrlsc_method %||% "subtract",
+      qcrlsc_intra      = input$qc_qcrlsc_intra  %||% FALSE,
+      qcrlsc_opti       = input$qc_qcrlsc_opti   %||% TRUE,
+      qcrlsc_log10      = input$qc_qcrlsc_log10  %||% TRUE,
+      qcrlsc_outl       = input$qc_qcrlsc_outl   %||% TRUE,
+      qcrlsc_shift      = input$qc_qcrlsc_shift  %||% TRUE,
+      # batch_column drives ComBat and QC-RLSC; read the input belonging to the
+      # selected method (each lives in its own conditionalPanel).
+      batch_column      = {
+        bc <- if ((input$qc_batch_method %||% "QCRFSC") == "QCRLSC") {
+          input$qc_qcrlsc_batch_column %||% ""
+        } else {
+          input$qc_batch_column %||% ""
+        }
+        if (nzchar(bc)) bc else NULL
+      },
       # The qs2 save is the slowest tail-end step in the pipeline. Skip
       # it here so qcCheckR returns the in-memory result as soon as the
       # XLSX/HTML exports finish, then the qc_run completion handler
@@ -2218,7 +2231,13 @@ function(input, output, session) {
       combat_mean.only = input$combat_mean_only %||% FALSE,
       combat_ref.batch = if (nzchar(input$combat_ref_batch %||% "")) {
         input$combat_ref_batch
-      } else NULL
+      } else NULL,
+      qcrlsc_method = input$batch_qcrlsc_method %||% "subtract",
+      qcrlsc_intra  = input$batch_qcrlsc_intra  %||% FALSE,
+      qcrlsc_opti   = input$batch_qcrlsc_opti   %||% TRUE,
+      qcrlsc_log10  = input$batch_qcrlsc_log10  %||% TRUE,
+      qcrlsc_outl   = input$batch_qcrlsc_outl   %||% TRUE,
+      qcrlsc_shift  = input$batch_qcrlsc_shift  %||% TRUE
     )
 
     bg <- tryCatch(

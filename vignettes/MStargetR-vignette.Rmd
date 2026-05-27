@@ -41,7 +41,7 @@ This vignette describes:
 
 - Installation and prerequisites
 - The three-step core pipeline (`msConvertR` -> `PeakForgeR` -> `qcCheckR`)
-- Batch correction methods (QC-based and QC-free ComBat)
+- Batch correction methods (QC-based QCRFSC and QC-RLSC, QC-free ComBat)
 - Standalone batch correction with `batchCorrectR`
 - The interactive Shiny application
 - Utility functions for template validation
@@ -419,7 +419,7 @@ head(peakforger_report[, 1:6])
 | `QC_sample_label` | Character | Tag to identify QC samples in file names (e.g., `"LTR"`, `"qc"`). Default is `"LTR"`. |
 | `sample_tags` | Character vector | Tags that identify sample types in file names (e.g., `c("sample", "control", "qc")`). |
 | `mv_threshold` | Numeric | Percentage threshold for missing value filtering (0--100). Features with a higher percentage of missing values than this threshold are removed. Default is `50`. |
-| `batch_method` | Character | Batch correction method: `"QCRFSC"` (random forest, default) or `"ComBat"` (empirical Bayes, QC-free). |
+| `batch_method` | Character | Batch correction method: `"QCRFSC"` (random forest, default), `"ComBat"` (empirical Bayes, QC-free), or `"QCRLSC"` (robust LOESS, requires QC samples). |
 | `batch_ntree` | Integer | Number of trees for random forest correction. Ignored for other methods. Default is `500`. |
 | `batch_coCV` | Numeric | Coefficient of variation cutoff (%, 1--100) for feature filtering inside statTarget. Features with QC CV above this threshold are removed. Default is `100` (no filtering). |
 | `batch_Frule` | Numeric | Filtering rule (0--1) for missing values inside statTarget. Default is `0`. |
@@ -427,6 +427,9 @@ head(peakforger_report[, 1:6])
 | `combat_par.prior` | Logical | Use parametric priors in ComBat. Only used when `batch_method = "ComBat"`. Default is `TRUE`. |
 | `combat_mean.only` | Logical | Correct only batch mean (not variance). Only used when `batch_method = "ComBat"`. Default is `FALSE`. |
 | `combat_ref.batch` | Character or NULL | Reference batch for ComBat. Only used when `batch_method = "ComBat"`. Default is `NULL`. |
+| `qcrlsc_method` | Character | QC-RLSC scaling: `"subtract"` (default, Dunn et al. protocol) or `"divide"` (preserves non-negativity). Only used when `batch_method = "QCRLSC"`. |
+| `qcrlsc_intra` | Logical | Intra-batch (`TRUE`) vs inter-batch (`FALSE`, default) QC-RLSC. Only used when `batch_method = "QCRLSC"`. |
+| `qcrlsc_opti` / `qcrlsc_log10` / `qcrlsc_outl` / `qcrlsc_shift` | Logical | Optimise LOESS span by GCV, log10-transform before fitting, QC outlier detection, and apply `batch.shift` after correction. All default `TRUE`. Only used when `batch_method = "QCRLSC"`. |
 
 ### The mrm_template_list structure
 
@@ -501,6 +504,23 @@ qcCheckR(
   combat_par.prior   = TRUE,
   combat_mean.only   = FALSE
 )
+
+# Using QC-RLSC (QC-based robust LOESS signal correction; requires QC samples)
+qcCheckR(
+  user_name          = "HSzemray",
+  project_directory  = "/path/to/my_project",
+  mrm_template_list  = list(
+    v1 = list(
+      SIL_guide  = "/path/to/LGW_lipid_mrm_template_v1.tsv",
+      conc_guide = "/path/to/LGW_SIL_batch_103.tsv"
+    )
+  ),
+  QC_sample_label    = "LTR",
+  sample_tags        = c("sample", "control", "qc"),
+  mv_threshold       = 50,
+  batch_method       = "QCRLSC",
+  qcrlsc_method      = "subtract"
+)
 ```
 
 ### Outputs
@@ -532,7 +552,7 @@ who wish to apply batch correction to any tabular metabolomics dataset.
 |:--|:--|:--|:--|
 | `data` | data.frame | (required) | Input data with samples as rows. Must contain columns: `sample_name`, `batch`, `sample_type`, `run_order`, plus numeric metabolite columns. |
 | `qc_label` | Character | `"qc"` | String identifying QC samples in the `sample_type` column. |
-| `method` | Character | `"QCRFSC"` | Correction method: `"QCRFSC"` (random forest, default) or `"ComBat"` (empirical Bayes, QC-free). |
+| `method` | Character | `"QCRFSC"` | Correction method: `"QCRFSC"` (random forest, default), `"ComBat"` (empirical Bayes, QC-free), or `"QCRLSC"` (robust LOESS, requires QC samples). |
 | `ntree` | Integer | `500` | Number of trees for the random forest method. Ignored for other methods. |
 | `coCV` | Numeric | `100` | Coefficient of variation cutoff (%, 1--100) for feature filtering in statTarget. Features with QC CV above this threshold are removed. |
 | `Frule` | Numeric | `0` | Filtering rule percentage for missing values in statTarget. |
@@ -540,6 +560,8 @@ who wish to apply batch correction to any tabular metabolomics dataset.
 | `combat_par.prior` | Logical | `TRUE` | Use parametric empirical Bayes priors. Only applies when `method = "ComBat"`. |
 | `combat_mean.only` | Logical | `FALSE` | If TRUE, correct only batch mean (not variance). Only applies when `method = "ComBat"`. |
 | `combat_ref.batch` | Character or NULL | `NULL` | Reference batch for ComBat adjustment. Only applies when `method = "ComBat"`. |
+| `qcrlsc_method` | Character | `"subtract"` | QC-RLSC scaling: `"subtract"` (Dunn et al. protocol) or `"divide"` (preserves non-negativity). Only applies when `method = "QCRLSC"`. |
+| `qcrlsc_intra` / `qcrlsc_opti` / `qcrlsc_log10` / `qcrlsc_outl` / `qcrlsc_shift` | Logical | `FALSE` / `TRUE` / `TRUE` / `TRUE` / `TRUE` | Intra-batch correction, LOESS span GCV optimisation, log10 transform, QC outlier detection, and `batch.shift`. Only apply when `method = "QCRLSC"`. |
 | `sample_tags` | Character vector or NULL | `NULL` | Optional sample-type labels to include in correction (in addition to QC). Rows whose type does not match `qc_label` or any of `sample_tags` are dropped before correction. Useful for excluding blanks or other low-signal types. |
 | `output_dir` | Character | `tempdir()` | Directory for statTarget intermediate files. |
 | `project_dir` | Character or NULL | `NULL` | If provided, the corrected data CSV and correction summary are saved into a `batch_correction` subfolder inside this directory. |
@@ -559,6 +581,15 @@ who wish to apply batch correction to any tabular metabolomics dataset.
   available. ComBat can correct both location (mean) and scale
   (variance) batch effects, or mean-only if `combat_mean.only = TRUE`.
   Install `sva` via `BiocManager::install("sva")`.
+- **QC-RLSC** (QC-based Robust LOESS Signal Correction; Dunn et al.
+  2011): Fits a robust LOESS trend through the QC injections (ordered by
+  acquisition) for each feature and corrects samples against it, then
+  optionally re-aligns batch means with `batch.shift`. Like QCRFSC it
+  **requires** QC samples. The `qcrlsc_method` argument chooses additive
+  (`"subtract"`, default) or multiplicative (`"divide"`) scaling; the
+  latter preserves non-negativity, useful for concentration data.
+  Implemented via `qcrlscR::qc.rlsc.wrap()`; install `qcrlscR` via
+  `install.packages("qcrlscR")`.
 
 ## Return value
 
@@ -629,6 +660,15 @@ result_combat_mean <- batchCorrectR(
 )
 ```
 
+```{r batchcorrectr_qcrlsc_example, eval=FALSE}
+# QC-RLSC correction (QC-based robust LOESS; requires QC samples)
+result_qcrlsc <- batchCorrectR(
+  data          = my_data,
+  method        = "QCRLSC",
+  qcrlsc_method = "subtract"   # or "divide" to preserve non-negativity
+)
+```
+
 ---
 
 # Interactive Application (launchMStargetR)
@@ -665,11 +705,14 @@ install.packages(c("shiny", "bslib", "DT", "shinyWidgets", "htmltools"))
 ```
 
 **Note:** The Shiny GUI exposes batch correction method selection in both
-the `qcCheckR` and `batchCorrectR` tabs. Both methods (`QCRFSC` and
-`ComBat`) are available from the interface, including the ComBat-specific
-parameters (`combat_par.prior`, `combat_mean.only`, and
-`combat_ref.batch`). When `ComBat` is selected, the QC-specific options
-are hidden automatically since ComBat does not require QC samples.
+the `qcCheckR` and `batchCorrectR` tabs. All three methods (`QCRFSC`,
+`ComBat`, and `QC-RLSC`) are available from the interface, with each
+method's options shown in its own panel: the ComBat-specific parameters
+(`combat_par.prior`, `combat_mean.only`, `combat_ref.batch`) and the
+QC-RLSC-specific parameters (scaling, intra-batch, span optimisation,
+log10, outlier detection, batch shift). When `ComBat` is selected, the
+QC-specific options are hidden automatically since ComBat does not require
+QC samples; `QCRFSC` and `QC-RLSC` both require QC samples.
 
 ---
 
@@ -1037,6 +1080,20 @@ BiocManager::install("sva")
 
 ComBat is an optional dependency. It is only required when you select
 `method = "ComBat"` or `batch_method = "ComBat"`.
+
+## QC-RLSC method requires the qcrlscR package
+
+**Symptom:** `batchCorrectR()` or `qcCheckR()` stops with an error about
+the `qcrlscR` package not being installed.
+
+**Solution:** Install `qcrlscR` from CRAN:
+
+```{r fix_qcrlscr, eval=FALSE}
+install.packages("qcrlscR")
+```
+
+`qcrlscR` is an optional dependency. It is only required when you select
+`method = "QCRLSC"` or `batch_method = "QCRLSC"`.
 
 ## Shiny application fails to launch
 

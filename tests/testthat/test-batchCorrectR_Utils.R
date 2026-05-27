@@ -88,6 +88,16 @@ test_that("bc_validate_input errors on invalid method", {
                "Invalid 'method'")
 })
 
+test_that("bc_validate_input accepts QCRLSC (and requires QC like QCRFSC)", {
+  df <- make_bc_test_data()
+  expect_invisible(bc_validate_input(df, "qc", "QCRLSC", 500, 10000, 0, "minHalf"))
+  df_no_qc <- df
+  df_no_qc$sample_type <- "sample"
+  expect_error(
+    bc_validate_input(df_no_qc, "qc", "QCRLSC", 500, 10000, 0, "minHalf"),
+    "No QC samples found")
+})
+
 test_that("bc_validate_input errors on bad ntree values", {
   df <- make_bc_test_data()
   expect_error(bc_validate_input(df, "qc", "QCRFSC", 0, 10000, 0, "minHalf"),
