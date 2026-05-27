@@ -1,6 +1,6 @@
 Package: MStargetR
 Title: Targeted MRM Mass Spectrometry Data Processing and Quality Control
-Version: 1.1.2
+Version: 1.2.0
 Description: Provides a comprehensive workflow for processing targeted multiple
     reaction monitoring (MRM) mass spectrometry data. Includes tools for raw data
     conversion via msConvert, peak integration, quality control assessment, batch
