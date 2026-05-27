@@ -19,6 +19,12 @@ qcCheckR(
   combat_par.prior = TRUE,
   combat_mean.only = FALSE,
   combat_ref.batch = NULL,
+  qcrlsc_method = c("subtract", "divide"),
+  qcrlsc_intra = FALSE,
+  qcrlsc_opti = TRUE,
+  qcrlsc_log10 = TRUE,
+  qcrlsc_outl = TRUE,
+  qcrlsc_shift = TRUE,
   batch_column = NULL,
   write_rda = TRUE,
   qs_nthreads = max(1L, parallel::detectCores() - 1L),
@@ -41,8 +47,10 @@ qcCheckR(
 \item{mv_threshold}{A numeric value  between 0 and 100 specifying the threshold for missing values in the data. Default is 50(50\%).}
 
 \item{batch_method}{Character string specifying the batch correction method.
-One of \code{"QCRFSC"} (random forest, default) or \code{"ComBat"}
-(empirical Bayes, QC-free).}
+One of \code{"QCRFSC"} (QC-based random forest signal correction, default),
+\code{"ComBat"} (empirical Bayes, QC-free), or \code{"QCRLSC"} (QC-based
+robust LOESS signal correction; Dunn et al. 2011, via the \code{qcrlscR}
+package). Like \code{"QCRFSC"}, \code{"QCRLSC"} requires QC samples.}
 
 \item{batch_ntree}{Integer. Number of trees for the random forest method.
 Default is \code{500}. Ignored when \code{batch_method} is not \code{"QCRFSC"}.}
@@ -68,13 +76,39 @@ batch. Default is NULL. Only used when \code{batch_method = "ComBat"}.
 Must match a value in the column selected by \code{batch_column} (or in
 \code{sample_plate_id} when \code{batch_column} is NULL).}
 
+\item{qcrlsc_method}{Character. QC-RLSC scaling, one of \code{"subtract"}
+(default) or \code{"divide"}. \code{"subtract"} matches the Dunn et al.
+protocol but can yield small negative values for low-abundance features;
+\code{"divide"} preserves non-negativity (better for concentrations) but
+is less stable when the fitted QC trend nears zero. Only used when
+\code{batch_method = "QCRLSC"}.}
+
+\item{qcrlsc_intra}{Logical. If TRUE, correct within each batch
+(intra-batch); if FALSE (default), correct across batches (inter-batch).
+Only meaningful with two or more batches. Only used when
+\code{batch_method = "QCRLSC"}.}
+
+\item{qcrlsc_opti}{Logical. If TRUE (default), optimise the LOESS span by
+generalised cross-validation. Only used when \code{batch_method = "QCRLSC"}.}
+
+\item{qcrlsc_log10}{Logical. If TRUE (default), log10-transform before
+fitting (zeros become missing). Only used when
+\code{batch_method = "QCRLSC"}.}
+
+\item{qcrlsc_outl}{Logical. If TRUE (default), perform QC outlier detection
+before fitting. Only used when \code{batch_method = "QCRLSC"}.}
+
+\item{qcrlsc_shift}{Logical. If TRUE (default), apply \code{batch.shift} to
+re-align batch means after signal correction. Only used when
+\code{batch_method = "QCRLSC"}.}
+
 \item{batch_column}{Optional character. Name of the column in the
 imputed concentration data that holds the batch identifier used by
 ComBat. When \code{NULL} (default) the canonical \code{sample_plate_id}
 column is used. Set this to drive the correction off an arbitrary
 user-named column (e.g. \code{plate}, \code{run_batch}); the chosen
 column's values become the valid choices for \code{combat_ref.batch}.
-Only used when \code{batch_method = "ComBat"}.}
+Used when \code{batch_method = "ComBat"} or \code{"QCRLSC"}.}
 
 \item{write_rda}{Logical. When \code{TRUE} (default) the master_list
 \code{.qs2} file is written synchronously as the final step of the

@@ -2,6 +2,17 @@
 
 ### Features
 
+- **batch correction:** add a third user-selectable method, **QC-RLSC**
+  (Quality Control-based Robust LOESS Signal Correction; Dunn et al. 2011,
+  <doi:10.1038/nprot.2011.335>) via the CRAN package `qcrlscR`. Selectable as
+  `method = "QCRLSC"` in `batchCorrectR()` and `batch_method = "QCRLSC"` in
+  `qcCheckR()`, and from both Shiny batch-correction tabs. Like QCRFSC it
+  requires QC samples (the LOESS trend is fit through them). New `qcrlsc_*`
+  arguments expose the scaling mode (`"subtract"` default / `"divide"`),
+  intra/inter-batch correction, LOESS span GCV optimisation, log10 transform,
+  QC outlier detection, and `batch.shift`. `qcrlscR` is an optional dependency
+  (Suggests), loaded behind a `requireNamespace()` guard, so it errors with an
+  install hint only when the method is actually selected.
 - **plots:** R-side parity with the GUI for every Quality Check, Batch
   Correction, and Results Explorer figure. `qcCheckR()` and
   `batchCorrectR()` gain an opt-in `advanced_plots = FALSE` argument and

@@ -204,9 +204,9 @@ bc_validate_input <- function(data, qc_label, method, ntree, coCV, Frule, impute
   if (!is.character(method) || length(method) != 1)
     stop("batchCorrectR: 'method' must be a single character string. Got: ",
          paste(class(method), collapse = ", "), call. = FALSE)
-  if (!method %in% c("QCRFSC", "ComBat"))
+  if (!method %in% c("QCRFSC", "ComBat", "QCRLSC"))
     stop("batchCorrectR: Invalid 'method': '", method,
-         "'. Must be one of: 'QCRFSC', 'ComBat'.", call. = FALSE)
+         "'. Must be one of: 'QCRFSC', 'ComBat', 'QCRLSC'.", call. = FALSE)
   if (!is.numeric(ntree) || length(ntree) != 1 || ntree < 1)
     stop("batchCorrectR: 'ntree' must be a positive integer. Got: ",
          deparse(ntree), call. = FALSE)

@@ -426,3 +426,125 @@ test_that("bc_populate_synthetic_qc_values: single-QC batch constant extrapolati
   expect_false(is.na(result$met_X[1]))
   expect_equal(result$met_X[result$synthetic_qc == FALSE & result$class == "qc"], 77.0)
 })
+
+# ============================================================================
+# bc_prepare_qcrlsc_matrix ----
+# ============================================================================
+
+test_that("bc_prepare_qcrlsc_matrix: keeps samples-by-features orientation (no transpose)", {
+  df <- data.frame(
+    batch = c("a", "a", "b", "b"),
+    met_1 = c(1, 2, 3, 4),
+    met_2 = c(10, 20, 30, 40),
+    stringsAsFactors = FALSE
+  )
+  out <- bc_prepare_qcrlsc_matrix(df, c("met_1", "met_2"))
+  # rows = samples (4), cols = features (2) -- opposite of bc_prepare_combat_matrix
+  expect_equal(dim(out$dat_qcrlsc), c(4, 2))
+  expect_equal(colnames(out$dat_qcrlsc), c("met_1", "met_2"))
+  expect_equal(out$kept_features, c("met_1", "met_2"))
+  expect_length(out$dropped, 0)
+})
+
+test_that("bc_prepare_qcrlsc_matrix: drops all-NA and zero-variance features", {
+  df <- data.frame(
+    met_allna = c(NA_real_, NA_real_, NA_real_, NA_real_),
+    met_const = c(5, 5, 5, 5),
+    met_var   = c(1, 2, 3, 4),
+    stringsAsFactors = FALSE
+  )
+  out <- suppressMessages(
+    bc_prepare_qcrlsc_matrix(df, c("met_allna", "met_const", "met_var")))
+  expect_equal(out$kept_features, "met_var")
+  expect_setequal(out$dropped, c("met_allna", "met_const"))
+})
+
+# ============================================================================
+# bc_reconstruct_qcrlsc_output ----
+# ============================================================================
+
+test_that("bc_reconstruct_qcrlsc_output: writes corrected values back without transpose", {
+  df <- data.frame(
+    batch = c("a", "a", "b"),
+    met_1 = c(1, 2, 3),
+    met_2 = c(10, 20, 30),
+    stringsAsFactors = FALSE
+  )
+  corrected <- data.frame(met_1 = c(1.1, 2.1, 3.1), met_2 = c(11, 21, 31))
+  out <- bc_reconstruct_qcrlsc_output(df, corrected, c("met_1", "met_2"))
+  expect_equal(out$met_1, c(1.1, 2.1, 3.1))
+  expect_equal(out$met_2, c(11, 21, 31))
+  expect_equal(out$batch, df$batch)  # metadata untouched
+})
+
+test_that("bc_reconstruct_qcrlsc_output: leaves dropped features unchanged", {
+  df <- data.frame(
+    met_1 = c(1, 2, 3),
+    met_dropped = c(9, 9, 9),
+    stringsAsFactors = FALSE
+  )
+  corrected <- data.frame(met_1 = c(1.5, 2.5, 3.5))
+  out <- bc_reconstruct_qcrlsc_output(df, corrected, "met_1")
+  expect_equal(out$met_1, c(1.5, 2.5, 3.5))
+  expect_equal(out$met_dropped, c(9, 9, 9))  # not in kept_features -> unchanged
+})
+
+# ============================================================================
+# bc_run_qcrlsc (requires qcrlscR) ----
+# ============================================================================
+
+test_that("bc_run_qcrlsc: corrects QC drift and preserves shape / row order", {
+  skip_if_not_installed("qcrlscR")
+  set.seed(11)
+  n <- 30
+  data <- data.frame(
+    sample_name = paste0("S", 1:n),
+    batch = rep(c("b1", "b2"), each = 15),
+    sample_type = rep(c("qc", "sample", "sample", "sample", "qc"), 6),
+    run_order = 1:n,
+    met_1 = rnorm(n, 100, 10) + rep(c(0, 25), each = 15),
+    met_2 = rnorm(n, 50, 5),
+    stringsAsFactors = FALSE
+  )
+  out <- suppressWarnings(suppressMessages(
+    bc_run_qcrlsc(data, c("met_1", "met_2"), qc_label = "qc")))
+  expect_equal(nrow(out), n)
+  expect_true(all(c("met_1", "met_2") %in% names(out)))
+  expect_equal(out$sample_name, data$sample_name)  # order preserved
+  expect_false(anyNA(out$met_1))
+})
+
+test_that("bc_run_qcrlsc: intra-batch path restores input row order", {
+  skip_if_not_installed("qcrlscR")
+  set.seed(12)
+  n <- 30
+  data <- data.frame(
+    sample_name = paste0("S", 1:n),
+    batch = rep(c("b1", "b2"), each = 15),
+    sample_type = rep(c("qc", "sample", "sample", "sample", "qc"), 6),
+    run_order = 1:n,
+    met_1 = rnorm(n, 100, 10),
+    met_2 = rnorm(n, 50, 5),
+    stringsAsFactors = FALSE
+  )
+  out <- suppressWarnings(suppressMessages(
+    bc_run_qcrlsc(data, c("met_1", "met_2"), qc_label = "qc",
+                  qcrlsc_method = "divide", intra = TRUE)))
+  expect_equal(out$sample_name, data$sample_name)
+  expect_false(any(!is.finite(as.matrix(out[, c("met_1", "met_2")]))))
+})
+
+test_that("bc_run_qcrlsc: errors when no QC samples are present", {
+  skip_if_not_installed("qcrlscR")
+  data <- data.frame(
+    sample_name = paste0("S", 1:6),
+    batch = rep("b1", 6),
+    sample_type = rep("sample", 6),
+    run_order = 1:6,
+    met_1 = rnorm(6),
+    stringsAsFactors = FALSE
+  )
+  expect_error(
+    suppressMessages(bc_run_qcrlsc(data, "met_1", qc_label = "qc")),
+    "no QC samples")
+})

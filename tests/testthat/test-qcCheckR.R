@@ -397,7 +397,7 @@ test_that("qcCheckR accepts valid batch_method values", {
   dir.create(temp_dir, showWarnings = FALSE)
   on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
 
-  for (method in c("QCRFSC", "ComBat")) {
+  for (method in c("QCRFSC", "ComBat", "QCRLSC")) {
     # Valid batch_method should pass validation and fail downstream (no report files)
     expect_error(
       suppressMessages(
@@ -407,6 +407,30 @@ test_that("qcCheckR accepts valid batch_method values", {
       "No report files found"
     )
   }
+})
+
+test_that("qcCheckR rejects invalid qcrlsc_method", {
+  temp_dir <- tempfile("qccheck_qcrlsc_invalid_")
+  dir.create(temp_dir, showWarnings = FALSE)
+  on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
+
+  expect_error(
+    qcCheckR(user_name = "ANPC", project_directory = temp_dir,
+             batch_method = "QCRLSC", qcrlsc_method = "nope"),
+    "should be one of|'arg'"
+  )
+})
+
+test_that("qcCheckR rejects non-logical qcrlsc_shift", {
+  temp_dir <- tempfile("qccheck_qcrlsc_shift_")
+  dir.create(temp_dir, showWarnings = FALSE)
+  on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
+
+  expect_error(
+    qcCheckR(user_name = "ANPC", project_directory = temp_dir,
+             batch_method = "QCRLSC", qcrlsc_shift = "yes"),
+    "qcrlsc_shift.*must be TRUE or FALSE"
+  )
 })
 
 test_that("qcCheckR rejects invalid batch_method string", {

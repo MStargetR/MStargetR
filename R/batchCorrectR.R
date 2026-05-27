@@ -17,8 +17,10 @@
 #'   \code{sample_type_factor} when present, otherwise \code{sample_type}.
 #'   Default is \code{"qc"}.
 #' @param method Correction method.
-#'   One of \code{"QCRFSC"} (random forest, default) or \code{"ComBat"}
-#'   (empirical Bayes, QC-free).
+#'   One of \code{"QCRFSC"} (QC-based random forest signal correction, default),
+#'   \code{"ComBat"} (empirical Bayes, QC-free), or \code{"QCRLSC"} (QC-based
+#'   robust LOESS signal correction; Dunn et al. 2011, via the \code{qcrlscR}
+#'   package). Like \code{"QCRFSC"}, \code{"QCRLSC"} requires QC samples.
 #' @param ntree Integer. Number of trees for the random forest method. Default
 #'   is \code{500}. Ignored when \code{method} is not \code{"QCRFSC"}.
 #' @param coCV Numeric. Maximum percent RSD (coefficient of variation) cutoff
@@ -44,6 +46,25 @@
 #'   when \code{method = "ComBat"}. Must match a value present in the column
 #'   selected by \code{batch_column} (or in \code{sample_plate_id}/\code{batch}
 #'   when \code{batch_column} is NULL).
+#' @param qcrlsc_method Character. QC-RLSC scaling, one of \code{"subtract"}
+#'   (default) or \code{"divide"}. \code{"subtract"} matches the Dunn et al.
+#'   protocol but can yield small negative values for low-abundance features;
+#'   \code{"divide"} preserves non-negativity (better for concentrations) but
+#'   is less stable when the fitted QC trend nears zero. Only used when
+#'   \code{method = "QCRLSC"}.
+#' @param qcrlsc_intra Logical. If TRUE, correct within each batch
+#'   (intra-batch); if FALSE (default), correct across batches (inter-batch).
+#'   Only meaningful with two or more batches. Only used when
+#'   \code{method = "QCRLSC"}.
+#' @param qcrlsc_opti Logical. If TRUE (default), optimise the LOESS span by
+#'   generalised cross-validation. Only used when \code{method = "QCRLSC"}.
+#' @param qcrlsc_log10 Logical. If TRUE (default), log10-transform before
+#'   fitting (zeros become missing). Only used when \code{method = "QCRLSC"}.
+#' @param qcrlsc_outl Logical. If TRUE (default), perform QC outlier detection
+#'   before fitting. Only used when \code{method = "QCRLSC"}.
+#' @param qcrlsc_shift Logical. If TRUE (default), apply \code{batch.shift} to
+#'   re-align batch means after signal correction. Only used when
+#'   \code{method = "QCRLSC"}.
 #' @param batch_column Optional character. Name of the column in \code{data}
 #'   that holds the batch identifier. When \code{NULL} (default) the function
 #'   uses \code{sample_plate_id} if present, otherwise \code{batch}. Set this
@@ -174,6 +195,9 @@
 #'
 #' # Use ComBat (empirical Bayes, QC-free) instead of the default QCRFSC
 #' result_combat <- batchCorrectR(my_data, method = "ComBat")
+#'
+#' # Use QC-RLSC (QC-based robust LOESS signal correction)
+#' result_qcrlsc <- batchCorrectR(my_data, method = "QCRLSC")
 #' }
 batchCorrectR <- function(data,
                           qc_label = "qc",
@@ -185,6 +209,12 @@ batchCorrectR <- function(data,
                           combat_par.prior = TRUE,
                           combat_mean.only = FALSE,
                           combat_ref.batch = NULL,
+                          qcrlsc_method = c("subtract", "divide"),
+                          qcrlsc_intra = FALSE,
+                          qcrlsc_opti = TRUE,
+                          qcrlsc_log10 = TRUE,
+                          qcrlsc_outl = TRUE,
+                          qcrlsc_shift = TRUE,
                           batch_column = NULL,
                           sample_tags = NULL,
                           output_dir = tempdir(),
@@ -334,6 +364,19 @@ batchCorrectR <- function(data,
          deparse(report), call. = FALSE)
   }
 
+  # Resolve / validate QC-RLSC parameters (only consumed when method=="QCRLSC",
+  # but match.arg() and the logical checks run unconditionally so a typo fails
+  # fast regardless of the selected method).
+  qcrlsc_method <- match.arg(qcrlsc_method)
+  for (nm in c("qcrlsc_intra", "qcrlsc_opti", "qcrlsc_log10",
+               "qcrlsc_outl", "qcrlsc_shift")) {
+    val <- get(nm)
+    if (!is.logical(val) || length(val) != 1 || is.na(val)) {
+      stop("batchCorrectR: '", nm, "' must be TRUE or FALSE. Got: ",
+           deparse(val), call. = FALSE)
+    }
+  }
+
   bc_validate_input(data, qc_label, method, ntree, coCV, Frule, imputeM)
 
   n_batches <- length(unique(data$batch))
@@ -481,6 +524,149 @@ batchCorrectR <- function(data,
     } else if (isTRUE(advanced_plots) && !has_qc) {
       message("  advanced_plots: no QC samples available; skipping ",
               "advanced plot generation.")
+    }
+
+    return(result)
+  }
+
+  # QC-RLSC path -- requires QC samples (the LOESS trend is fit through them),
+  # but mechanically closer to ComBat (a single shared helper, no statTarget
+  # intermediate files, no synthetic QC boundaries). qc.rlsc re-centres each
+  # feature on its QC mean internally, so NO QC-mean rescaling is applied here.
+  if (method == "QCRLSC") {
+    message("  [3/8] Flagging failed QC injections...")
+    flagging <- bc_flag_failed_qc(data, qc_label, metabolite_cols)
+    data <- flagging$data
+    failed_qc <- flagging$failed_samples
+
+    if (length(failed_qc) > 0) {
+      warning(
+        "Flagged ", length(failed_qc), " failed QC injection(s): ",
+        paste(failed_qc, collapse = ", "),
+        "\n  These will be treated as regular samples during correction."
+      )
+    }
+
+    # Verify each batch still has >= 2 QC samples after flagging
+    for (b in unique(data$batch)) {
+      n_qc_b <- sum(data$batch == b &
+                      tolower(data$sample_type) == tolower(qc_label))
+      if (n_qc_b < 2) {
+        stop("batchCorrectR: Batch '", b, "' has only ", n_qc_b,
+             " QC sample(s) remaining after flagging failed injections. ",
+             "At least 2 QC samples per batch are required for QC-RLSC.",
+             call. = FALSE)
+      }
+    }
+
+    message("  [4/8] Calculating pre-correction QC RSD...")
+    qc_rsd_before <- bc_calculate_rsd(data, qc_label, metabolite_cols)
+
+    message("  [5/8] Preparing QC-RLSC input (rows = samples; no transpose)...")
+    message("  [6/8] Running qcrlscR::qc.rlsc.wrap (method = ", qcrlsc_method,
+            ", intra = ", qcrlsc_intra, ", opti = ", qcrlsc_opti,
+            ", log10 = ", qcrlsc_log10, ", outl = ", qcrlsc_outl,
+            ", shift = ", qcrlsc_shift, ")...")
+    corrected_data <- bc_run_qcrlsc(
+      data = data,
+      metabolite_cols = metabolite_cols,
+      qc_label = qc_label,
+      qcrlsc_method = qcrlsc_method,
+      intra = qcrlsc_intra,
+      opti = qcrlsc_opti,
+      log10 = qcrlsc_log10,
+      outl = qcrlsc_outl,
+      shift = qcrlsc_shift
+    )
+
+    message("  [7/8] QC-RLSC correction complete.")
+    qc_rsd_after <- bc_calculate_rsd(corrected_data, qc_label, metabolite_cols)
+
+    correction_summary <- bc_build_correction_summary(
+      metabolite_cols = metabolite_cols,
+      qc_rsd_before = qc_rsd_before,
+      qc_rsd_after = qc_rsd_after
+    )
+
+    # Tag corrected output so downstream consumers can distinguish it
+    # (matches the "concentration.ComBat" convention).
+    if ("sample_data_source" %in% colnames(corrected_data)) {
+      corrected_data$sample_data_source <- "concentration.QCRLSC"
+    }
+
+    # Round metabolite columns to 3 significant figures
+    present_mc <- intersect(metabolite_cols, names(corrected_data))
+    corrected_data[present_mc] <- lapply(corrected_data[present_mc], signif, digits = 3)
+
+    result <- list(
+      corrected_data = corrected_data,
+      correction_summary = correction_summary,
+      qc_rsd_before = qc_rsd_before,
+      qc_rsd_after = qc_rsd_after,
+      failed_qc = failed_qc
+    )
+
+    if (build_plots) {
+      message("  [8/8] Generating correction plots...")
+      result$plots <- bc_plot_correction_results(
+        original_data = data,
+        corrected_data = corrected_data,
+        qc_label = qc_label,
+        metabolite_cols = metabolite_cols,
+        qc_rsd_before = qc_rsd_before,
+        qc_rsd_after = qc_rsd_after
+      )
+    } else {
+      message("  [8/8] Skipping plot generation (plot = FALSE and ",
+              "advanced_plots = FALSE).")
+    }
+
+    if (report) {
+      result$report <- bc_generate_correction_report(
+        correction_summary = correction_summary,
+        failed_qc = failed_qc,
+        method = method,
+        n_samples = nrow(data),
+        n_batches = length(unique(data$batch)),
+        n_metabolites = length(metabolite_cols)
+      )
+      report_dir <- if (!is.null(project_dir)) {
+        file.path(project_dir, "batch_correction")
+      } else {
+        output_dir
+      }
+      result$report_status <- "not_attempted"
+      tryCatch({
+        result$report_path <- bc_export_html_report(
+          result = result,
+          original_data = data,
+          qc_label = qc_label,
+          output_file = file.path(report_dir, "batchCorrectR_report.html"),
+          open = FALSE
+        )
+        result$report_status <- "success"
+      }, error = function(e) {
+        result$report_status <<- "failed"
+        message("  Note: HTML report generation failed: ", e$message)
+      })
+    }
+
+    improved <- sum(qc_rsd_after < qc_rsd_before, na.rm = TRUE)
+    message(
+      "\nbatchCorrectR complete! ",
+      improved, "/", length(metabolite_cols),
+      " metabolites showed RSD improvement.",
+      "\n  Median QC RSD: ",
+      round(stats::median(qc_rsd_before, na.rm = TRUE), 1), "% -> ",
+      round(stats::median(qc_rsd_after, na.rm = TRUE), 1), "%"
+    )
+
+    if (!is.null(project_dir)) {
+      bc_save_to_project(result, project_dir)
+    }
+
+    if (isTRUE(advanced_plots)) {
+      result <- bc_apply_advanced_plots(result, data, qc_label, project_dir)
     }
 
     return(result)

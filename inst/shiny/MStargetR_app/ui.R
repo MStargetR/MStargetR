@@ -870,12 +870,13 @@ ui <- bslib::page_navbar(
           "qc_batch_method", "Batch Correction Method",
           choices  = c(
             "QCRFSC (Random Forest)" = "QCRFSC",
-            "ComBat (Empirical Bayes, QC-free)" = "ComBat"
+            "ComBat (Empirical Bayes, QC-free)" = "ComBat",
+            "QC-RLSC (Robust LOESS)" = "QCRLSC"
           ),
           selected = "QCRFSC"
         ),
         htmltools::tags$p(class = "help-text",
-          "QCRFSC = QC-based Random Forest Signal Correction, ComBat = Empirical Bayes (no QC required)"
+          "QCRFSC = QC-based Random Forest Signal Correction; ComBat = Empirical Bayes (no QC required); QC-RLSC = QC-based Robust LOESS Signal Correction (requires QC samples)"
         ),
 
         shiny::conditionalPanel(
@@ -911,6 +912,27 @@ ui <- bslib::page_navbar(
             "Leave blank to centre against the grand mean. ",
             "If the typed value is not found, qcCheckR will abort with a list ",
             "of the available batches."
+          )
+        ),
+
+        shiny::conditionalPanel(
+          condition = "input.qc_batch_method == 'QCRLSC'",
+          shiny::selectInput("qc_qcrlsc_method", "Scaling",
+                             choices = c("subtract", "divide"),
+                             selected = "subtract"),
+          shiny::textInput("qc_qcrlsc_batch_column", "Batch column (optional)",
+                           value = "", placeholder = "sample_plate_id"),
+          shiny::checkboxInput("qc_qcrlsc_intra", "Intra-batch correction", value = FALSE),
+          shiny::checkboxInput("qc_qcrlsc_opti", "Optimise LOESS span (GCV)", value = TRUE),
+          shiny::checkboxInput("qc_qcrlsc_log10", "Log10-transform before fit", value = TRUE),
+          shiny::checkboxInput("qc_qcrlsc_outl", "QC outlier detection", value = TRUE),
+          shiny::checkboxInput("qc_qcrlsc_shift", "Apply batch shift", value = TRUE),
+          htmltools::tags$p(class = "help-text",
+            "QC-based Robust LOESS Signal Correction (Dunn et al. 2011). ",
+            "Requires QC samples. 'subtract' follows the published protocol; ",
+            "'divide' preserves non-negativity (better for concentrations). ",
+            "Batch column defaults to ", htmltools::tags$code("sample_plate_id"),
+            "."
           )
         ),
 
@@ -1190,7 +1212,8 @@ ui <- bslib::page_navbar(
           "batch_method", "Correction Method",
           choices = c(
             "QCRFSC (Random Forest)" = "QCRFSC",
-            "ComBat (Empirical Bayes, QC-free)" = "ComBat"
+            "ComBat (Empirical Bayes, QC-free)" = "ComBat",
+            "QC-RLSC (Robust LOESS)" = "QCRLSC"
           ),
           selected = "QCRFSC"
         ),
@@ -1199,7 +1222,10 @@ ui <- bslib::page_navbar(
           " QC-based Random Forest Signal Correction. Uses QC samples to model and remove signal drift within and between batches. Requires QC samples in each batch.",
           htmltools::tags$br(),
           htmltools::tags$strong("ComBat:"),
-          " Empirical Bayes batch correction (Johnson et al. 2007). Does not require QC samples. Adjusts for systematic batch differences using parametric or non-parametric priors."
+          " Empirical Bayes batch correction (Johnson et al. 2007). Does not require QC samples. Adjusts for systematic batch differences using parametric or non-parametric priors.",
+          htmltools::tags$br(),
+          htmltools::tags$strong("QC-RLSC:"),
+          " QC-based Robust LOESS Signal Correction (Dunn et al. 2011). Fits a robust LOESS trend through the QC injections (ordered by acquisition) and corrects samples against it. Requires QC samples in each batch."
         ),
 
         shiny::conditionalPanel(
@@ -1234,6 +1260,34 @@ ui <- bslib::page_navbar(
             "If set, other batches are adjusted to match this reference batch. ",
             "Choices are populated automatically from the loaded data. ",
             "Leave as '(none — use grand mean)' to centre against the grand mean."
+          )
+        ),
+
+        shiny::conditionalPanel(
+          condition = "input.batch_method == 'QCRLSC'",
+          htmltools::tags$hr(),
+          htmltools::tags$h6("QC-RLSC Options"),
+          shiny::selectInput("batch_qcrlsc_method", "Scaling",
+                             choices = c("subtract", "divide"),
+                             selected = "subtract"),
+          htmltools::tags$p(class = "help-text",
+            "'subtract' follows the Dunn et al. protocol but can yield small ",
+            "negative values for low-abundance features; 'divide' preserves ",
+            "non-negativity (better for concentrations)."
+          ),
+          shiny::checkboxInput("batch_qcrlsc_intra", "Intra-batch correction", value = FALSE),
+          htmltools::tags$p(class = "help-text",
+            "Correct within each batch separately. Leave unchecked for ",
+            "inter-batch correction (only meaningful with two or more batches)."
+          ),
+          shiny::checkboxInput("batch_qcrlsc_opti", "Optimise LOESS span (GCV)", value = TRUE),
+          shiny::checkboxInput("batch_qcrlsc_log10", "Log10-transform before fit", value = TRUE),
+          shiny::checkboxInput("batch_qcrlsc_outl", "QC outlier detection", value = TRUE),
+          shiny::checkboxInput("batch_qcrlsc_shift", "Apply batch shift", value = TRUE),
+          htmltools::tags$p(class = "help-text",
+            "Optimise span by generalised cross-validation, log10-transform ",
+            "before fitting, detect QC outliers, and re-align batch means with ",
+            "batch.shift after correction."
           )
         ),
 
