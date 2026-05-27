@@ -8,7 +8,7 @@ re_plot_passfail_donut(status_vector)
 }
 \arguments{
 \item{status_vector}{Named character vector with values in
-\code{c("pass", "warning", "fail")} (typically from \code{\link[=re_status_from_rsd]{re_status_from_rsd()}}).}
+\code{c("pass", "warning", "fail")} (typically from \code{re_status_from_rsd()}).}
 }
 \value{
 \code{list(static, interactive)}, or \code{NULL}.
