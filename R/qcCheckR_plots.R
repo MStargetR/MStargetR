@@ -223,8 +223,23 @@ run_pca_model <- function(master_list, source, preprocessed = FALSE) {
 #' @keywords internal
 #' @param master_list A list containing project details and PCA scores.
 #' @param fill_var The variable to color the points by (e.g., "sample_type_factor", "sample_plate_id").
-#' @return A `ggplot` object representing the PCA scores.
+#' @return A `plotly` object representing the PCA scores (the inner `ggplot`
+#'   is exposed separately via [generate_pca_ggplot_static()] so the same
+#'   figure can be written to disk as a static PDF for R users).
 generate_pca_ggplot <- function(master_list, fill_var) {
+  plotly::ggplotly(generate_pca_ggplot_static(master_list, fill_var))
+}
+
+#' Build the static PCA ggplot (no plotly wrap)
+#'
+#' Underlying ggplot used by [generate_pca_ggplot()] and by
+#' [qcCheckR_collect_plots()] when `advanced_plots = TRUE`. Same data and
+#' aesthetics; just stops before `plotly::ggplotly()` so the result is a
+#' raw ggplot suitable for `ggsave()`.
+#' @keywords internal
+#' @inheritParams generate_pca_ggplot
+#' @return A `ggplot` object.
+generate_pca_ggplot_static <- function(master_list, fill_var) {
   all_scores <- dplyr::bind_rows(master_list$pca$scores)
 
   #Factor and arrange to ensure consistent ordering in the plot
@@ -244,62 +259,59 @@ generate_pca_ggplot <- function(master_list, fill_var) {
   all_scores$facet_label <- paste0(all_scores$source_prefix, ":", all_scores$source_suffix)
   all_scores$facet_label <- factor(all_scores$facet_label, levels = unique(all_scores$facet_label))
 
-  plot <- plotly::ggplotly(
-    ggplot2::ggplot(
-      data = all_scores,
-      ggplot2::aes(
-        x = PC1,
-        y = PC2,
-        group = sample_name,
-        fill = .data[[fill_var]],
-        color = sample_type_factor,
-        shape = sample_type_factor,
-        size = sample_type_factor
-      )
+  ggplot2::ggplot(
+    data = all_scores,
+    ggplot2::aes(
+      x = PC1,
+      y = PC2,
+      group = sample_name,
+      fill = .data[[fill_var]],
+      color = sample_type_factor,
+      shape = sample_type_factor,
+      size = sample_type_factor
+    )
+  ) +
+    ggplot2::geom_vline(xintercept = 0, colour = "darkgrey") +
+    ggplot2::geom_hline(yintercept = 0, color = "darkgrey") +
+    ggplot2::geom_point() +
+    ggplot2::theme_bw() +
+    ggplot2::scale_shape_manual(
+      values = master_list$project_details$plot_shape[
+        names(master_list$project_details$plot_shape) %in%
+          unique(as.character(all_scores$sample_type_factor))
+      ]
     ) +
-      ggplot2::geom_vline(xintercept = 0, colour = "darkgrey") +
-      ggplot2::geom_hline(yintercept = 0, color = "darkgrey") +
-      ggplot2::geom_point() +
-      ggplot2::theme_bw() +
-      ggplot2::scale_shape_manual(
-        values = master_list$project_details$plot_shape[
-          names(master_list$project_details$plot_shape) %in%
-            unique(as.character(all_scores$sample_type_factor))
-        ]
-      ) +
-      ggplot2::scale_color_manual(
-        values = master_list$project_details$plot_colour[
-          names(master_list$project_details$plot_colour) %in%
-            unique(as.character(all_scores$sample_type_factor))
-        ]
-      ) +
-      ggplot2::scale_size_manual(
-        values = master_list$project_details$plot_size[
-          names(master_list$project_details$plot_size) %in%
-            unique(as.character(all_scores$sample_type_factor))
-        ]
-      ) +
-      ggplot2::guides(
-        shape = "none",
-        size = "none",
-        color = "none",
-        fill = ggplot2::guide_legend(title = fill_var)
-      ) +
-      ggplot2::facet_wrap(
-        facets = ggplot2::vars(facet_label),
-        scales = "free",
-        ncol = 2
-      ) +
-      ggplot2::labs(
-        title = paste0(
-          "PCA scores; coloured by ",
-          fill_var,
-          "; ",
-          master_list$project_details$project_name
-        )
+    ggplot2::scale_color_manual(
+      values = master_list$project_details$plot_colour[
+        names(master_list$project_details$plot_colour) %in%
+          unique(as.character(all_scores$sample_type_factor))
+      ]
+    ) +
+    ggplot2::scale_size_manual(
+      values = master_list$project_details$plot_size[
+        names(master_list$project_details$plot_size) %in%
+          unique(as.character(all_scores$sample_type_factor))
+      ]
+    ) +
+    ggplot2::guides(
+      shape = "none",
+      size = "none",
+      color = "none",
+      fill = ggplot2::guide_legend(title = fill_var)
+    ) +
+    ggplot2::facet_wrap(
+      facets = ggplot2::vars(facet_label),
+      scales = "free",
+      ncol = 2
+    ) +
+    ggplot2::labs(
+      title = paste0(
+        "PCA scores; coloured by ",
+        fill_var,
+        "; ",
+        master_list$project_details$project_name
       )
-  )
-  return(plot)
+    )
 }
 
 #.----
@@ -361,54 +373,70 @@ qcCheckR_run_order_plots <- function(master_list) {
 #' @param pc The principal component to plot (e.g., "PC1", "PC2", "PC3").
 #' @param boundaries A vector of boundaries for the plates.
 #' @param plot_settings A list containing plot settings such as colors, shapes, and sizes.
-#' @return A `ggplot` object representing the run order plot.
+#' @return A `plotly` object (the inner ggplot is exposed separately via
+#'   [plot_run_order_static()] so the same figure can be written to disk as
+#'   a static PDF for R users).
 plot_run_order <- function(scores,
                            pc,
                            boundaries,
                            plot_settings) {
   plotly::ggplotly(
-    ggplot2::ggplot(
-      scores,
-      ggplot2::aes(
-        x = sample_run_index,
-        y = .data[[pc]],
-        group = sample_name,
-        fill = sample_type_factor,
-        color = sample_type_factor,
-        shape = sample_type_factor,
-        size = sample_type_factor,
-        text = paste0(sample_name, " (", sample_plate_id, ")")
-      )
-    ) +
-      ggplot2::geom_vline(xintercept = boundaries, linetype = "dashed") +
-      ggplot2::geom_point() +
-      ggplot2::theme_bw() +
-      ggplot2::scale_shape_manual(values = plot_settings$plot_shape) +
-      ggplot2::scale_fill_manual(values = plot_settings$plot_fill) +
-      ggplot2::scale_color_manual(values = plot_settings$plot_colour) +
-      ggplot2::scale_size_manual(values = plot_settings$plot_size) +
-      ggplot2::ylab(pc) +
-      ggplot2::guides(
-        shape = "none",
-        size = "none",
-        color = "none",
-        fill = ggplot2::guide_legend(title = "sample_type_factor")
-      ) +
-      ggplot2::facet_wrap(
-        facets = ggplot2::vars(sample_data_source),
-        ncol = 1,
-        scales = "free_y"
-      ) +
-      ggplot2::labs(
-        title = paste0(
-          pc,
-          "; run order (x) vs PCA scores (y); ",
-          plot_settings$project_name
-        )
-      ) +
-      ggplot2::theme(text = ggplot2::element_text(size = 12)),
+    plot_run_order_static(scores, pc, boundaries, plot_settings),
     tooltip = "text"
   )
+}
+
+#' Build the static run-order ggplot (no plotly wrap)
+#'
+#' Underlying ggplot used by [plot_run_order()] and by
+#' [qcCheckR_collect_plots()] when `advanced_plots = TRUE`.
+#' @keywords internal
+#' @inheritParams plot_run_order
+#' @return A `ggplot` object.
+plot_run_order_static <- function(scores,
+                                  pc,
+                                  boundaries,
+                                  plot_settings) {
+  ggplot2::ggplot(
+    scores,
+    ggplot2::aes(
+      x = sample_run_index,
+      y = .data[[pc]],
+      group = sample_name,
+      fill = sample_type_factor,
+      color = sample_type_factor,
+      shape = sample_type_factor,
+      size = sample_type_factor,
+      text = paste0(sample_name, " (", sample_plate_id, ")")
+    )
+  ) +
+    ggplot2::geom_vline(xintercept = boundaries, linetype = "dashed") +
+    ggplot2::geom_point() +
+    ggplot2::theme_bw() +
+    ggplot2::scale_shape_manual(values = plot_settings$plot_shape) +
+    ggplot2::scale_fill_manual(values = plot_settings$plot_fill) +
+    ggplot2::scale_color_manual(values = plot_settings$plot_colour) +
+    ggplot2::scale_size_manual(values = plot_settings$plot_size) +
+    ggplot2::ylab(pc) +
+    ggplot2::guides(
+      shape = "none",
+      size = "none",
+      color = "none",
+      fill = ggplot2::guide_legend(title = "sample_type_factor")
+    ) +
+    ggplot2::facet_wrap(
+      facets = ggplot2::vars(sample_data_source),
+      ncol = 1,
+      scales = "free_y"
+    ) +
+    ggplot2::labs(
+      title = paste0(
+        pc,
+        "; run order (x) vs PCA scores (y); ",
+        plot_settings$project_name
+      )
+    ) +
+    ggplot2::theme(text = ggplot2::element_text(size = 12))
 }
 
 #.----
@@ -547,13 +575,36 @@ get_plate_annotations <- function(master_list) {
 #' @param area_imp Pre-bound peak area imputed tibble (optional; computed internally if NULL).
 #' @param conc_imp Pre-bound concentration imputed tibble (optional; computed internally if NULL).
 #' @param conc_st Pre-bound statTargetProcessed concentration tibble (optional; computed internally if NULL).
-#' @return A `ggplot` object representing the control chart for the specified metabolite.
+#' @return A `plotly` object representing the control chart for the
+#'   specified metabolite (the inner ggplot is exposed separately via
+#'   [plot_control_chart_static()] so the same figure can be written to
+#'   disk as a static PDF for R users).
 plot_control_chart <- function(master_list,
                                metabolite,
                                plate_boundaries,
                                area_imp = NULL,
                                conc_imp = NULL,
                                conc_st  = NULL) {
+  plotly::ggplotly(
+    plot_control_chart_static(master_list, metabolite, plate_boundaries,
+                              area_imp, conc_imp, conc_st),
+    tooltip = "text"
+  )
+}
+
+#' Build the static control-chart ggplot (no plotly wrap)
+#'
+#' Underlying ggplot used by [plot_control_chart()] and by
+#' [qcCheckR_collect_plots()] when `advanced_plots = TRUE`.
+#' @keywords internal
+#' @inheritParams plot_control_chart
+#' @return A `ggplot` object.
+plot_control_chart_static <- function(master_list,
+                                      metabolite,
+                                      plate_boundaries,
+                                      area_imp = NULL,
+                                      conc_imp = NULL,
+                                      conc_st  = NULL) {
   # Allow callers to pass pre-bound tibbles to avoid O(metabolites) re-binds.
   if (is.null(area_imp)) area_imp <- dplyr::bind_rows(master_list$data$peakArea$imputed)
   if (is.null(conc_imp)) conc_imp <- dplyr::bind_rows(master_list$data$concentration$imputed)
@@ -590,47 +641,384 @@ plot_control_chart <- function(master_list,
   ) %>%
     dplyr::rename(value = !!metabolite)
 
-
-  plotly::ggplotly(
-    ggplot2::ggplot(
-      data_combined,
-      ggplot2::aes(
-        x = sample_run_index,
-        y = value,
-        group = sample_name,
-        fill = sample_type_factor,
-        color = sample_type_factor,
-        shape = sample_type_factor,
-        size = sample_type_factor,
-        text = paste0(sample_name, " (", sample_plate_id, ")")
-      )
+  ggplot2::ggplot(
+    data_combined,
+    ggplot2::aes(
+      x = sample_run_index,
+      y = value,
+      group = sample_name,
+      fill = sample_type_factor,
+      color = sample_type_factor,
+      shape = sample_type_factor,
+      size = sample_type_factor,
+      text = paste0(sample_name, " (", sample_plate_id, ")")
+    )
+  ) +
+    ggplot2::geom_vline(xintercept = plate_boundaries, linetype = "dashed") +
+    ggplot2::geom_point() +
+    ggplot2::theme_bw() +
+    ggplot2::scale_shape_manual(values = master_list$project_details$plot_shape) +
+    ggplot2::scale_fill_manual(values = master_list$project_details$plot_fill) +
+    ggplot2::scale_color_manual(values = master_list$project_details$plot_colour) +
+    ggplot2::scale_size_manual(values = master_list$project_details$plot_size) +
+    ggplot2::ylab(metabolite) +
+    ggplot2::guides(
+      shape = "none",
+      size = "none",
+      color = "none",
+      fill = ggplot2::guide_legend(title = "sample_type")
     ) +
-      ggplot2::geom_vline(xintercept = plate_boundaries, linetype = "dashed") +
-      ggplot2::geom_point() +
-      ggplot2::theme_bw() +
-      ggplot2::scale_shape_manual(values = master_list$project_details$plot_shape) +
-      ggplot2::scale_fill_manual(values = master_list$project_details$plot_fill) +
-      ggplot2::scale_color_manual(values = master_list$project_details$plot_colour) +
-      ggplot2::scale_size_manual(values = master_list$project_details$plot_size) +
-      ggplot2::ylab(metabolite) +
-      ggplot2::guides(
-        shape = "none",
-        size = "none",
-        color = "none",
-        fill = ggplot2::guide_legend(title = "sample_type")
-      ) +
-      ggplot2::facet_wrap(
-        facets = ggplot2::vars(sample_data_source),
-        ncol = 1,
-        scales = "free_y"
-      ) +
-      ggplot2::labs(
-        title = paste0(
-          metabolite,
-          "; control chart; ",
-          master_list$project_details$project_name
-        )
-      ),
-    tooltip = "text"
-  )
+    ggplot2::facet_wrap(
+      facets = ggplot2::vars(sample_data_source),
+      ncol = 1,
+      scales = "free_y"
+    ) +
+    ggplot2::labs(
+      title = paste0(
+        metabolite,
+        "; control chart; ",
+        master_list$project_details$project_name
+      )
+    )
+}
+
+#.----
+
+## Advanced QC Plots (R-side parity with GUI) ----
+# These mirror the inline plotly figures the Shiny QC Check tab renders
+# (RSD histogram, missing values, sample type pie, plate distribution).
+# Each constructor returns list(static = ggplot, interactive = plotly) so
+# save_figure() can write both a publication-quality PDF and the
+# interactive HTML the GUI shows. Wired through qcCheckR_collect_plots()
+# and surfaced to users via qcCheckR(advanced_plots = TRUE).
+
+# Metadata columns excluded when scanning numeric metabolite columns. Kept
+# in sync with the Shiny app's `meta_cols` in inst/shiny/MStargetR_app/server.R.
+.qc_meta_cols <- c("file_name", "sample_name", "sample_type", "batch",
+                   "run_order", "injection_order", "group", "class", "type",
+                   "sample_plate_id", "sample_run_index", "sample_type_factor",
+                   "sample_type_factor_rev", "sample_plate_order",
+                   "sample_matrix", "sample_data_source", "sample_timestamp")
+
+# Internal: extract a per-metabolite RSD vector from filters$rsd. Mirrors
+# the Shiny helper get_qc_rsd_values() so the GUI histogram and the R-side
+# PDF share one source of truth.
+qc_rsd_vector <- function(master_list,
+                          stage = c("concentration",
+                                    "concentration[statTarget]",
+                                    "peakArea")) {
+  stage <- match.arg(stage)
+  tbl <- tryCatch(master_list$filters$rsd, error = function(e) NULL)
+  if (is.null(tbl) || !nrow(tbl)) return(NULL)
+  row <- tbl[tbl$dataSource == stage & tbl$dataBatch == "allBatches", ,
+             drop = FALSE]
+  if (!nrow(row)) return(NULL)
+  met_cols <- setdiff(names(row), c("dataSource", "dataBatch"))
+  if (!length(met_cols)) return(NULL)
+  vals <- suppressWarnings(as.numeric(unlist(row[1, met_cols],
+                                             use.names = FALSE)))
+  names(vals) <- met_cols
+  vals
+}
+
+#' RSD histogram (advanced_plots)
+#'
+#' Distribution of per-metabolite QC %RSD with a vertical reference line
+#' at `fail_thr` (matches the Shiny QC Check tab's threshold annotation).
+#'
+#' @keywords internal
+#' @param master_list A qcCheckR master_list.
+#' @param fail_thr Numeric. RSD% threshold to mark. Default 30.
+#' @return `list(static = <ggplot>, interactive = <plotly>)`, or `NULL`
+#'   if no RSD values are available.
+qc_plot_rsd_histogram <- function(master_list, fail_thr = 30) {
+  rsd_vec <- qc_rsd_vector(master_list, stage = "concentration")
+  if (is.null(rsd_vec) || !length(rsd_vec)) return(NULL)
+  rsd_df <- data.frame(metabolite = names(rsd_vec),
+                       rsd = as.numeric(rsd_vec),
+                       stringsAsFactors = FALSE)
+  rsd_df <- rsd_df[!is.na(rsd_df$rsd), , drop = FALSE]
+  if (!nrow(rsd_df)) return(NULL)
+
+  static <- ggplot2::ggplot(rsd_df, ggplot2::aes(x = .data[["rsd"]])) +
+    ggplot2::geom_histogram(bins = 30, fill = "#377EB8",
+                            colour = "white", linewidth = 0.3) +
+    ggplot2::geom_vline(xintercept = fail_thr, colour = "red",
+                        linetype = "dashed", linewidth = 0.7) +
+    ggplot2::annotate("text", x = fail_thr, y = Inf,
+                       label = paste0(fail_thr, "% threshold"),
+                       colour = "red", hjust = -0.05, vjust = 1.4, size = 3.5) +
+    ggplot2::labs(x = "RSD %", y = "Number of Metabolites",
+                  title = "QC %RSD distribution") +
+    ggplot2::theme_bw()
+
+  interactive <- plotly::plot_ly(
+    data = rsd_df, x = ~rsd, type = "histogram",
+    nbinsx = 30,
+    marker = list(color = "#377EB8",
+                  line = list(color = "white", width = 0.5)),
+    hovertemplate = "RSD: %{x:.1f}%<br>Count: %{y}<extra></extra>"
+  ) |>
+    plotly::layout(
+      xaxis = list(title = "RSD %"),
+      yaxis = list(title = "Number of Metabolites"),
+      shapes = list(list(type = "line", x0 = fail_thr, x1 = fail_thr,
+                         y0 = 0, y1 = 1, yref = "paper",
+                         line = list(color = "red", dash = "dash",
+                                     width = 1.5))),
+      annotations = list(list(x = fail_thr + 1, y = 1, yref = "paper",
+                              text = paste0(fail_thr, "% threshold"),
+                              showarrow = FALSE, xanchor = "left",
+                              font = list(color = "red", size = 11)))
+    )
+
+  list(static = static, interactive = interactive)
+}
+
+#' Missing-value bar chart (advanced_plots)
+#'
+#' Top-40 metabolites by % missing values, computed from pre-imputation
+#' peak-area data (falling back to imputed concentration if peak-area is
+#' absent — mirrors the Shiny QC tab's lookup order).
+#'
+#' @keywords internal
+#' @param master_list A qcCheckR master_list.
+#' @return `list(static, interactive)`, or `NULL` if no missing values.
+qc_plot_missing_values <- function(master_list) {
+  df <- NULL
+  if (!is.null(master_list$data$peakArea$sorted)) {
+    df <- dplyr::bind_rows(master_list$data$peakArea$sorted)
+  }
+  if (is.null(df) || !nrow(df)) {
+    if (!is.null(master_list$data$concentration$imputed)) {
+      df <- dplyr::bind_rows(master_list$data$concentration$imputed)
+    }
+  }
+  if (is.null(df) || !nrow(df)) return(NULL)
+
+  num_cols <- names(df)[vapply(df, is.numeric, logical(1))]
+  num_cols <- setdiff(num_cols, .qc_meta_cols)
+  if (!length(num_cols)) return(NULL)
+
+  pct_missing <- vapply(num_cols, function(m) {
+    sum(is.na(df[[m]])) / nrow(df) * 100
+  }, numeric(1))
+  mv_df <- data.frame(metabolite = names(pct_missing),
+                      pct = as.numeric(pct_missing),
+                      stringsAsFactors = FALSE)
+  mv_df <- mv_df[mv_df$pct > 0, , drop = FALSE]
+  if (!nrow(mv_df)) return(NULL)
+
+  mv_df <- mv_df[order(mv_df$pct, decreasing = TRUE), , drop = FALSE]
+  mv_df <- utils::head(mv_df, 40)
+  mv_df$metabolite <- factor(mv_df$metabolite, levels = rev(mv_df$metabolite))
+  mv_df$band <- ifelse(mv_df$pct > 50, ">50%",
+                ifelse(mv_df$pct > 20, "20-50%", "<=20%"))
+  band_cols <- c(">50%" = "#E41A1C", "20-50%" = "#FF7F00", "<=20%" = "#377EB8")
+
+  static <- ggplot2::ggplot(
+    mv_df,
+    ggplot2::aes(x = .data[["pct"]], y = .data[["metabolite"]],
+                 fill = .data[["band"]])
+  ) +
+    ggplot2::geom_col() +
+    ggplot2::scale_fill_manual(values = band_cols, name = "Missing band") +
+    ggplot2::scale_x_continuous(limits = c(0, 100)) +
+    ggplot2::labs(x = "Missing Values (%)", y = NULL,
+                  title = "Top 40 metabolites by missing values") +
+    ggplot2::theme_bw() +
+    ggplot2::theme(axis.text.y = ggplot2::element_text(size = 8))
+
+  interactive <- plotly::plot_ly(
+    data = mv_df, y = ~metabolite, x = ~pct,
+    type = "bar", orientation = "h",
+    marker = list(color = band_cols[as.character(mv_df$band)]),
+    hovertemplate = "%{y}: %{x:.1f}% missing<extra></extra>"
+  ) |>
+    plotly::layout(
+      xaxis = list(title = "Missing Values (%)", range = c(0, 100)),
+      yaxis = list(title = "", tickfont = list(size = 9)),
+      margin = list(l = 150)
+    )
+
+  list(static = static, interactive = interactive)
+}
+
+#' Sample-type distribution pie (advanced_plots)
+#'
+#' Pie chart of counts per `sample_type_factor` (falling back to
+#' `sample_type`). Mirrors the Shiny QC tab's `qc_sample_type_pie`.
+#'
+#' @keywords internal
+#' @param master_list A qcCheckR master_list.
+#' @return `list(static, interactive)`, or `NULL`.
+qc_plot_sample_type_distribution <- function(master_list) {
+  if (is.null(master_list$data$concentration$corrected)) return(NULL)
+  df <- dplyr::bind_rows(master_list$data$concentration$corrected)
+  if (is.null(df) || !nrow(df)) return(NULL)
+  type_col <- if ("sample_type_factor" %in% names(df))
+    "sample_type_factor" else if ("sample_type" %in% names(df))
+    "sample_type" else return(NULL)
+  counts <- as.data.frame(table(df[[type_col]]), stringsAsFactors = FALSE)
+  names(counts) <- c("type", "count")
+
+  static <- ggplot2::ggplot(
+    counts,
+    ggplot2::aes(x = "", y = .data[["count"]], fill = .data[["type"]])
+  ) +
+    ggplot2::geom_col(width = 1, colour = "white") +
+    ggplot2::coord_polar(theta = "y") +
+    ggplot2::labs(title = "Sample Types", fill = NULL, x = NULL, y = NULL) +
+    ggplot2::theme_void() +
+    ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5))
+
+  interactive <- plotly::plot_ly(
+    data = counts, labels = ~type, values = ~count, type = "pie",
+    textinfo = "label+percent",
+    hovertemplate = "%{label}: %{value} samples (%{percent})<extra></extra>"
+  ) |>
+    plotly::layout(title = list(text = "Sample Types",
+                                 font = list(size = 14)))
+
+  list(static = static, interactive = interactive)
+}
+
+#' Plate distribution bar (advanced_plots)
+#'
+#' Bar chart of sample counts per `sample_plate_id`. Mirrors the Shiny
+#' QC tab's `qc_plate_bar`.
+#'
+#' @keywords internal
+#' @param master_list A qcCheckR master_list.
+#' @return `list(static, interactive)`, or `NULL`.
+qc_plot_plate_distribution <- function(master_list) {
+  if (is.null(master_list$data$concentration$corrected)) return(NULL)
+  df <- dplyr::bind_rows(master_list$data$concentration$corrected)
+  if (is.null(df) || !nrow(df) ||
+      !"sample_plate_id" %in% names(df)) return(NULL)
+  counts <- as.data.frame(table(df$sample_plate_id), stringsAsFactors = FALSE)
+  names(counts) <- c("plate", "count")
+
+  static <- ggplot2::ggplot(
+    counts,
+    ggplot2::aes(x = .data[["plate"]], y = .data[["count"]])
+  ) +
+    ggplot2::geom_col(fill = "#377EB8") +
+    ggplot2::labs(x = "Plate", y = "Number of Samples",
+                  title = "Samples per Plate") +
+    ggplot2::theme_bw() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
+
+  interactive <- plotly::plot_ly(
+    data = counts, x = ~plate, y = ~count, type = "bar",
+    marker = list(color = "#377EB8"),
+    hovertemplate = "Plate %{x}: %{y} samples<extra></extra>"
+  ) |>
+    plotly::layout(
+      xaxis = list(title = "Plate"),
+      yaxis = list(title = "Number of Samples"),
+      title = list(text = "Samples per Plate", font = list(size = 14))
+    )
+
+  list(static = static, interactive = interactive)
+}
+
+#' Collect all QC plots for advanced_plots = TRUE
+#'
+#' Builds the named list of plots written to
+#' `<project_dir>/all/figures/qcCheckR/` when `qcCheckR(advanced_plots = TRUE)`.
+#' Pairs the static ggplot (PDF) with the interactive plotly (HTML) for
+#' every figure the GUI renders, including per-metabolite control charts.
+#'
+#' @keywords internal
+#' @param master_list A qcCheckR master_list (post-pipeline).
+#' @param fail_thr Numeric. RSD% threshold annotated on the histogram.
+#' @return Named list; each entry is `list(static, interactive)` and the
+#'   names become the saved-file basenames.
+qcCheckR_collect_plots <- function(master_list, fail_thr = 30) {
+  plots <- list()
+
+  # PCA: rebuild ggplots via the *_static() sibling; pair with the
+  # already-rendered plotly objects in master_list.
+  for (fill_var in names(master_list$pca$plot)) {
+    static <- tryCatch(generate_pca_ggplot_static(master_list, fill_var),
+                       error = function(e) NULL)
+    plots[[paste0("pca_", fill_var)]] <- list(
+      static = static,
+      interactive = master_list$pca$plot[[fill_var]]
+    )
+  }
+
+  # Run-order: per-PC. Recompute boundaries the same way
+  # qcCheckR_run_order_plots() did so the static and interactive lay out
+  # identically.
+  # Use [["scores"]] (exact match) rather than $scores: `$` partial-matches
+  # `scoresRunOrder` when `scores` is absent, which would make this guard pass
+  # spuriously and feed an empty frame into the select below.
+  if (!is.null(master_list$pca$scoresRunOrder) &&
+      !is.null(master_list$pca[["scores"]])) {
+    all_scores <- dplyr::bind_rows(master_list$pca[["scores"]])
+    boundary_data <- all_scores %>%
+      dplyr::select(sample_run_index, sample_plate_id) %>%
+      dplyr::distinct()
+    plate_ranges <- lapply(unique(boundary_data$sample_plate_id), function(p) {
+      pd <- boundary_data[boundary_data$sample_plate_id == p, , drop = FALSE]
+      c(min(pd$sample_run_index) - 0.5, max(pd$sample_run_index) + 0.5)
+    })
+    boundaries <- unique(c(0.5, unlist(plate_ranges)))
+    for (pc in names(master_list$pca$scoresRunOrder)) {
+      static <- tryCatch(
+        plot_run_order_static(all_scores, pc, boundaries,
+                              master_list$project_details),
+        error = function(e) NULL
+      )
+      plots[[paste0("runorder_", tolower(pc))]] <- list(
+        static = static,
+        interactive = master_list$pca$scoresRunOrder[[pc]]
+      )
+    }
+  }
+
+  # Control charts: one per metabolite.
+  if (!is.null(master_list$control_charts) &&
+      length(master_list$control_charts)) {
+    plate_boundaries <- tryCatch(get_plate_boundaries(master_list),
+                                 error = function(e) NULL)
+    area_imp <- tryCatch(dplyr::bind_rows(master_list$data$peakArea$imputed),
+                         error = function(e) NULL)
+    conc_imp <- tryCatch(dplyr::bind_rows(master_list$data$concentration$imputed),
+                         error = function(e) NULL)
+    conc_st  <- tryCatch(
+      dplyr::bind_rows(master_list$data$concentration$statTargetProcessed),
+      error = function(e) NULL)
+    for (met in names(master_list$control_charts)) {
+      static <- tryCatch(
+        plot_control_chart_static(master_list, met, plate_boundaries,
+                                  area_imp, conc_imp, conc_st),
+        error = function(e) NULL
+      )
+      plots[[paste0("controlchart_", fs_safe_name(met))]] <- list(
+        static = static,
+        interactive = master_list$control_charts[[met]]
+      )
+    }
+  }
+
+  # Shiny-only QC plots (now first-class R-callable).
+  plots$rsd_histogram             <- qc_plot_rsd_histogram(master_list, fail_thr)
+  plots$missing_values            <- qc_plot_missing_values(master_list)
+  plots$sample_type_distribution  <- qc_plot_sample_type_distribution(master_list)
+  plots$plate_distribution        <- qc_plot_plate_distribution(master_list)
+
+  plots
+}
+
+# Internal: sanitise metabolite names for use as filenames. Lipid IDs
+# routinely contain ':' and '/' (e.g. "PC 16:0/18:1") which are invalid
+# on Windows and confusing on POSIX.
+fs_safe_name <- function(x) {
+  out <- gsub("[\\/:*?\"<>|]+", "_", x, perl = TRUE)
+  out <- gsub("\\s+", "_", out)
+  out <- gsub("_+", "_", out)
+  sub("_$", "", sub("^_", "", out))
 }

@@ -83,6 +83,34 @@ utils::globalVariables(c(
   "synthetic_qc"   # bc_prepare_pheno_file dplyr column reference
 ))
 
+# --- R/figures_export.R / R/resultsExplorer*.R / advanced_plots wiring ---
+utils::globalVariables(c(
+  "type",           # qc_plot_sample_type_distribution / plate_distribution
+  "plate",
+  "count",
+  "category"        # re_plot_passfail_donut
+))
+
+# Internal null-coalescing operator, used by figures_export, advanced
+# plot constructors, and the resultsExplorerR dispatch. Defined once so
+# multiple R/ source files can rely on it without redefining.
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
+.onLoad <- function(libname, pkgname) {
+  # Set MStargetR package options if not already set by the user (e.g. in
+  # their .Rprofile). `MStargetR.docker.image_tag` is intentionally NOT set
+  # here -- it is consumed lazily at load time in R/config.R, where users
+  # who set it via .Rprofile or env var still take effect.
+  op <- options()
+  defaults <- list(
+    MStargetR.sif_path   = NULL,
+    MStargetR.enable_HPC = FALSE
+  )
+  toset <- !(names(defaults) %in% names(op))
+  if (any(toset)) options(defaults[toset])
+  invisible()
+}
+
 .onAttach <- function(libname, pkgname) {
   if (requireNamespace("shiny", quietly = TRUE)) {
     packageStartupMessage(

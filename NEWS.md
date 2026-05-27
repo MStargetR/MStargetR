@@ -1,3 +1,48 @@
+## Unreleased
+
+### Features
+
+- **batch correction:** add a third user-selectable method, **QC-RLSC**
+  (Quality Control-based Robust LOESS Signal Correction; Dunn et al. 2011,
+  <doi:10.1038/nprot.2011.335>) via the CRAN package `qcrlscR`. Selectable as
+  `method = "QCRLSC"` in `batchCorrectR()` and `batch_method = "QCRLSC"` in
+  `qcCheckR()`, and from both Shiny batch-correction tabs. Like QCRFSC it
+  requires QC samples (the LOESS trend is fit through them). New `qcrlsc_*`
+  arguments expose the scaling mode (`"subtract"` default / `"divide"`),
+  intra/inter-batch correction, LOESS span GCV optimisation, log10 transform,
+  QC outlier detection, and `batch.shift`. `qcrlscR` is an optional dependency
+  (Suggests), loaded behind a `requireNamespace()` guard, so it errors with an
+  install hint only when the method is actually selected.
+- **plots:** R-side parity with the GUI for every Quality Check, Batch
+  Correction, and Results Explorer figure. `qcCheckR()` and
+  `batchCorrectR()` gain an opt-in `advanced_plots = FALSE` argument and
+  a new exported `resultsExplorerR()` function wraps the Results Explorer
+  tab as a callable API. When `advanced_plots = TRUE` (and a
+  `project_dir` is supplied), every plot the GUI renders is written to
+  `<project_dir>/all/figures/{qcCheckR|batch_corrector|results_explorer}/`
+  as both a static `.pdf` (via `ggplot2::ggsave`) and an interactive
+  `.html` (via `htmlwidgets::saveWidget`). The Shiny app's signal-drift
+  and run-order helpers now delegate to the same package-internal
+  constructors, so GUI and R users always see the byte-identical figure.
+  Default behaviour is unchanged -- existing scripts that don't set
+  `advanced_plots` write nothing extra.
+- **batchCorrectR:** soft-deprecate the `plot` argument in favour of
+  `advanced_plots`. `plot = TRUE` still populates `result$plots` for
+  back-compat; passing it explicitly now emits a one-time deprecation
+  warning suggesting `advanced_plots = TRUE` (which both attaches the
+  extended GUI plot set to `result$plots` and saves it to disk).
+- **container:** add Apptainer/HPC support for `msConvertR()` and
+  `PeakForgeR()`. Both functions accept a new `enable_HPC` argument
+  (default `FALSE`); when `TRUE` the ProteoWizard container is invoked
+  via Apptainer/Singularity instead of Docker, with the SIF resolved
+  from `getOption("MStargetR.sif_path")`, the user cache
+  (`tools::R_user_dir("MStargetR", "cache")`), or pulled on demand from
+  the same pinned image tag. HPC users can set
+  `options(MStargetR.enable_HPC = TRUE)` once in `.Rprofile` and never
+  pass the argument explicitly. Docker remains the default and
+  workstation behaviour is unchanged. See the "Running on HPC" sections
+  of the README and vignette for SIF setup.
+
 ## MStargetR 1.1.2
 
 Released 2026-05-11 ([compare](https://github.com/MStargetR/MStargetR/compare/v1.1.1...v1.1.2)).

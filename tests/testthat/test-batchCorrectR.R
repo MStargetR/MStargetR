@@ -126,7 +126,7 @@ test_that("batchCorrectR accepts valid methods without error at validation", {
 
   # We only test that validation passes -- stub out actual correction
   df <- make_bc_data()
-  for (m in c("QCRFSC", "ComBat")) {
+  for (m in c("QCRFSC", "ComBat", "QCRLSC")) {
     # bc_validate_input should pass for each valid method
     expect_invisible(
       bc_validate_input(df, "qc", m, 500, 10000, 0, "minHalf")
@@ -390,11 +390,16 @@ test_that("batchCorrectR warns when failed QC injections are found", {
     data.frame(metabolite = "metab_A", rsd_before = 10, rsd_after = 5)
   })
 
+  # Two warnings fire: the (incidental) `plot` soft-deprecation and the
+  # failed-QC warning under test. Nest expect_warning() to consume both.
   expect_warning(
-    suppressMessages(
-      batchCorrectR(data = df, plot = FALSE, report = FALSE)
+    expect_warning(
+      suppressMessages(
+        batchCorrectR(data = df, plot = FALSE, report = FALSE)
+      ),
+      "Flagged 2 failed QC injection"
     ),
-    "Flagged 2 failed QC injection"
+    "deprecated"
   )
 })
 
@@ -422,7 +427,7 @@ test_that("batchCorrectR emits completion message with RSD improvement count", {
   })
 
   msgs <- capture.output(type = "message",
-    batchCorrectR(data = df, plot = FALSE, report = FALSE)
+    suppressWarnings(batchCorrectR(data = df, plot = FALSE, report = FALSE))
   )
   expect_true(any(grepl("2/2 metabolites showed RSD improvement", msgs)))
 })
@@ -502,7 +507,9 @@ test_that("batchCorrectR accepts method = 'ComBat'", {
     met_B = rnorm(20, 500, 50)
   )
   result <- tryCatch(
-    batchCorrectR(data = df, method = "ComBat", plot = FALSE, report = FALSE),
+    suppressWarnings(
+      batchCorrectR(data = df, method = "ComBat", plot = FALSE, report = FALSE)
+    ),
     error = function(e) e
   )
   if (requireNamespace("sva", quietly = TRUE)) {
@@ -527,8 +534,10 @@ test_that("batchCorrectR ComBat works without QC samples", {
     met_B = rnorm(20, 500, 50)
   )
   result <- tryCatch(
-    batchCorrectR(data = df, qc_label = "qc", method = "ComBat",
-                  plot = FALSE, report = FALSE),
+    suppressWarnings(
+      batchCorrectR(data = df, qc_label = "qc", method = "ComBat",
+                    plot = FALSE, report = FALSE)
+    ),
     error = function(e) e
   )
   if (requireNamespace("sva", quietly = TRUE)) {
@@ -540,4 +549,54 @@ test_that("batchCorrectR ComBat works without QC samples", {
     expect_true(grepl("sva", result$message, ignore.case = TRUE))
     expect_false(grepl("No QC samples found", result$message))
   }
+})
+
+# ============================================================================
+# QC-RLSC method tests
+# ============================================================================
+
+test_that("batchCorrectR invalid-method error lists all three methods", {
+  df <- make_bc_data()
+  expect_error(
+    batchCorrectR(data = df, method = "INVALID"),
+    "QCRLSC"
+  )
+})
+
+test_that("batchCorrectR accepts method = 'QCRLSC' and tags output", {
+  skip_if_not_installed("qcrlscR")
+  df <- make_bc_data(n_samples = 24, n_batches = 2, n_qc_per_batch = 6,
+                     include_extras = TRUE)
+  result <- suppressWarnings(suppressMessages(
+    batchCorrectR(data = df, qc_label = "qc", method = "QCRLSC",
+                  plot = FALSE, report = FALSE)))
+  expect_true(is.list(result))
+  expect_true(all(c("corrected_data", "correction_summary",
+                    "qc_rsd_before", "qc_rsd_after", "failed_qc") %in% names(result)))
+  # nrow preserved, metadata kept, output tagged
+  expect_equal(nrow(result$corrected_data), nrow(df))
+  expect_equal(unique(result$corrected_data$sample_data_source),
+               "concentration.QCRLSC")
+  # RSD vectors are named by metabolite
+  expect_setequal(names(result$qc_rsd_before), c("metab_A", "metab_B"))
+})
+
+test_that("batchCorrectR QCRLSC requires QC samples", {
+  skip_if_not_installed("qcrlscR")
+  df <- make_bc_data()
+  df$sample_type <- "sample"
+  expect_error(
+    suppressWarnings(suppressMessages(
+      batchCorrectR(data = df, qc_label = "qc",
+                    method = "QCRLSC", plot = FALSE, report = FALSE))),
+    "No QC samples found"
+  )
+})
+
+test_that("batchCorrectR QCRLSC rejects a bad qcrlsc_method before correction", {
+  df <- make_bc_data()
+  expect_error(
+    batchCorrectR(data = df, method = "QCRLSC", qcrlsc_method = "nope"),
+    "should be one of|'arg'"
+  )
 })

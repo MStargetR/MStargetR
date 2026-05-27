@@ -1483,9 +1483,22 @@ function(input, output, session) {
       combat_ref.batch  = if (nzchar(input$qc_combat_ref_batch %||% "")) {
         input$qc_combat_ref_batch
       } else NULL,
-      batch_column      = if (nzchar(input$qc_batch_column %||% "")) {
-        input$qc_batch_column
-      } else NULL,
+      qcrlsc_method     = input$qc_qcrlsc_method %||% "subtract",
+      qcrlsc_intra      = input$qc_qcrlsc_intra  %||% FALSE,
+      qcrlsc_opti       = input$qc_qcrlsc_opti   %||% TRUE,
+      qcrlsc_log10      = input$qc_qcrlsc_log10  %||% TRUE,
+      qcrlsc_outl       = input$qc_qcrlsc_outl   %||% TRUE,
+      qcrlsc_shift      = input$qc_qcrlsc_shift  %||% TRUE,
+      # batch_column drives ComBat and QC-RLSC; read the input belonging to the
+      # selected method (each lives in its own conditionalPanel).
+      batch_column      = {
+        bc <- if ((input$qc_batch_method %||% "QCRFSC") == "QCRLSC") {
+          input$qc_qcrlsc_batch_column %||% ""
+        } else {
+          input$qc_batch_column %||% ""
+        }
+        if (nzchar(bc)) bc else NULL
+      },
       # The qs2 save is the slowest tail-end step in the pipeline. Skip
       # it here so qcCheckR returns the in-memory result as soon as the
       # XLSX/HTML exports finish, then the qc_run completion handler
@@ -2218,7 +2231,13 @@ function(input, output, session) {
       combat_mean.only = input$combat_mean_only %||% FALSE,
       combat_ref.batch = if (nzchar(input$combat_ref_batch %||% "")) {
         input$combat_ref_batch
-      } else NULL
+      } else NULL,
+      qcrlsc_method = input$batch_qcrlsc_method %||% "subtract",
+      qcrlsc_intra  = input$batch_qcrlsc_intra  %||% FALSE,
+      qcrlsc_opti   = input$batch_qcrlsc_opti   %||% TRUE,
+      qcrlsc_log10  = input$batch_qcrlsc_log10  %||% TRUE,
+      qcrlsc_outl   = input$batch_qcrlsc_outl   %||% TRUE,
+      qcrlsc_shift  = input$batch_qcrlsc_shift  %||% TRUE
     )
 
     bg <- tryCatch(
@@ -2279,66 +2298,23 @@ function(input, output, session) {
     )
   })
 
-  # Helper: build a signal drift plot coloured by sample type
+  # Helper: build a signal drift plot coloured by sample type.
+  # Delegates to MStargetR:::bc_drift_plot so the GUI and R users sharing
+  # advanced_plots = TRUE see the byte-identical figure.
   bc_drift_plot <- function(df, met, title_prefix) {
     cols <- bc_resolve_cols(df)
     shiny::req(cols$run, cols$type, met %in% names(df))
-
-    qc_label <- tolower(input$batch_qc_label %||% "qc")
-    df$sample_type_label <- as.character(df[[cols$type]])
-
-    # Build colour palette: QC in red, others get distinct colours
-    type_levels <- sort(unique(df$sample_type_label))
-    type_palette <- rep("#377EB8", length(type_levels))
-    names(type_palette) <- type_levels
-
-    # Assign distinct colours to non-QC types
-    non_qc <- type_levels[tolower(type_levels) != qc_label]
-    if (length(non_qc) > 0) {
-      non_qc_cols <- if (length(non_qc) <= 8) {
-        grDevices::hcl.colors(max(length(non_qc), 3), palette = "Dark 3")[seq_len(length(non_qc))]
-      } else {
-        grDevices::hcl.colors(length(non_qc), palette = "Set 2")
-      }
-      type_palette[non_qc] <- non_qc_cols
+    qc_label <- input$batch_qc_label %||% "qc"
+    plot_pair <- MStargetR:::bc_drift_plot(df, met, title_prefix,
+                                           qc_label = qc_label)
+    if (is.null(plot_pair)) {
+      return(plotly::plot_ly() |>
+               plotly::layout(annotations = list(list(
+                 text = "Drift plot unavailable for this metabolite",
+                 showarrow = FALSE, xref = "paper", yref = "paper",
+                 x = 0.5, y = 0.5))))
     }
-    # QC always red
-    qc_types <- type_levels[tolower(type_levels) == qc_label]
-    if (length(qc_types) > 0) type_palette[qc_types] <- "#E41A1C"
-
-    df$sample_type_label <- factor(df$sample_type_label, levels = type_levels)
-    is_qc <- tolower(as.character(df[[cols$type]])) == qc_label
-    df_qc <- df[is_qc, ]
-
-    p <- ggplot2::ggplot(
-      df, ggplot2::aes(x = .data[[cols$run]], y = .data[[met]],
-                       colour = sample_type_label)
-    ) +
-      ggplot2::geom_point(size = 1.8, alpha = 0.7) +
-      ggplot2::scale_colour_manual(
-        values = type_palette, name = "Sample Type"
-      )
-
-    # QC LOESS trend line
-    if (nrow(df_qc) >= 4) {
-      p <- p +
-        ggplot2::geom_smooth(
-          data = df_qc,
-          ggplot2::aes(x = .data[[cols$run]], y = .data[[met]]),
-          method = "loess", formula = y ~ x, se = FALSE,
-          colour = "#E41A1C", linewidth = 1, linetype = "dashed",
-          inherit.aes = FALSE
-        )
-    }
-
-    p <- p +
-      ggplot2::labs(
-        title = paste0(title_prefix, ": ", met),
-        x = "Run Order", y = "Intensity"
-      ) +
-      ggplot2::theme_bw()
-
-    plotly::ggplotly(p)
+    plot_pair$interactive
   }
 
   # Signal drift: Before correction
@@ -4045,72 +4021,16 @@ function(input, output, session) {
     )
   })
 
-  # Helper: build run-order scatter for a given data frame + metabolite
+  # Helper: build run-order scatter for a given data frame + metabolite.
+  # Delegates to MStargetR:::re_plot_runorder so the GUI and the figures
+  # written by resultsExplorerR(advanced_plots = TRUE) stay in sync.
   build_runorder_scatter <- function(df, met, title_prefix) {
     if (is.null(df) || !met %in% names(df)) return(NULL)
-    x_vals <- if ("sample_run_index" %in% names(df)) df$sample_run_index
-              else if ("run_order" %in% names(df)) df$run_order
-              else if ("injection_order" %in% names(df)) df$injection_order
-              else seq_len(nrow(df))
-    x_lab <- if ("sample_run_index" %in% names(df)) "Run Order"
-             else if ("run_order" %in% names(df)) "Run Order"
-             else if ("injection_order" %in% names(df)) "Injection Order"
-             else "Sample Index"
-    hover_name <- if ("sample_name" %in% names(df)) df$sample_name else seq_len(nrow(df))
-
-    type_col <- if ("sample_type_factor" %in% names(df)) "sample_type_factor"
-                else if ("sample_type" %in% names(df)) "sample_type"
-                else NULL
-
-    if (!is.null(type_col)) {
-      groups <- unique(as.character(df[[type_col]]))
-      n_grp  <- length(groups)
-      pal    <- results_palette[seq_len(min(n_grp, length(results_palette)))]
-
-      p <- plotly::plot_ly()
-      for (i in seq_along(groups)) {
-        idx <- as.character(df[[type_col]]) == groups[i]
-        is_sample <- tolower(groups[i]) == "sample"
-        p <- plotly::add_trace(p,
-          x = x_vals[idx], y = df[[met]][idx],
-          type = "scatter", mode = "markers",
-          name = groups[i], text = hover_name[idx],
-          marker = list(
-            color = pal[i],
-            size = if (is_sample) 5 else 8,
-            opacity = if (is_sample) 0.4 else 0.85,
-            symbol = if (is_sample) "circle" else "diamond",
-            line = list(color = "white", width = if (is_sample) 0 else 1)),
-          hovertemplate = paste0("<b>%{text}</b><br>", x_lab, ": %{x}<br>",
-                                met, ": %{y:.3f}<br>Type: ", groups[i], "<extra></extra>")
-        )
-      }
-
-      p |> results_plotly_layout(
-        title  = results_title_style(paste0(title_prefix, ": ", met)),
-        xaxis  = c(results_axis_style, list(
-          title = list(text = x_lab, font = list(size = 11, color = "#334155")))),
-        yaxis  = c(results_axis_style, list(
-          title = list(text = met, font = list(size = 11, color = "#334155")))),
-        legend = list(orientation = "h", x = 0, y = -0.15,
-                      font = list(size = 10, color = "#64748b"),
-                      itemsizing = "constant")
-      )
-    } else {
-      plotly::plot_ly(
-        x = x_vals, y = df[[met]], type = "scatter", mode = "markers",
-        text = hover_name,
-        marker = list(color = results_palette[1], size = 5, opacity = 0.6),
-        hovertemplate = paste0("<b>%{text}</b><br>", x_lab, ": %{x}<br>",
-                              met, ": %{y:.3f}<extra></extra>")
-      ) |> results_plotly_layout(
-        title = results_title_style(paste0(title_prefix, ": ", met)),
-        xaxis = c(results_axis_style, list(
-          title = list(text = x_lab, font = list(size = 11, color = "#334155")))),
-        yaxis = c(results_axis_style, list(
-          title = list(text = met, font = list(size = 11, color = "#334155"))))
-      )
-    }
+    plot_pair <- MStargetR:::re_plot_runorder(
+      df, metabolite = met, title_prefix = title_prefix
+    )
+    if (is.null(plot_pair)) return(NULL)
+    plot_pair$interactive
   }
 
   output$results_deep_before <- plotly::renderPlotly({

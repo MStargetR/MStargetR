@@ -35,6 +35,13 @@
 #' An appropriate input would be:
 #'  - plateID_outputs = c("JANE_DOE_C5_URI_MS-LIPIDS_PLATE_1",
 #'                        "JANE_DOE_C5_URI_MS-LIPIDS_PLATE_2")
+#' @param enable_HPC Logical. When \code{TRUE}, Skyline is run via Apptainer
+#'   (Singularity) instead of Docker. This is the intended runtime on HPC
+#'   clusters where Docker is typically forbidden. The default is
+#'   \code{getOption("MStargetR.enable_HPC", FALSE)} so HPC users can set
+#'   \code{options(MStargetR.enable_HPC = TRUE)} once in their \code{.Rprofile}
+#'   and never pass the argument explicitly. See the "Running on HPC" section
+#'   of the README for SIF setup instructions.
 #' @return A curated project directory with sub folders for each plate containing Skyline exports.
 #' @export
 #' @examples
@@ -43,7 +50,7 @@
 #'   file_path <- system.file("extdata", "LGW_lipid_mrm_template_v1.tsv", package = "MStargetR")
 #'   example_mrm_template <- readr::read_tsv(file_path)
 #'
-#' #Run PeakForgeR function
+#' #Default (Docker) on a workstation
 #' PeakForgeR(user_name = "Mad_max",
 #'            project_directory = "USER/PATH/TO/PROJECT/DIRECTORY",
 #'            mrm_template_list = list("User/path/to/user_mrm_guide_v1.tsv",
@@ -51,6 +58,18 @@
 #'            QC_sample_label = "LTR",
 #'            plateID_outputs = NULL
 #'           )
+#'
+#' # HPC (Apptainer): pre-pull the SIF on a login node, then run a job:
+#' #   apptainer pull mstargetr-pwiz.sif \
+#' #     docker://proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:<tag>
+#' options(
+#'   MStargetR.enable_HPC = TRUE,
+#'   MStargetR.sif_path   = "/scratch/me/mstargetr-pwiz.sif"
+#' )
+#' PeakForgeR(user_name         = "Mad_max",
+#'            project_directory = "/scratch/me/MyProject",
+#'            mrm_template_list = list("/scratch/me/templates/lipid_mrm_v1.tsv"),
+#'            QC_sample_label   = "LTR")
 #'}
 #'
 #' @details
@@ -89,11 +108,16 @@ PeakForgeR <- function(user_name,
                      project_directory,
                      mrm_template_list = NULL,
                      QC_sample_label = NULL,
-                     plateID_outputs = NULL) {
+                     plateID_outputs = NULL,
+                     enable_HPC = getOption("MStargetR.enable_HPC", FALSE)) {
   #Validate user
   if (!is.character(user_name) || length(user_name) != 1 || nchar(user_name) == 0) {
     stop("PeakForgeR: 'user_name' must be a non-empty single character string. Got: ",
          paste(class(user_name), collapse = ", "), call. = FALSE)
+  }
+  if (!is.logical(enable_HPC) || length(enable_HPC) != 1L || is.na(enable_HPC)) {
+    stop("PeakForgeR: 'enable_HPC' must be a single logical (TRUE or FALSE).",
+         call. = FALSE)
   }
   sanitized_user_name <- sanitize_identifier(user_name, context = "user_name")
   if (sanitized_user_name != user_name) {
@@ -141,8 +165,17 @@ PeakForgeR <- function(user_name,
     }
   }
 
-  #Check install and run status of docker
-  check_docker()
+  # Check runtime availability: Docker for the default path, Apptainer for
+  # enable_HPC = TRUE. The (potentially slow) SIF pull is deferred until the
+  # first run_container() call inside the per-plate future.
+  if (isTRUE(enable_HPC)) {
+    assert_runtime_available("apptainer")
+    # Force the SIF resolve once on the main session so the pull (if any) is
+    # not raced by the per-plate futures.
+    resolve_sif()
+  } else {
+    check_docker()
+  }
 
   # Set plateIDs — only consider directories (not stray files)
   all_entries <- list.files(project_directory)
@@ -248,7 +281,8 @@ PeakForgeR <- function(user_name,
       write_log("mzML import complete.")
 
       write_log("Step 3: Performing peak picking...")
-      master_list <- peak_picking(plateID, master_list)
+      master_list <- peak_picking(plateID, master_list,
+                                  enable_HPC = enable_HPC)
       write_log("Peak picking complete.")
 
       write_log(paste("Finished processing plate:", plateID))

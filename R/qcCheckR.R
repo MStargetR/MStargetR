@@ -15,8 +15,10 @@
 #' @param user_name A character string specifying the name of the user.
 #' @param mv_threshold A numeric value  between 0 and 100 specifying the threshold for missing values in the data. Default is 50(50%).
 #' @param batch_method Character string specifying the batch correction method.
-#'   One of \code{"QCRFSC"} (random forest, default) or \code{"ComBat"}
-#'   (empirical Bayes, QC-free).
+#'   One of \code{"QCRFSC"} (QC-based random forest signal correction, default),
+#'   \code{"ComBat"} (empirical Bayes, QC-free), or \code{"QCRLSC"} (QC-based
+#'   robust LOESS signal correction; Dunn et al. 2011, via the \code{qcrlscR}
+#'   package). Like \code{"QCRFSC"}, \code{"QCRLSC"} requires QC samples.
 #' @param batch_ntree Integer. Number of trees for the random forest method.
 #'   Default is \code{500}. Ignored when \code{batch_method} is not \code{"QCRFSC"}.
 #' @param batch_coCV Numeric. Coefficient of variation cutoff (percentage,
@@ -34,13 +36,33 @@
 #'   batch. Default is NULL. Only used when \code{batch_method = "ComBat"}.
 #'   Must match a value in the column selected by \code{batch_column} (or in
 #'   \code{sample_plate_id} when \code{batch_column} is NULL).
+#' @param qcrlsc_method Character. QC-RLSC scaling, one of \code{"subtract"}
+#'   (default) or \code{"divide"}. \code{"subtract"} matches the Dunn et al.
+#'   protocol but can yield small negative values for low-abundance features;
+#'   \code{"divide"} preserves non-negativity (better for concentrations) but
+#'   is less stable when the fitted QC trend nears zero. Only used when
+#'   \code{batch_method = "QCRLSC"}.
+#' @param qcrlsc_intra Logical. If TRUE, correct within each batch
+#'   (intra-batch); if FALSE (default), correct across batches (inter-batch).
+#'   Only meaningful with two or more batches. Only used when
+#'   \code{batch_method = "QCRLSC"}.
+#' @param qcrlsc_opti Logical. If TRUE (default), optimise the LOESS span by
+#'   generalised cross-validation. Only used when \code{batch_method = "QCRLSC"}.
+#' @param qcrlsc_log10 Logical. If TRUE (default), log10-transform before
+#'   fitting (zeros become missing). Only used when
+#'   \code{batch_method = "QCRLSC"}.
+#' @param qcrlsc_outl Logical. If TRUE (default), perform QC outlier detection
+#'   before fitting. Only used when \code{batch_method = "QCRLSC"}.
+#' @param qcrlsc_shift Logical. If TRUE (default), apply \code{batch.shift} to
+#'   re-align batch means after signal correction. Only used when
+#'   \code{batch_method = "QCRLSC"}.
 #' @param batch_column Optional character. Name of the column in the
 #'   imputed concentration data that holds the batch identifier used by
 #'   ComBat. When \code{NULL} (default) the canonical \code{sample_plate_id}
 #'   column is used. Set this to drive the correction off an arbitrary
 #'   user-named column (e.g. \code{plate}, \code{run_batch}); the chosen
 #'   column's values become the valid choices for \code{combat_ref.batch}.
-#'   Only used when \code{batch_method = "ComBat"}.
+#'   Used when \code{batch_method = "ComBat"} or \code{"QCRLSC"}.
 #' @param write_rda Logical. When \code{TRUE} (default) the master_list
 #'   \code{.qs2} file is written synchronously as the final step of the
 #'   pipeline. Set to \code{FALSE} when the caller intends to write it
@@ -62,6 +84,15 @@
 #'   with good ratio). Higher values (up to 22) shrink the file further
 #'   at the cost of CPU time; negative values trade ratio for more
 #'   speed.
+#' @param advanced_plots Logical. When \code{TRUE}, every plot the GUI's
+#'   QC Check tab renders (PCA scores, run-order, per-metabolite control
+#'   charts, %RSD histogram, missing values, sample-type pie, plate
+#'   distribution) is also written to
+#'   \code{<project_directory>/all/figures/qcCheckR/} as both a static
+#'   \code{.pdf} (via \code{ggplot2::ggsave}) and an interactive
+#'   \code{.html} (via \code{htmlwidgets::saveWidget} on the plotly
+#'   widget). Default \code{FALSE} -- opt-in so existing scripts continue
+#'   to behave identically.
 #' @param date_order Controls how the \code{AcquiredTime} column from
 #'   PeakForgeR reports (which Skyline exports in the OS locale of whoever
 #'   ran the export) is parsed. One of \code{"auto"} (default; the
@@ -192,11 +223,25 @@ qcCheckR <- function(user_name,
                      combat_par.prior = TRUE,
                      combat_mean.only = FALSE,
                      combat_ref.batch = NULL,
+                     qcrlsc_method = c("subtract", "divide"),
+                     qcrlsc_intra = FALSE,
+                     qcrlsc_opti = TRUE,
+                     qcrlsc_log10 = TRUE,
+                     qcrlsc_outl = TRUE,
+                     qcrlsc_shift = TRUE,
                      batch_column = NULL,
                      write_rda = TRUE,
                      qs_nthreads = max(1L, parallel::detectCores() - 1L),
                      qs_compress_level = 3L,
-                     date_order = c("auto", "dmy", "mdy", "ymd", "iso")) {
+                     date_order = c("auto", "dmy", "mdy", "ymd", "iso"),
+                     advanced_plots = FALSE) {
+  # validate advanced_plots early -- typo'd values would otherwise be
+  # silently coerced by isTRUE() at the bottom of the pipeline.
+  if (!is.logical(advanced_plots) || length(advanced_plots) != 1L ||
+      is.na(advanced_plots)) {
+    stop("qcCheckR: 'advanced_plots' must be TRUE or FALSE. Got: ",
+         deparse(advanced_plots), call. = FALSE)
+  }
   # validate write_rda early so a bad value fails fast rather than at
   # the export step at the end of a long pipeline.
   if (!is.logical(write_rda) || length(write_rda) != 1 || is.na(write_rda)) {
@@ -297,8 +342,8 @@ qcCheckR <- function(user_name,
 
   # validate batch_method
   if (!is.character(batch_method) || length(batch_method) != 1 ||
-      !batch_method %in% c("QCRFSC", "ComBat")) {
-    stop("qcCheckR: 'batch_method' must be one of 'QCRFSC' or 'ComBat'. Got: ",
+      !batch_method %in% c("QCRFSC", "ComBat", "QCRLSC")) {
+    stop("qcCheckR: 'batch_method' must be one of 'QCRFSC', 'ComBat', or 'QCRLSC'. Got: ",
          deparse(batch_method), call. = FALSE)
   }
 
@@ -350,6 +395,18 @@ qcCheckR <- function(user_name,
     }
   }
 
+  # validate / resolve QC-RLSC-specific parameters. match.arg() and the logical
+  # checks run unconditionally so a typo fails fast regardless of batch_method.
+  qcrlsc_method <- match.arg(qcrlsc_method)
+  for (.nm in c("qcrlsc_intra", "qcrlsc_opti", "qcrlsc_log10",
+                "qcrlsc_outl", "qcrlsc_shift")) {
+    .val <- get(.nm)
+    if (!is.logical(.val) || length(.val) != 1 || is.na(.val)) {
+      stop("qcCheckR: '", .nm, "' must be TRUE or FALSE. Got: ",
+           deparse(.val), call. = FALSE)
+    }
+  }
+
   # process data----
   ##project setup----
   master_list <- qcCheckR_setup_project(
@@ -369,6 +426,12 @@ qcCheckR <- function(user_name,
   master_list$project_details$combat_par.prior <- combat_par.prior
   master_list$project_details$combat_mean.only <- combat_mean.only
   master_list$project_details$combat_ref.batch <- combat_ref.batch
+  master_list$project_details$qcrlsc_method <- qcrlsc_method
+  master_list$project_details$qcrlsc_intra <- qcrlsc_intra
+  master_list$project_details$qcrlsc_opti <- qcrlsc_opti
+  master_list$project_details$qcrlsc_log10 <- qcrlsc_log10
+  master_list$project_details$qcrlsc_outl <- qcrlsc_outl
+  master_list$project_details$qcrlsc_shift <- qcrlsc_shift
   master_list$project_details$batch_column <- batch_column
 
   ##data preparation----
@@ -395,5 +458,20 @@ qcCheckR <- function(user_name,
                                      write_rda = write_rda,
                                      qs_nthreads = qs_nthreads,
                                      qs_compress_level = qs_compress_level)
+  #advanced plots (R-side parity with GUI)----
+  if (isTRUE(advanced_plots)) {
+    message("Writing advanced plots to all/figures/qcCheckR/ ...")
+    tryCatch({
+      plots <- qcCheckR_collect_plots(master_list)
+      save_figure_list(
+        plots,
+        project_dir = master_list$project_details$project_dir,
+        module = "qcCheckR"
+      )
+    }, error = function(e) {
+      warning("qcCheckR: advanced_plots write failed: ",
+              conditionMessage(e), call. = FALSE)
+    })
+  }
   invisible(master_list)
 }#close of function
