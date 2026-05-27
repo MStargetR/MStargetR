@@ -1,5 +1,16 @@
 # Changelog
 
+## MStargetR 1.2.0
+
+Released 2026-05-27
+([compare](https://github.com/MStargetR/MStargetR/compare/v1.1.2...v1.2.0)).
+
+### Features
+
+- QC-RLSC batch correction, HPC/Apptainer support, and R-side plot
+  parity
+  ([791cad3](https://github.com/MStargetR/MStargetR/commit/791cad30896af38cd44b0c6f297c0099c7d14355))
+
 ## MStargetR 1.1.2
 
 Released 2026-05-11
