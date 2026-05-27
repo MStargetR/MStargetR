@@ -63,7 +63,8 @@ msConvertR_mzml_conversion <- function(input_directory,
                                        output_directory,
                                        plateIDs,
                                        vendor_extension_patterns,
-                                       sanitized_plateIDs = plateIDs) {
+                                       sanitized_plateIDs = plateIDs,
+                                       enable_HPC = getOption("MStargetR.enable_HPC", FALSE)) {
   # Restore wd even on error / interrupt (equivalent to withr::with_dir;
   # withr is Suggests-only). See REVIEW_REPORT BC-H10.
   old_wd <- getwd()
@@ -74,11 +75,13 @@ msConvertR_mzml_conversion <- function(input_directory,
   # Use sanitized IDs for directory names; raw IDs for disk file matching
   msConvertR_setup_project_directories(output_directory, sanitized_plateIDs)
   commands <- msConvertR_construct_command_for_terminal(
-    input_directory, output_directory, plateIDs, sanitized_plateIDs
+    input_directory, output_directory, plateIDs, sanitized_plateIDs,
+    enable_HPC = enable_HPC
   )
   active_plateIDs <- attr(commands, "active_plateIDs")
   if (length(commands) > 0) {
-    msConvertR_execute_command(commands, output_directory, active_plateIDs)
+    msConvertR_execute_command(commands, output_directory, active_plateIDs,
+                               enable_HPC = enable_HPC)
   } else {
     message("msConvertR: All plates already have mzML output -- nothing to convert.")
   }
@@ -179,8 +182,10 @@ msConvertR_set_working_directory <- function(directory) {
 #' }
 msConvertR_construct_command_for_terminal <- function(input_directory, output_directory,
                                                      plateIDs,
-                                                     sanitized_plateIDs = plateIDs) {
-  message("  Constructing Docker msconvert commands...")
+                                                     sanitized_plateIDs = plateIDs,
+                                                     enable_HPC = getOption("MStargetR.enable_HPC", FALSE)) {
+  message("  Constructing msconvert commands (runtime: ",
+          if (isTRUE(enable_HPC)) "Apptainer" else "Docker", ")...")
 
   # Track which plates are skipped vs need conversion
   skip_env <- new.env(parent = emptyenv())
@@ -201,7 +206,6 @@ msConvertR_construct_command_for_terminal <- function(input_directory, output_di
       return(NULL)
     }
 
-    docker_image <- paste0("proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:", MSTARGETR_DOCKER_IMAGE_TAG)
     container_data_path <- "/data"
     output_data_path <- "/output"
 
@@ -239,6 +243,8 @@ msConvertR_construct_command_for_terminal <- function(input_directory, output_di
     # host paths through Sys.junction-based aliases under a no-spaces tempdir
     # whenever spaces are present. Junctions are recorded so the caller can
     # clean them up after the future-based execution finishes.
+    # mst_make_safe_mount_path() is a no-op on non-Windows, so it is safe to
+    # call unconditionally even when enable_HPC = TRUE (Linux/HPC).
     input_mount  <- mst_make_safe_mount_path(host_input,  prefix = "mst_in_")
     output_mount <- mst_make_safe_mount_path(host_output, prefix = "mst_out_")
 
@@ -246,36 +252,46 @@ msConvertR_construct_command_for_terminal <- function(input_directory, output_di
     # on Windows it adds no real privilege drop (the docker daemon runs in a
     # WSL2 VM, not on the Windows host) AND frequently breaks writes to
     # bind-mounted output directories, since Windows host files have no
-    # Linux UID/GID to map to. Apply it only on POSIX hosts.
-    user_arg <- if (.Platform$OS.type == "windows") NULL else "--user=1000:1000"
+    # Linux UID/GID to map to. Apply it only on POSIX hosts. Apptainer runs
+    # as the invoking user automatically, so the flag is omitted there.
+    docker_extra_args <- if (.Platform$OS.type == "windows") NULL else "--user=1000:1000"
 
-    # DOCK-C5: dropped --memory=4g and --cpus=2. The 4 GB cap was too tight
-    # for vendors like SCIEX whose .wiff parsers can spike past it on a
-    # single large injection, killing the container. Resource limits belong
-    # in user-level Docker Desktop settings, not hard-coded in the package.
-    #
-    # DOCK-C6: --security-opt seccomp=unconfined is required for the Wine-
-    # based pwiz image. Newer Docker Desktop seccomp profiles return ENOSYS
-    # on socket-family syscalls Wine relies on, producing
-    #   "wine: socket : Function not implemented"
-    # and exit status 1. --network=none and --cap-drop=ALL remain in place,
-    # and on Windows the WSL2 VM boundary is the real isolation layer.
+    # DOCK-C5/DOCK-C6 notes: standard Docker hardening flags (--rm,
+    # --cap-drop=ALL, --network=none, --security-opt seccomp=unconfined) are
+    # emitted by run_container() for the Docker path. Apptainer runs as the
+    # invoking user with no extra hardening flags by default.
+    image_command <- c(
+      "wine", "msconvert",
+      file.path(container_data_path, file_name),
+      "-o", output_data_path
+    )
+    binds <- list(
+      list(host = input_mount$safe_path,  container = container_data_path, ro = TRUE),
+      list(host = output_mount$safe_path, container = output_data_path,    ro = FALSE)
+    )
+
+    # Legacy docker argv shape kept alongside the new image_command/binds so
+    # tests that inspect `commands[[i]]$docker_args` still work unchanged.
+    # msConvertR_execute_command() prefers image_command + binds when present
+    # and falls back to docker_args for legacy fakes.
+    docker_image <- mstargetr_image_ref()
     docker_args <- c(
       "run", "--rm",
       "--network=none",
       "--cap-drop=ALL",
       "--security-opt", "seccomp=unconfined",
-      user_arg,
+      docker_extra_args,
       "-v", paste0(input_mount$safe_path,  ":", container_data_path, ":ro"),
       "-v", paste0(output_mount$safe_path, ":", output_data_path),
       docker_image,
-      "wine", "msconvert",
-      file.path(container_data_path, file_name),
-      "-o", output_data_path
+      image_command
     )
 
     list(
       docker_args = docker_args,
+      image_command = image_command,
+      binds = binds,
+      docker_extra_args = docker_extra_args,
       saneID = saneID,
       junctions = c(input_mount$junction, output_mount$junction)
     )
@@ -293,8 +309,10 @@ msConvertR_construct_command_for_terminal <- function(input_directory, output_di
             paste(skipped_sane, collapse = ", "))
   }
 
-  # Full Docker command is only logged when verbose mode is on; the default is
-  # FALSE because the full argument list can contain mounted host paths.
+  # In verbose mode show the full docker argv (always built, even when
+  # enable_HPC = TRUE) so users can see exactly what would be invoked.
+  # When enable_HPC = TRUE the dispatcher logs the actual apptainer argv
+  # at run_container() dispatch time.
   if (isTRUE(getOption("MStargetR.verbose", FALSE))) {
     for (i in seq_along(commands)) {
       message("    [", active_ids[i], "] docker ",
@@ -326,7 +344,8 @@ msConvertR_construct_command_for_terminal <- function(input_directory, output_di
 #' \dontrun{
 #' msConvertR_execute_command(commands, output_directory, plateIDs)
 #' }
-msConvertR_execute_command <- function(commands, output_directory, plateIDs) {
+msConvertR_execute_command <- function(commands, output_directory, plateIDs,
+                                       enable_HPC = getOption("MStargetR.enable_HPC", FALSE)) {
   message("Converting vendor files:\n", paste(plateIDs,collapse = "\n"))
 
   # Guard against path-traversal in output_directory (e.g. from Shiny input).
@@ -366,20 +385,49 @@ msConvertR_execute_command <- function(commands, output_directory, plateIDs) {
   future::plan(future::multisession, workers = available_cores)
   on.exit(future::plan(future::sequential), add = TRUE)
 
+  # Resolve the SIF up-front on the main session when running on HPC. This
+  # ensures the (potentially slow / network-bound) apptainer pull happens
+  # exactly once instead of being raced by every future, and surfaces any
+  # pull failure as a clear error before workers spin up.
+  if (isTRUE(enable_HPC)) resolve_sif()
+
   # Start conversion tasks as futures; pass only the per-plate data to avoid
   # serialising the full commands list and plateIDs vector to every worker.
   futures <- lapply(seq_along(commands), function(i) {
-    dargs <- commands[[i]]$docker_args
-    pid   <- plateIDs[i]
-    ldir  <- logs_dir
+    image_cmd <- commands[[i]]$image_command
+    bnds      <- commands[[i]]$binds
+    dx_args   <- commands[[i]]$docker_extra_args
+    legacy_args <- commands[[i]]$docker_args
+    pid       <- plateIDs[i]
+    ldir      <- logs_dir
+    hpc_flag  <- enable_HPC
     future::future({
       plateID <- pid
-      docker_args <- dargs
       log_file <- file.path(ldir, paste0(plateID, "_MStargetR_log.txt"))
 
       start_time <- Sys.time()
 
-      output <- system2("docker", args = docker_args, stdout = TRUE, stderr = TRUE)
+      # Prefer the runtime-aware dispatcher when image_command + binds are
+      # present. Fall back to a direct system2("docker", ...) on the legacy
+      # docker_args field for synthetic command lists used in unit tests.
+      if (!is.null(image_cmd) && !is.null(bnds)) {
+        output <- run_container(
+          image_command     = image_cmd,
+          binds             = bnds,
+          enable_HPC        = hpc_flag,
+          docker_extra_args = dx_args,
+          stdout            = TRUE,
+          stderr            = TRUE
+        )
+        cmd_for_log <- paste(image_cmd, collapse = " ")
+      } else if (!is.null(legacy_args)) {
+        output <- system2("docker", args = legacy_args,
+                          stdout = TRUE, stderr = TRUE)
+        cmd_for_log <- paste("docker", paste(legacy_args, collapse = " "))
+      } else {
+        stop("msConvertR_execute_command: each command must provide either ",
+             "image_command/binds or docker_args.", call. = FALSE)
+      }
       exit_status <- attr(output, "status")
       success <- is.null(exit_status) || exit_status == 0
 
@@ -398,7 +446,8 @@ msConvertR_execute_command <- function(commands, output_directory, plateIDs) {
 
       writeLines(enc2utf8(c(
         paste("Start time:", start_time),
-        paste("Command: docker", paste(docker_args, collapse = " ")),
+        paste("Runtime:", if (isTRUE(hpc_flag)) "Apptainer" else "Docker"),
+        paste("Command:", cmd_for_log),
         "Output:",
         safe_output,
         paste("End time:", Sys.time()),

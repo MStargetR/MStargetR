@@ -651,13 +651,14 @@ validate_batch_params <- function(data, qc_label, method, project_dir) {
     if (!has_sample_type) {
       issues <- c(issues, "Data is missing required column: sample_type (or sample_type_factor)")
     }
-    # Check QC label matches data for QCRFSC using sample_type_factor if available
+    # Check QC label matches data for QC-based methods (QCRFSC and QC-RLSC),
+    # using sample_type_factor if available. ComBat is QC-free.
     st_col <- if ("sample_type_factor" %in% names(data)) data$sample_type_factor else data$sample_type
-    if (!is.null(st_col) && nzchar(qc_label %||% "") && method == "QCRFSC") {
+    if (!is.null(st_col) && nzchar(qc_label %||% "") && method %in% c("QCRFSC", "QCRLSC")) {
       if (!any(tolower(st_col) == tolower(qc_label))) {
         issues <- c(issues, paste0(
           "No samples match QC label '", qc_label,
-          "' in the data. QCRFSC requires QC samples."))
+          "' in the data. ", method, " requires QC samples."))
       }
     }
   }

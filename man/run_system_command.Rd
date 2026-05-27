@@ -7,11 +7,15 @@
 run_system_command(
   PeakForgeR_command,
   output_file,
-  expected_output_files = NULL
+  expected_output_files = NULL,
+  enable_HPC = getOption("MStargetR.enable_HPC", FALSE)
 )
 }
 \arguments{
-\item{PeakForgeR_command}{Docker argument vector (character vector) from execute_PeakForgeR_command}
+\item{PeakForgeR_command}{Docker argument vector returned by
+\code{execute_PeakForgeR_command()}. The vector carries the structured
+payload (\code{image_command}, \code{binds}) as attributes so the
+dispatcher can route the call to either Docker or Apptainer.}
 
 \item{output_file}{optional path to save the command output}
 
@@ -20,10 +24,14 @@ Skyline is expected to have produced (e.g. the report CSV and sky file).
 When supplied, the function checks that every path exists and has non-zero
 size after the command returns, providing a safety net for Skyline crash
 signatures that change across Skyline builds.}
+
+\item{enable_HPC}{Logical. \code{FALSE} (default) -> Docker. \code{TRUE}
+-> Apptainer via the cached SIF.}
 }
 \description{
-This function wraps the system command to run docker skyline allowing for
-unit testing. It captures all output (stdout and stderr) and writes it to a .txt file.
+This function wraps the container invocation that runs Skyline, allowing
+for unit testing. It captures all output (stdout and stderr) and writes
+it to a .txt file.
 }
 \examples{
 \dontrun{

@@ -204,9 +204,9 @@ bc_validate_input <- function(data, qc_label, method, ntree, coCV, Frule, impute
   if (!is.character(method) || length(method) != 1)
     stop("batchCorrectR: 'method' must be a single character string. Got: ",
          paste(class(method), collapse = ", "), call. = FALSE)
-  if (!method %in% c("QCRFSC", "ComBat"))
+  if (!method %in% c("QCRFSC", "ComBat", "QCRLSC"))
     stop("batchCorrectR: Invalid 'method': '", method,
-         "'. Must be one of: 'QCRFSC', 'ComBat'.", call. = FALSE)
+         "'. Must be one of: 'QCRFSC', 'ComBat', 'QCRLSC'.", call. = FALSE)
   if (!is.numeric(ntree) || length(ntree) != 1 || ntree < 1)
     stop("batchCorrectR: 'ntree' must be a positive integer. Got: ",
          deparse(ntree), call. = FALSE)
@@ -847,4 +847,283 @@ bc_export_html_report <- function(result,
   message("Report saved to: ", rendered)
   if (open) utils::browseURL(rendered)
   invisible(rendered)
+}
+
+# Advanced Plots (R-side parity with GUI) ----
+# These mirror the plots the Shiny Batch Correction tab renders so R users
+# calling batchCorrectR(advanced_plots = TRUE) get the same figures saved
+# under <project_dir>/all/figures/batch_corrector/. Each constructor
+# returns list(static = ggplot, interactive = plotly).
+
+#' Resolve run-order / sample-type column names
+#'
+#' qcCheckR-style frames use `sample_run_index` and `sample_type_factor`;
+#' the standalone `batchCorrectR()` accepts the canonical `run_order` and
+#' `sample_type`. This helper hides the difference so plot constructors
+#' work on both shapes.
+#' @keywords internal
+#' @param df A data frame.
+#' @return List with elements `run` and `type` (NULL when no candidate
+#'   column is present).
+bc_resolve_cols <- function(df) {
+  run_col <- if ("run_order" %in% names(df)) "run_order"
+             else if ("sample_run_index" %in% names(df)) "sample_run_index"
+             else if ("injection_order" %in% names(df)) "injection_order"
+             else NULL
+  type_col <- if ("sample_type_factor" %in% names(df)) "sample_type_factor"
+              else if ("sample_type" %in% names(df)) "sample_type"
+              else NULL
+  list(run = run_col, type = type_col)
+}
+
+# Internal: extract a metabolite "class" prefix from a vector of names.
+# "PC 36:2" -> "PC"; "LPC_18:1" -> "LPC"; "CE(18:2)" -> "CE"; "TG 52:3" -> "TG".
+bc_extract_class <- function(met_names) {
+  tokens <- sub("[\\s_\\(].*$", "", met_names, perl = TRUE)
+  tokens <- sub("\\d.*$", "", tokens, perl = TRUE)
+  tokens[!nzchar(tokens)] <- "Unknown"
+  tokens
+}
+
+# Internal: build the QC-red / others-distinct colour palette used by the
+# Shiny batch tab. Keeps R-saved figures visually identical to the GUI.
+bc_sample_type_palette <- function(type_levels, qc_label = "qc") {
+  qc_label <- tolower(qc_label %||% "qc")
+  pal <- stats::setNames(rep("#377EB8", length(type_levels)), type_levels)
+  non_qc <- type_levels[tolower(type_levels) != qc_label]
+  if (length(non_qc) > 0) {
+    cols <- if (length(non_qc) <= 8) {
+      grDevices::hcl.colors(max(length(non_qc), 3),
+                            palette = "Dark 3")[seq_len(length(non_qc))]
+    } else {
+      grDevices::hcl.colors(length(non_qc), palette = "Set 2")
+    }
+    pal[non_qc] <- cols
+  }
+  qc_types <- type_levels[tolower(type_levels) == qc_label]
+  if (length(qc_types) > 0) pal[qc_types] <- "#E41A1C"
+  pal
+}
+
+#' Signal-drift plot for a single metabolite (advanced_plots)
+#'
+#' Recreates the GUI's Signal Drift panel (`output$batch_plot_before/after`)
+#' as both a static ggplot and an interactive plotly. Each point is a
+#' sample coloured by type, with a dashed LOESS line fitted to QC samples
+#' to visualise drift.
+#' @keywords internal
+#' @param df Data frame containing run-order, sample-type and `met` cols.
+#' @param met Character. Metabolite column to plot.
+#' @param title_prefix Character. Prepended to the title (e.g. "Before").
+#' @param qc_label Character. Label identifying QC samples (default "qc").
+#' @return `list(static, interactive)`, or `NULL` on missing columns.
+bc_drift_plot <- function(df, met, title_prefix, qc_label = "qc") {
+  cols <- bc_resolve_cols(df)
+  if (is.null(cols$run) || is.null(cols$type) || !met %in% names(df))
+    return(NULL)
+
+  qc_label <- tolower(qc_label %||% "qc")
+  df$sample_type_label <- as.character(df[[cols$type]])
+  type_levels <- sort(unique(df$sample_type_label))
+  type_palette <- bc_sample_type_palette(type_levels, qc_label)
+  df$sample_type_label <- factor(df$sample_type_label, levels = type_levels)
+  df_qc <- df[tolower(as.character(df[[cols$type]])) == qc_label, , drop = FALSE]
+
+  p <- ggplot2::ggplot(
+    df, ggplot2::aes(x = .data[[cols$run]], y = .data[[met]],
+                     colour = .data[["sample_type_label"]])
+  ) +
+    ggplot2::geom_point(size = 1.8, alpha = 0.7) +
+    ggplot2::scale_colour_manual(values = type_palette, name = "Sample Type")
+  if (nrow(df_qc) >= 4) {
+    p <- p + ggplot2::geom_smooth(
+      data = df_qc,
+      ggplot2::aes(x = .data[[cols$run]], y = .data[[met]]),
+      method = "loess", formula = y ~ x, se = FALSE,
+      colour = "#E41A1C", linewidth = 1, linetype = "dashed",
+      inherit.aes = FALSE
+    )
+  }
+  p <- p +
+    ggplot2::labs(title = paste0(title_prefix, ": ", met),
+                   x = "Run Order", y = "Intensity") +
+    ggplot2::theme_bw()
+
+  list(static = p, interactive = plotly::ggplotly(p))
+}
+
+#' Median QC %RSD by metabolite class (advanced_plots)
+#'
+#' Class-level dumbbell plot: red point = median %RSD before correction,
+#' blue = after. Mirrors the GUI's `batch_rsd_class_plot`.
+#' @keywords internal
+#' @param result A `batchCorrectR()` result list.
+#' @return `list(static, interactive)`, or `NULL` if the required columns
+#'   are absent.
+bc_plot_rsd_by_class <- function(result) {
+  summ <- result$correction_summary
+  if (is.null(summ) ||
+      !all(c("metabolite", "rsd_before", "rsd_after") %in% names(summ)))
+    return(NULL)
+
+  summ$class <- bc_extract_class(summ$metabolite)
+  class_b <- stats::aggregate(rsd_before ~ class, data = summ,
+    FUN = function(x) stats::median(x, na.rm = TRUE))
+  class_a <- stats::aggregate(rsd_after ~ class, data = summ,
+    FUN = function(x) stats::median(x, na.rm = TRUE))
+  class_summ <- merge(class_b, class_a, by = "class")
+  class_summ$n <- as.integer(table(summ$class)[class_summ$class])
+  class_summ <- class_summ[order(class_summ$rsd_before, decreasing = TRUE), ]
+  class_summ$class <- factor(class_summ$class, levels = rev(class_summ$class))
+
+  static <- ggplot2::ggplot(class_summ) +
+    ggplot2::geom_segment(
+      ggplot2::aes(x = .data[["rsd_before"]], xend = .data[["rsd_after"]],
+                   y = .data[["class"]], yend = .data[["class"]]),
+      colour = "grey60", linewidth = 0.6
+    ) +
+    ggplot2::geom_point(
+      ggplot2::aes(x = .data[["rsd_before"]], y = .data[["class"]],
+                   text = paste0(.data[["class"]], " (n=", .data[["n"]],
+                                  ")\nBefore: ",
+                                  round(.data[["rsd_before"]], 1), "%")),
+      colour = "#E41A1C", size = 3
+    ) +
+    ggplot2::geom_point(
+      ggplot2::aes(x = .data[["rsd_after"]], y = .data[["class"]],
+                   text = paste0(.data[["class"]], " (n=", .data[["n"]],
+                                  ")\nAfter: ",
+                                  round(.data[["rsd_after"]], 1), "%")),
+      colour = "#377EB8", size = 3
+    ) +
+    ggplot2::labs(
+      title = "Median QC %RSD by Class: Before (red) vs After (blue)",
+      x = "Median QC %RSD", y = NULL
+    ) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(axis.text.y = ggplot2::element_text(size = 9))
+
+  list(static = static,
+       interactive = plotly::ggplotly(static, tooltip = "text"))
+}
+
+#' QC %RSD bar for a single metabolite (advanced_plots)
+#'
+#' Two-bar chart (Before / After) for one metabolite, with the % value
+#' labelled above each bar. Mirrors the GUI's `batch_rsd_plot`. When the
+#' caller does not specify `metabolite`, the metabolite with the highest
+#' pre-correction RSD is used (matches the GUI selector default).
+#'
+#' @keywords internal
+#' @param result A `batchCorrectR()` result list.
+#' @param metabolite Character or NULL. Metabolite name.
+#' @return `list(static, interactive)`, or `NULL`.
+bc_plot_rsd_metabolite <- function(result, metabolite = NULL) {
+  summ <- result$correction_summary
+  if (is.null(summ) || !nrow(summ) ||
+      !all(c("metabolite", "rsd_before", "rsd_after") %in% names(summ)))
+    return(NULL)
+
+  if (is.null(metabolite)) {
+    rsd_vals <- summ$rsd_before
+    names(rsd_vals) <- summ$metabolite
+    rsd_vals <- rsd_vals[!is.na(rsd_vals)]
+    if (!length(rsd_vals)) return(NULL)
+    metabolite <- names(rsd_vals)[which.max(rsd_vals)]
+  }
+  row <- summ[summ$metabolite == metabolite, , drop = FALSE]
+  if (!nrow(row)) return(NULL)
+
+  bar_df <- data.frame(
+    Stage = factor(c("Before", "After"), levels = c("Before", "After")),
+    RSD = c(row$rsd_before[1], row$rsd_after[1])
+  )
+
+  static <- ggplot2::ggplot(
+    bar_df,
+    ggplot2::aes(x = .data[["Stage"]], y = .data[["RSD"]],
+                 fill = .data[["Stage"]])
+  ) +
+    ggplot2::geom_col(width = 0.5) +
+    ggplot2::scale_fill_manual(
+      values = c("Before" = "#E41A1C", "After" = "#377EB8"),
+      guide = "none"
+    ) +
+    ggplot2::geom_text(
+      ggplot2::aes(label = paste0(round(.data[["RSD"]], 1), "%")),
+      vjust = -0.5, size = 4
+    ) +
+    ggplot2::labs(title = paste0("QC %RSD: ", metabolite),
+                  x = NULL, y = "QC %RSD") +
+    ggplot2::theme_bw()
+
+  list(static = static, interactive = plotly::ggplotly(static))
+}
+
+#' Collect all batch correction plots for advanced_plots = TRUE
+#'
+#' Builds the named list of plots written to
+#' `<project_dir>/all/figures/batch_corrector/` when
+#' `batchCorrectR(advanced_plots = TRUE)`. Combines the existing
+#' before/after ggplots (`bc_plot_correction_results()`) with the
+#' GUI-only figures (signal drift, RSD-by-class, per-metabolite RSD).
+#'
+#' @keywords internal
+#' @param result A `batchCorrectR()` result list.
+#' @param original_data Data frame passed as `data` to `batchCorrectR()`.
+#' @param qc_label Character. QC label used during correction.
+#' @return Named list; each entry is `list(static, interactive)` and
+#'   the names become the saved-file basenames.
+bc_collect_plots <- function(result, original_data, qc_label = "qc") {
+  plots <- list()
+  metabolite_cols <- result$correction_summary$metabolite
+
+  # Existing ggplot bundle (rsd_comparison, run_order, pca).
+  base <- tryCatch(
+    bc_plot_correction_results(
+      original_data = original_data,
+      corrected_data = result$corrected_data,
+      qc_label = qc_label,
+      metabolite_cols = metabolite_cols,
+      qc_rsd_before = result$qc_rsd_before,
+      qc_rsd_after  = result$qc_rsd_after
+    ),
+    error = function(e) NULL
+  )
+  if (!is.null(base$rsd_comparison)) {
+    plots$rsd_comparison <- list(
+      static = base$rsd_comparison,
+      interactive = plotly::ggplotly(base$rsd_comparison))
+  }
+  if (!is.null(base$run_order)) {
+    plots$run_order <- list(
+      static = base$run_order,
+      interactive = plotly::ggplotly(base$run_order))
+  }
+  if (!is.null(base$pca)) {
+    plots$pca_before_after <- list(
+      static = base$pca,
+      interactive = plotly::ggplotly(base$pca))
+  }
+
+  # Pick the same "default" metabolite the GUI selector starts on (highest
+  # pre-correction RSD) so the saved figures match the user's first view.
+  top_met <- NULL
+  rsd_before <- result$qc_rsd_before
+  if (!is.null(rsd_before) && length(rsd_before)) {
+    rsd_before <- rsd_before[!is.na(rsd_before)]
+    if (length(rsd_before)) top_met <- names(rsd_before)[which.max(rsd_before)]
+  }
+  if (!is.null(top_met)) {
+    plots$drift_before <- bc_drift_plot(original_data, top_met,
+                                        "Before", qc_label)
+    plots$drift_after  <- bc_drift_plot(result$corrected_data, top_met,
+                                        "After", qc_label)
+    plots$rsd_detailed <- bc_plot_rsd_metabolite(result, top_met)
+  }
+
+  # Class-level dumbbell -- shape-independent of metabolite count.
+  plots$rsd_by_class <- bc_plot_rsd_by_class(result)
+
+  plots
 }

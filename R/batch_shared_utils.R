@@ -694,3 +694,215 @@ bc_run_combat <- function(data, metabolite_cols, par.prior = TRUE,
 
   bc_reconstruct_combat_output(data, corrected_matrix, prep$kept_features)
 }
+
+# Core QC-RLSC Correction ----
+
+#' Prepare Feature Matrix for QC-RLSC
+#'
+#' Builds the samples-by-variables data.frame that
+#' \code{qcrlscR::qc.rlsc.wrap} expects. Unlike ComBat, QC-RLSC consumes data
+#' in the native MStargetR orientation (rows = samples, columns = features),
+#' so \strong{no transpose} is performed. All-NA and zero-variance features are
+#' dropped (a LOESS trend cannot be fit to them) and reverted to their original
+#' values during reconstruction.
+#'
+#' @keywords internal
+#' @param data Data.frame with metabolite value columns (rows = samples).
+#' @param metabolite_cols Character vector of metabolite column names.
+#' @return A list with \code{dat_qcrlsc} (samples-by-features data.frame of the
+#'   retained features), \code{dropped} (character vector of dropped features),
+#'   and \code{kept_features} (character vector of retained features).
+bc_prepare_qcrlsc_matrix <- function(data, metabolite_cols) {
+  feat <- as.data.frame(data[, metabolite_cols, drop = FALSE])
+
+  col_all_na <- vapply(feat, function(col) all(is.na(col)), logical(1))
+  col_vars   <- vapply(feat, function(col) stats::var(col, na.rm = TRUE),
+                       numeric(1))
+  # Floating-point-safe constant check (mirrors bc_prepare_combat_matrix).
+  drop_cols  <- col_all_na | is.na(col_vars) | col_vars < .Machine$double.eps
+
+  if (any(drop_cols)) {
+    message("    Excluding ", sum(drop_cols),
+            " all-NA / zero-variance feature(s) from QC-RLSC ",
+            "(reverted to original values).")
+  }
+
+  kept_features <- metabolite_cols[!drop_cols]
+  if (length(kept_features) == 0) {
+    stop("bc_run_qcrlsc: no correctable features remain after dropping ",
+         "all-NA / zero-variance columns.", call. = FALSE)
+  }
+
+  list(
+    dat_qcrlsc    = feat[, kept_features, drop = FALSE],
+    dropped       = metabolite_cols[drop_cols],
+    kept_features = kept_features
+  )
+}
+
+#' Reconstruct Data.frame After QC-RLSC Correction
+#'
+#' Writes the corrected feature columns back into the original data.frame.
+#' Because QC-RLSC preserves the input orientation (rows = samples) there is
+#' \strong{no transpose} (contrast \code{bc_reconstruct_combat_output}).
+#' Dropped (all-NA / zero-variance) features keep their original values.
+#'
+#' @keywords internal
+#' @param data The original data.frame (used as a template; defines row order).
+#' @param corrected_matrix The samples-by-features corrected data.frame from
+#'   \code{qcrlscR::qc.rlsc.wrap}, in the SAME row order as \code{data}.
+#' @param kept_features Character vector of feature names that were corrected.
+#' @return The data.frame with corrected metabolite values.
+bc_reconstruct_qcrlsc_output <- function(data, corrected_matrix, kept_features) {
+  corrected_df <- data
+  cm <- as.data.frame(corrected_matrix)
+  colnames(cm) <- kept_features
+  corrected_df[kept_features] <- cm[, kept_features, drop = FALSE]
+  # Dropped features remain unchanged (already in corrected_df from data).
+  corrected_df
+}
+
+#' Run QC-RLSC Batch Correction
+#'
+#' Applies \code{qcrlscR::qc.rlsc.wrap} (Quality Control-based Robust LOESS
+#' Signal Correction; Dunn et al. 2011, \doi{10.1038/nprot.2011.335}) to a
+#' data.frame that has a \code{batch} column, a \code{sample_type} column and
+#' numeric metabolite columns.
+#'
+#' Key differences from ComBat: (1) the input orientation already matches
+#' qcrlscR (rows = samples) so no transpose is needed; (2) \code{qc.rlsc}
+#' re-centres each feature on its QC mean internally, so \strong{no} additional
+#' QC-mean rescaling is layered on top (unlike the QCRFSC path); (3) QC samples
+#' are required because the LOESS trend is fit through them.
+#'
+#' Robustness handling: residual missing values are imputed (per-feature QC
+#' median, with an overall feature-median fallback) before the call because
+#' \code{loess} fails on NA QC responses; any non-finite corrected value (e.g.
+#' from \code{method = "divide"} when the fitted trend approaches zero) is
+#' reverted to the original input value; and rows are restored to the input
+#' order afterwards (the \code{intra = TRUE} path of \code{qc.rlsc.wrap} rbinds
+#' batch-wise and would otherwise reorder them).
+#'
+#' @keywords internal
+#' @param data Data.frame with \code{batch}, \code{sample_type} and metabolite
+#'   columns (rows = samples, in acquisition order).
+#' @param metabolite_cols Character vector of metabolite column names.
+#' @param qc_label Character identifying QC samples in \code{sample_type}.
+#' @param qcrlsc_method Scaling method, "subtract" (default) or "divide".
+#' @param intra Logical. Intra-batch (TRUE) vs inter-batch (FALSE) correction.
+#' @param opti Logical. Optimise the LOESS span by generalised cross-validation.
+#' @param log10 Logical. Log10-transform before fitting.
+#' @param outl Logical. QC outlier detection before fitting.
+#' @param shift Logical. Apply \code{batch.shift} after signal correction.
+#' @return Data.frame in the same format and row order as input with corrected
+#'   metabolite values.
+bc_run_qcrlsc <- function(data, metabolite_cols, qc_label,
+                          qcrlsc_method = "subtract",
+                          intra = FALSE, opti = TRUE, log10 = TRUE,
+                          outl = TRUE, shift = TRUE) {
+  if (!requireNamespace("qcrlscR", quietly = TRUE)) {
+    stop("The 'qcrlscR' package is required for QC-RLSC correction. ",
+         "Install it with: install.packages('qcrlscR')", call. = FALSE)
+  }
+
+  # cls.qc: qcrlscR matches QC rows via grep("qc", ., ignore.case = TRUE), so
+  # emit canonical "qc"/"sample" to ensure only true QC rows drive the fit.
+  qc_mask <- tolower(as.character(data$sample_type)) == tolower(qc_label)
+  if (sum(qc_mask) == 0) {
+    stop("bc_run_qcrlsc: no QC samples found (expected '", qc_label,
+         "' in sample_type).", call. = FALSE)
+  }
+  cls.qc <- ifelse(qc_mask, "qc", "sample")
+
+  # cls.bl: batch grouping. Must be a factor -- qc.rlsc.wrap uses levels(cls.bl)
+  # when intra = TRUE, and batch.shift groups via tapply().
+  cls.bl <- factor(as.character(data$batch),
+                   levels = unique(as.character(data$batch)))
+
+  # Warn (don't fail) if rows are not in acquisition order: qc.rlsc uses row
+  # POSITION (1:n) as the LOESS predictor, so callers must pre-sort. Both
+  # MStargetR entry points already arrange before correction.
+  ord_col <- if ("run_order" %in% names(data)) "run_order" else
+    if ("sample_run_index" %in% names(data)) "sample_run_index" else NA_character_
+  if (!is.na(ord_col)) {
+    ov <- suppressWarnings(as.numeric(data[[ord_col]]))
+    if (!anyNA(ov) && is.unsorted(ov)) {
+      warning("bc_run_qcrlsc: rows are not sorted by '", ord_col,
+              "'. QC-RLSC uses row position as the run-order predictor; ",
+              "results assume rows are in acquisition order.", call. = FALSE)
+    }
+  }
+
+  prep <- bc_prepare_qcrlsc_matrix(data, metabolite_cols)
+  dat  <- prep$dat_qcrlsc
+
+  # Impute residual NAs so the LOESS fit on QC rows cannot fail. Prefer the
+  # per-feature QC median; fall back to the overall feature median.
+  if (anyNA(dat)) {
+    message("    Imputing residual missing values ",
+            "(QC median, feature-median fallback) before QC-RLSC...")
+    for (j in seq_along(dat)) {
+      col <- dat[[j]]
+      if (!anyNA(col)) next
+      fill <- stats::median(col[qc_mask], na.rm = TRUE)
+      if (!is.finite(fill)) fill <- stats::median(col, na.rm = TRUE)
+      if (!is.finite(fill)) fill <- 0
+      col[is.na(col)] <- fill
+      dat[[j]] <- col
+    }
+  }
+
+  # Tag rows with a positional key so input order can be restored afterwards
+  # (the intra = TRUE path rbinds batch-wise inside qc.rlsc.wrap, reordering).
+  rownames(dat) <- as.character(seq_len(nrow(dat)))
+
+  corrected <- qcrlscR::qc.rlsc.wrap(
+    dat    = dat,
+    cls.qc = cls.qc,
+    cls.bl = cls.bl,
+    method = qcrlsc_method,
+    intra  = intra,
+    opti   = opti,
+    log10  = log10,
+    outl   = outl,
+    shift  = shift
+  )
+  corrected <- as.data.frame(corrected)
+
+  # Restore the original row order when the rownames form a 1:n permutation.
+  ord_key <- suppressWarnings(as.integer(rownames(corrected)))
+  if (length(ord_key) == nrow(dat) && !anyNA(ord_key) &&
+      setequal(ord_key, seq_len(nrow(dat)))) {
+    corrected <- corrected[order(ord_key), , drop = FALSE]
+  }
+  colnames(corrected) <- prep$kept_features
+
+  # Revert non-finite results (NA/NaN/Inf -- e.g. divide-by-near-zero trend) to
+  # the original (imputed) values so a few unstable cells never poison the
+  # table. Both matrices are in original row order at this point.
+  cm <- as.matrix(corrected)
+  om <- as.matrix(dat)
+  nonfinite <- !is.finite(cm)
+  n_bad <- sum(nonfinite)
+  if (n_bad > 0) {
+    cm[nonfinite] <- om[nonfinite]
+    corrected <- as.data.frame(cm)
+    colnames(corrected) <- prep$kept_features
+    warning("bc_run_qcrlsc: reverted ", n_bad, " non-finite corrected ",
+            "value(s) to their original values (method = '", qcrlsc_method,
+            "').", call. = FALSE)
+  }
+
+  # method = "subtract" can yield negatives for low-abundance features.
+  if (identical(qcrlsc_method, "subtract")) {
+    n_neg <- sum(as.matrix(corrected) < 0, na.rm = TRUE)
+    if (n_neg > 0) {
+      message("    Note: ", n_neg, " corrected value(s) are negative ",
+              "(possible with method = 'subtract'; use 'divide' to preserve ",
+              "non-negativity).")
+    }
+  }
+
+  message("    qcrlscR::qc.rlsc.wrap completed successfully.")
+  bc_reconstruct_qcrlsc_output(data, corrected, prep$kept_features)
+}

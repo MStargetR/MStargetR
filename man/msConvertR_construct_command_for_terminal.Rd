@@ -8,7 +8,8 @@ msConvertR_construct_command_for_terminal(
   input_directory,
   output_directory,
   plateIDs,
-  sanitized_plateIDs = plateIDs
+  sanitized_plateIDs = plateIDs,
+  enable_HPC = getOption("MStargetR.enable_HPC", FALSE)
 )
 }
 \arguments{

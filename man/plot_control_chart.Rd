@@ -27,7 +27,10 @@ plot_control_chart(
 \item{conc_st}{Pre-bound statTargetProcessed concentration tibble (optional; computed internally if NULL).}
 }
 \value{
-A \code{ggplot} object representing the control chart for the specified metabolite.
+A \code{plotly} object representing the control chart for the
+specified metabolite (the inner ggplot is exposed separately via
+\code{\link[=plot_control_chart_static]{plot_control_chart_static()}} so the same figure can be written to
+disk as a static PDF for R users).
 }
 \description{
 This function generates a control chart for a specific metabolite in the \code{master_list}.

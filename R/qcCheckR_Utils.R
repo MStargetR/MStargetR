@@ -38,6 +38,8 @@ qcCheckR_statTarget_batch_correction <- function(master_list) {
   batch_method <- master_list$project_details$batch_method
   if (!is.null(batch_method) && batch_method == "ComBat") {
     master_list <- qcCheckR_combat_correction(master_list)
+  } else if (!is.null(batch_method) && batch_method == "QCRLSC") {
+    master_list <- qcCheckR_qcrlsc_correction(master_list)
   } else {
     run_date <- Sys.Date()
     FUNC_list <- initialise_statTarget_environment(master_list)
@@ -697,6 +699,145 @@ qcCheckR_combat_correction <- function(master_list) {
   }
 
   message("  ComBat batch correction complete.")
+  return(master_list)
+}
+
+
+#' QC-RLSC Batch Correction for qcCheckR Pipeline
+#'
+#' Applies Quality Control-based Robust LOESS Signal Correction
+#' (\code{qcrlscR::qc.rlsc.wrap}; Dunn et al. 2011) within the qcCheckR
+#' pipeline. Like the statTarget (QCRFSC) path -- and unlike ComBat -- QC-RLSC
+#' requires QC samples and only the chosen QC type plus biological samples are
+#' corrected; blanks, SIL-only injections, conditioning runs and non-chosen QCs
+#' ("other") are left uncorrected so they do not get a LOESS trend they never
+#' informed, and are re-bound afterwards to keep downstream tables complete.
+#' @keywords internal
+#' @param master_list A list containing project details and data.
+#' @return The updated \code{master_list} with corrected data.
+qcCheckR_qcrlsc_correction <- function(master_list) {
+  if (!requireNamespace("qcrlscR", quietly = TRUE)) {
+    stop("qcCheckR: The 'qcrlscR' package is required for QC-RLSC correction. ",
+         "Install it with: install.packages('qcrlscR')", call. = FALSE)
+  }
+
+  message("  Running QC-RLSC batch correction (robust LOESS signal correction)...")
+
+  # Combine all plates of imputed concentration data
+  combined_data <- dplyr::bind_rows(master_list$data$concentration$imputed)
+
+  # Identify numeric metabolite columns (same idiom as the ComBat path)
+  metabolite_cols <- combined_data %>%
+    dplyr::select(-dplyr::contains("sample")) %>%
+    names()
+  metabolite_cols <- metabolite_cols[vapply(combined_data[metabolite_cols],
+                                            is.numeric, logical(1))]
+  if (length(metabolite_cols) == 0) {
+    stop("qcCheckR: No numeric metabolite columns found for QC-RLSC correction.",
+         call. = FALSE)
+  }
+
+  # Resolve QC type and batch column
+  qc_type <- master_list$project_details$statTarget_qc_type
+  if (is.null(qc_type)) qc_type <- master_list$project_details$qc_type
+  batch_column <- master_list$project_details$batch_column
+  if (is.null(batch_column) || !nzchar(batch_column)) {
+    batch_column <- "sample_plate_id"
+  }
+  if (!batch_column %in% colnames(combined_data)) {
+    stop("qcCheckR: 'batch_column' = '", batch_column,
+         "' was not found in the imputed concentration data. ",
+         "Available columns: ",
+         paste(shQuote(colnames(combined_data)), collapse = ", "),
+         call. = FALSE)
+  }
+
+  # Restrict the correction to QC + biological samples (mirrors the statTarget
+  # path's filter). Prefer the 3-way sample_class column; fall back to
+  # sample_type_factor for older callers.
+  if ("sample_class" %in% colnames(combined_data)) {
+    keep_mask <- combined_data$sample_class %in% c("qc", "sample")
+  } else if ("sample_type_factor" %in% colnames(combined_data)) {
+    keep_mask <- tolower(as.character(combined_data$sample_type_factor)) %in%
+      c(tolower(qc_type), "sample")
+  } else {
+    keep_mask <- tolower(as.character(combined_data$sample_type)) %in%
+      c(tolower(qc_type), "sample")
+  }
+  if (!any(keep_mask)) {
+    stop("qcCheckR: No QC/sample rows available for QC-RLSC correction. ",
+         "Check that 'qc_type' matches sample names and that sample_tags ",
+         "are correct.", call. = FALSE)
+  }
+
+  # Build the canonical batch + sample_type columns bc_run_qcrlsc expects, on
+  # the subset that will actually be corrected.
+  corr_input <- combined_data[keep_mask, , drop = FALSE]
+  corr_input$batch <- as.character(corr_input[[batch_column]])
+  if ("sample_type_factor" %in% colnames(corr_input)) {
+    corr_input$sample_type <- ifelse(
+      tolower(as.character(corr_input$sample_type_factor)) == tolower(qc_type),
+      "qc", "sample")
+  } else {
+    corr_input$sample_type <- ifelse(
+      tolower(as.character(corr_input$sample_type)) == tolower(qc_type),
+      "qc", "sample")
+  }
+  if (sum(corr_input$sample_type == "qc") == 0) {
+    stop("qcCheckR: No QC samples identified for QC-RLSC correction. ",
+         "Check that 'qc_type' matches sample names and that sample_tags ",
+         "are correct.", call. = FALSE)
+  }
+
+  # Read QC-RLSC parameters (fall back to package defaults)
+  p <- master_list$project_details
+  message("    batch_column = ", batch_column,
+          ", method = ", if (!is.null(p$qcrlsc_method)) p$qcrlsc_method else "subtract",
+          ", intra = ", if (!is.null(p$qcrlsc_intra)) p$qcrlsc_intra else FALSE,
+          ", shift = ", if (!is.null(p$qcrlsc_shift)) p$qcrlsc_shift else TRUE)
+
+  corrected_kept <- bc_run_qcrlsc(
+    data            = corr_input,
+    metabolite_cols = metabolite_cols,
+    qc_label        = "qc",
+    qcrlsc_method   = if (!is.null(p$qcrlsc_method)) p$qcrlsc_method else "subtract",
+    intra           = if (!is.null(p$qcrlsc_intra)) p$qcrlsc_intra else FALSE,
+    opti            = if (!is.null(p$qcrlsc_opti))  p$qcrlsc_opti  else TRUE,
+    log10           = if (!is.null(p$qcrlsc_log10)) p$qcrlsc_log10 else TRUE,
+    outl            = if (!is.null(p$qcrlsc_outl))  p$qcrlsc_outl  else TRUE,
+    shift           = if (!is.null(p$qcrlsc_shift)) p$qcrlsc_shift else TRUE
+  )
+
+  # Write the corrected feature values back into the full frame by position
+  # (bc_run_qcrlsc returns rows in input order), preserving every other column
+  # and leaving the excluded "other" rows untouched.
+  corrected <- combined_data
+  corrected[keep_mask, metabolite_cols] <-
+    corrected_kept[, metabolite_cols, drop = FALSE]
+
+  # Set sample_type for consistency with the statTarget / ComBat paths.
+  if ("sample_type_factor" %in% colnames(corrected)) {
+    corrected$sample_type <- ifelse(
+      tolower(as.character(corrected$sample_type_factor)) == tolower(qc_type),
+      "qc", "sample")
+  }
+
+  # Split back by plate and integrate (same structure as the statTarget path)
+  master_list$data$concentration$corrected <- split(corrected, corrected$sample_plate_id)
+  for (batch_name in names(master_list$data$concentration$corrected)) {
+    master_list$data$concentration$corrected[[batch_name]]$sample_data_source <- ".peakAreaCorrected"
+  }
+
+  master_list$data$peakArea$statTargetProcessed <- list()
+  master_list$data$concentration$statTargetProcessed <- list()
+  for (batch_name in unique(corrected$sample_plate_id)) {
+    batch_data <- corrected %>% dplyr::filter(sample_plate_id == batch_name)
+    master_list$data$peakArea$statTargetProcessed[[batch_name]] <- batch_data
+    master_list$data$concentration$statTargetProcessed[[batch_name]] <- batch_data
+    master_list$data$peakArea$statTargetProcessed[[batch_name]]$sample_data_source <- "concentration.QCRLSC"
+  }
+
+  message("  QC-RLSC batch correction complete.")
   return(master_list)
 }
 

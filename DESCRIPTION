@@ -67,6 +67,8 @@ Imports:
     future (>= 1.33.0),
     future.apply (>= 1.11.0),
     ggplot2 (>= 3.4.0),
+    grDevices,
+    htmlwidgets,
     janitor,
     magrittr,
     mzR,
@@ -88,6 +90,7 @@ Imports:
 Suggests:
     BiocManager,
     covr,
+    qcrlscR,
     sva,
     testthat (>= 3.0.0),
     mockery,
