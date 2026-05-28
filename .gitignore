@@ -227,3 +227,6 @@ cleanup-claude.ps1
 network-requests.txt
 tests/testthat/_problems/
 tests/testthat/testthat-problems.rds
+
+# Research artifacts not part of the package
+benchmark/
