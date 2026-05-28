@@ -329,7 +329,7 @@ MyProject/
 ## Documentation
 
 - **Vignette:** A detailed user guide is available at
-  <https://mstargetr.github.io/MStargetR/MStargetR-vignette.html>
+  <https://mstargetr.github.io/MStargetR/articles/MStargetR-vignette.html>
 - **Function reference:** Use
   [`?msConvertR`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md),
   [`?PeakForgeR`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md),
