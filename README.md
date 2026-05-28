@@ -296,7 +296,7 @@ following structure:
 ## Documentation
 
 - **Vignette:** A detailed user guide is available at
-  <https://mstargetr.github.io/MStargetR/MStargetR-vignette.html>
+  <https://mstargetr.github.io/MStargetR/articles/MStargetR-vignette.html>
 - **Function reference:** Use `?msConvertR`, `?PeakForgeR`, `?qcCheckR`,
   `?batchCorrectR`, `?launchMStargetR`, `?transition_checkR`, or
   `?compare_mrm_template_with_guide` for full parameter documentation.
