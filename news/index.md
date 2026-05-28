@@ -1,5 +1,36 @@
 # Changelog
 
+## MStargetR 1.3.0
+
+Released 2026-05-28
+([compare](https://github.com/MStargetR/MStargetR/compare/v1.2.0...v1.3.0)).
+
+### Bug Fixes
+
+- **docs:** correct vignette URL in README to articles/ pkgdown path
+  ([b7364f5](https://github.com/MStargetR/MStargetR/commit/b7364f5744f8bb58f2674af46e5436d91b90a702))
+- **docs:** repair Rd cross-reference and vignette logo path for clean
+  check + pkgdown
+  ([d323e30](https://github.com/MStargetR/MStargetR/commit/d323e309429c272934bff7cf4df03991a2f4b531))
+- **plots:** avoid cairo_pdf on macOS in save_figure to prevent R
+  segfault
+  ([814dced](https://github.com/MStargetR/MStargetR/commit/814dceda3ee941f378bddf554bbcd260bf2075f4))
+- **plots:** use exact-match indexing for pca\$scores guard; clean up
+  test warnings
+  ([eb752a0](https://github.com/MStargetR/MStargetR/commit/eb752a023ce313ec67afd1ead2357639d44c1528))
+- **shiny:** drop forced grayscale font-smoothing that blurs UI on
+  Windows
+  ([c2b9bce](https://github.com/MStargetR/MStargetR/commit/c2b9bce2f06653f3fb7a8098b249e8c1056590d2))
+
+### Features
+
+- **batch:** add QC-RLSC robust LOESS signal correction method
+  ([d8babf7](https://github.com/MStargetR/MStargetR/commit/d8babf7558b1d92baf4f4a302fd7fb9a4d893c8f))
+- **container:** add Apptainer/HPC support via enable_HPC dispatcher
+  ([1eb90b4](https://github.com/MStargetR/MStargetR/commit/1eb90b4ad582cf693f436c4652d71d2c5fdaa70a))
+- **plots:** expose every GUI plot to R users via advanced_plots = TRUE
+  ([e4a0807](https://github.com/MStargetR/MStargetR/commit/e4a080793a95a79ed735f8efccf8b9b4ac444253))
+
 ## MStargetR 1.2.0
 
 Released 2026-05-27
