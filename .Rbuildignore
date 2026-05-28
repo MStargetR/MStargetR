@@ -85,3 +85,6 @@
 
 # Playwright MCP
 ^\.playwright-mcp$
+
+# Benchmark suite (research artifact, not part of package)
+^benchmark$
