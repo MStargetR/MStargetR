@@ -285,14 +285,33 @@ dir.create(raw_data_dir, recursive = TRUE)
 ```
 
 **One-file-per-sample formats (`.d`, `.raw`, …).** These vendors write
-one file per sample, so you must tell
+one file per sample. In most cases you can place the files flat in
+`raw_data/` and let
 [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
-how to group them into plates. Use **either** a per-plate subfolder
-(recommended) **or** a manifest CSV.
+group them automatically: it infers plate membership in priority order –
+a remembered `plate_grouping.csv` (or an explicit `manifest`), then
+per-plate subfolders, then **filename auto-discovery**, then the bare
+filename.
+
+Auto-discovery detects which part of the filename identifies the plate
+(no lab-specific pattern needed), **reports** the grouping it inferred,
+and saves it to an editable `plate_grouping.csv` at the project root so
+the decision is stable across runs and you can correct it once if it
+guessed wrong.
 
 ``` r
 
-# Option A -- per-plate subfolders (subfolder name = plate ID):
+# Default -- flat files, grouped automatically from the filename.
+#   my_project/
+#     raw_data/
+#       study_PlateA_001.raw   # -> plate PlateA
+#       study_PlateA_002.raw
+#       study_PlateB_001.raw   # -> plate PlateB
+#       study_PlateB_002.raw
+# msConvertR() reports: "inferred plate grouping from filenames ... PlateA (2 files), PlateB (2 files)"
+# and writes my_project/plate_grouping.csv (edit it to correct any mistake).
+
+# Explicit override A -- per-plate subfolders (subfolder name = plate ID):
 #   my_project/
 #     raw_data/
 #       PlateA/
@@ -302,8 +321,9 @@ how to group them into plates. Use **either** a per-plate subfolder
 #         sample01.raw
 #         sample02.raw
 
-# Option B -- a manifest CSV mapping each file to a plate
-#   (use when grouping comes from an instrument worklist or LIMS export):
+# Explicit override B -- a manifest CSV mapping each file to a plate
+#   (use when grouping comes from an instrument worklist or LIMS export,
+#    or to lock in a correction; an explicit manifest always wins):
 manifest <- data.frame(
   raw_file = c("sample01.raw", "sample02.raw", "sample03.raw"),
   plateID  = c("PlateA",       "PlateA",       "PlateB")
@@ -311,12 +331,15 @@ manifest <- data.frame(
 write.csv(manifest, file.path(project_dir, "manifest.csv"), row.names = FALSE)
 ```
 
-> **Why grouping matters.** If several single-sample files are left flat
-> in `raw_data/` with no subfolder and no manifest,
+> **Why grouping matters.** Plate is the unit of per-plate QC and batch
+> correction, so files must be grouped correctly.
 > [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
-> stops with guidance instead of silently creating one folder per sample
-> – which would collapse per-plate QC and batch correction to a single
-> sample. Multi-sample `.wiff` files are exempt; each is its own plate.
+> always *reports* the grouping it chose, so a wrong guess is visible
+> before conversion. If several single-sample files share no filename
+> structure it can use, each is converted as its own plate with a
+> **warning** – group them with a subfolder, a `manifest`, or by editing
+> the generated `plate_grouping.csv`. Multi-sample `.wiff` files are
+> exempt; each is its own plate.
 
 ------------------------------------------------------------------------
 
@@ -336,7 +359,7 @@ a Windows-only ProteoWizard installation.
 |:---|:---|:---|
 | `input_directory` | Character | Path to the directory containing a `raw_data/` folder of vendor raw files. |
 | `output_directory` | Character | Path where converted mzML files and the project structure will be created. May be the same as `input_directory`. |
-| `manifest` | Character / data.frame / NULL | Optional `raw_file,plateID` mapping (CSV path or data frame) used to group one-file-per-sample formats into plates. When `NULL` (default), plate membership is inferred from per-plate subfolders under `raw_data/`, falling back to the filename for flat files. |
+| `manifest` | Character / data.frame / NULL | Optional `raw_file,plateID` mapping (CSV path or data frame) – a last-resort override for grouping one-file-per-sample formats. When `NULL` (default), plate membership is resolved automatically: a remembered `plate_grouping.csv` at the project root, then per-plate subfolders under `raw_data/`, then filename auto-discovery (which reports its inference and saves an editable `plate_grouping.csv`), then the bare filename. |
 
 #### Supported vendor formats
 
