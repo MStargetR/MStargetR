@@ -345,12 +345,30 @@ plate).</strong> Place the files flat in <code>raw_data/</code>; each
 <span><span class="co">#       STUDY_PLATE_2.wiff</span></span>
 <span><span class="co">#       STUDY_PLATE_2.wiff.scan</span></span></code></pre></div>
 <p><strong>One-file-per-sample formats (<code>.d</code>,
-<code>.raw</code>, …).</strong> These vendors write one file per sample,
-so you must tell <code><a href="../reference/msConvertR.html">msConvertR()</a></code> how to group them into
-plates. Use <strong>either</strong> a per-plate subfolder (recommended)
-<strong>or</strong> a manifest CSV.</p>
+<code>.raw</code>, …).</strong> These vendors write one file per sample.
+In most cases you can place the files flat in <code>raw_data/</code> and
+let <code><a href="../reference/msConvertR.html">msConvertR()</a></code> group them automatically: it infers plate
+membership in priority order – a remembered
+<code>plate_grouping.csv</code> (or an explicit <code>manifest</code>),
+then per-plate subfolders, then <strong>filename
+auto-discovery</strong>, then the bare filename.</p>
+<p>Auto-discovery detects which part of the filename identifies the
+plate (no lab-specific pattern needed), <strong>reports</strong> the
+grouping it inferred, and saves it to an editable
+<code>plate_grouping.csv</code> at the project root so the decision is
+stable across runs and you can correct it once if it guessed wrong.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Option A -- per-plate subfolders (subfolder name = plate ID):</span></span>
+<code class="sourceCode R"><span><span class="co"># Default -- flat files, grouped automatically from the filename.</span></span>
+<span><span class="co">#   my_project/</span></span>
+<span><span class="co">#     raw_data/</span></span>
+<span><span class="co">#       study_PlateA_001.raw   # -&gt; plate PlateA</span></span>
+<span><span class="co">#       study_PlateA_002.raw</span></span>
+<span><span class="co">#       study_PlateB_001.raw   # -&gt; plate PlateB</span></span>
+<span><span class="co">#       study_PlateB_002.raw</span></span>
+<span><span class="co"># msConvertR() reports: "inferred plate grouping from filenames ... PlateA (2 files), PlateB (2 files)"</span></span>
+<span><span class="co"># and writes my_project/plate_grouping.csv (edit it to correct any mistake).</span></span>
+<span></span>
+<span><span class="co"># Explicit override A -- per-plate subfolders (subfolder name = plate ID):</span></span>
 <span><span class="co">#   my_project/</span></span>
 <span><span class="co">#     raw_data/</span></span>
 <span><span class="co">#       PlateA/</span></span>
@@ -360,20 +378,24 @@ plates. Use <strong>either</strong> a per-plate subfolder (recommended)
 <span><span class="co">#         sample01.raw</span></span>
 <span><span class="co">#         sample02.raw</span></span>
 <span></span>
-<span><span class="co"># Option B -- a manifest CSV mapping each file to a plate</span></span>
-<span><span class="co">#   (use when grouping comes from an instrument worklist or LIMS export):</span></span>
+<span><span class="co"># Explicit override B -- a manifest CSV mapping each file to a plate</span></span>
+<span><span class="co">#   (use when grouping comes from an instrument worklist or LIMS export,</span></span>
+<span><span class="co">#    or to lock in a correction; an explicit manifest always wins):</span></span>
 <span><span class="va">manifest</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  raw_file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sample01.raw"</span>, <span class="st">"sample02.raw"</span>, <span class="st">"sample03.raw"</span><span class="op">)</span>,</span>
 <span>  plateID  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PlateA"</span>,       <span class="st">"PlateA"</span>,       <span class="st">"PlateB"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">manifest</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"manifest.csv"</span><span class="op">)</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <blockquote>
-<p><strong>Why grouping matters.</strong> If several single-sample files
-are left flat in <code>raw_data/</code> with no subfolder and no
-manifest, <code><a href="../reference/msConvertR.html">msConvertR()</a></code> stops with guidance instead of
-silently creating one folder per sample – which would collapse per-plate
-QC and batch correction to a single sample. Multi-sample
-<code>.wiff</code> files are exempt; each is its own plate.</p>
+<p><strong>Why grouping matters.</strong> Plate is the unit of per-plate
+QC and batch correction, so files must be grouped correctly.
+<code><a href="../reference/msConvertR.html">msConvertR()</a></code> always <em>reports</em> the grouping it chose,
+so a wrong guess is visible before conversion. If several single-sample
+files share no filename structure it can use, each is converted as its
+own plate with a <strong>warning</strong> – group them with a subfolder,
+a <code>manifest</code>, or by editing the generated
+<code>plate_grouping.csv</code>. Multi-sample <code>.wiff</code> files
+are exempt; each is its own plate.</p>
 </blockquote>
 <hr>
 </div>
@@ -421,10 +443,13 @@ structure will be created. May be the same as
 <td align="left"><code>manifest</code></td>
 <td align="left">Character / data.frame / NULL</td>
 <td align="left">Optional <code>raw_file,plateID</code> mapping (CSV
-path or data frame) used to group one-file-per-sample formats into
-plates. When <code>NULL</code> (default), plate membership is inferred
-from per-plate subfolders under <code>raw_data/</code>, falling back to
-the filename for flat files.</td>
+path or data frame) – a last-resort override for grouping
+one-file-per-sample formats. When <code>NULL</code> (default), plate
+membership is resolved automatically: a remembered
+<code>plate_grouping.csv</code> at the project root, then per-plate
+subfolders under <code>raw_data/</code>, then filename auto-discovery
+(which reports its inference and saves an editable
+<code>plate_grouping.csv</code>), then the bare filename.</td>
 </tr>
 </tbody>
 </table>
