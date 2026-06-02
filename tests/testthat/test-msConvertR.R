@@ -49,18 +49,20 @@ test_that("msConvertR stops when no vendor files are found", {
   })
 })
 
-test_that("msConvertR refuses ambiguous flat single-sample files", {
+test_that("msConvertR warns but proceeds on ungroupable flat single-sample files", {
   suppressMessages({
   stub(msConvertR, "validate_input_directory", function(dir) TRUE)
   stub(msConvertR, "check_docker", function() TRUE)
-  # Two flat .raw files (single-sample, no grouping) -> ambiguous.
+  stub(msConvertR, "msConvertR_mzml_conversion", function(...) TRUE)
+  # Two flat .raw files that even filename auto-discovery left ungrouped
+  # (source == "flat"): proceed with a warning rather than stop.
   stub(msConvertR, "derive_plate_groups",
        function(...) fake_groups(c("s1", "s2"), source = "flat",
                                  plate_level = FALSE, ext = "raw"))
 
-  expect_error(
+  expect_warning(
     msConvertR("input_dir", "output_dir"),
-    "no plate grouping"
+    "could not be grouped"
   )
   })
 })
@@ -864,6 +866,81 @@ test_that("read_plate_manifest rejects unknown and duplicate raw_file entries", 
     ),
     "duplicate 'raw_file'"
   )
+})
+
+# --- discover_plate_grouping (filename auto-discovery) tests ---
+
+test_that("discover_plate_grouping groups by a repeating plate token", {
+  # 2 plates x 3 samples: the plate token forms the larger, balanced groups.
+  files <- c("PlateA_s1.raw", "PlateA_s2.raw", "PlateA_s3.raw",
+             "PlateB_s1.raw", "PlateB_s2.raw", "PlateB_s3.raw")
+  res <- discover_plate_grouping(files)
+  expect_equal(res$n_plates, 2L)
+  expect_setequal(unique(res$plateID), c("PlateA", "PlateB"))
+  expect_false(res$ambiguous)
+})
+
+test_that("discover_plate_grouping picks the plate token over the sample token", {
+  # ANPC-style: plate (p###) repeats across samples; sample suffix varies.
+  files <- c(
+    "covid19_PLA_COVr57_COVp298_001.raw", "covid19_PLA_COVr57_COVp298_002.raw",
+    "covid19_PLA_COVr57_COVp299_001.raw", "covid19_PLA_COVr57_COVp299_002.raw")
+  res <- discover_plate_grouping(files)
+  expect_setequal(unique(res$plateID), c("COVp298", "COVp299"))
+})
+
+test_that("discover_plate_grouping assumes one plate from a common prefix", {
+  # Only a unique sample suffix varies -> one plate per run.
+  files <- c("covid19_COVr57_001.raw", "covid19_COVr57_002.raw",
+             "covid19_COVr57_003.raw")
+  res <- discover_plate_grouping(files)
+  expect_equal(res$n_plates, 1L)
+  expect_true(res$ambiguous)
+})
+
+test_that("derive_plate_groups infers plates from flat filenames and remembers them", {
+  suppressMessages({
+    temp_dir <- tempfile("derive_filename_")
+    raw_dir <- file.path(temp_dir, "raw_data")
+    dir.create(raw_dir, recursive = TRUE, showWarnings = FALSE)
+    on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
+
+    for (f in c("PlateA_s1.raw", "PlateA_s2.raw",
+                "PlateB_s1.raw", "PlateB_s2.raw")) {
+      file.create(file.path(raw_dir, f))
+    }
+
+    groups <- derive_plate_groups(temp_dir)
+
+    expect_setequal(unique(groups$sanitized_plateID), c("PlateA", "PlateB"))
+    expect_true(all(groups$source == "filename"))
+    # The inference is persisted as an editable manifest at the project root.
+    remembered <- file.path(temp_dir, "plate_grouping.csv")
+    expect_true(file.exists(remembered))
+
+    # A second run reuses the remembered grouping (source == "manifest").
+    groups2 <- derive_plate_groups(temp_dir)
+    expect_true(all(groups2$source == "manifest"))
+    expect_setequal(unique(groups2$sanitized_plateID), c("PlateA", "PlateB"))
+  })
+})
+
+test_that("derive_plate_groups remember = FALSE does not persist a manifest", {
+  suppressMessages({
+    temp_dir <- tempfile("derive_noremember_")
+    raw_dir <- file.path(temp_dir, "raw_data")
+    dir.create(raw_dir, recursive = TRUE, showWarnings = FALSE)
+    on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
+
+    for (f in c("PlateA_s1.raw", "PlateA_s2.raw",
+                "PlateB_s1.raw", "PlateB_s2.raw")) {
+      file.create(file.path(raw_dir, f))
+    }
+
+    groups <- derive_plate_groups(temp_dir, remember = FALSE)
+    expect_true(all(groups$source == "filename"))
+    expect_false(file.exists(file.path(temp_dir, "plate_grouping.csv")))
+  })
 })
 
 test_that("validate_file_types validates files one level deep in plate subfolders", {

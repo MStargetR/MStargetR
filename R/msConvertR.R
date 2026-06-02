@@ -18,15 +18,19 @@ NULL
 #' @param manifest Optional. Either a path to a CSV file or a
 #'   \code{data.frame} mapping each raw vendor file to a plate, with
 #'   (case-insensitive) columns \code{raw_file} and \code{plateID}. Use this
-#'   when plate membership for one-file-per-sample formats (e.g. \code{.d},
-#'   \code{.raw}) comes from an instrument worklist or LIMS export rather than
-#'   the folder layout. When \code{NULL} (default), plate membership is inferred
-#'   from per-plate subfolders under \code{raw_data/} (a file in
-#'   \code{raw_data/<plateID>/} belongs to that plate), falling back to the
-#'   filename for files placed flat in \code{raw_data/}. Multiple single-sample
-#'   files left flat with no grouping are rejected with guidance rather than
-#'   silently producing one folder per sample. A multi-sample \code{.wiff} is
-#'   always one plate.
+#'   last-resort override when plate membership for one-file-per-sample formats
+#'   (e.g. \code{.d}, \code{.raw}) cannot be recovered automatically. When
+#'   \code{NULL} (default), plate membership is resolved automatically in
+#'   priority order: a remembered \code{plate_grouping.csv} at the project root;
+#'   per-plate subfolders under \code{raw_data/} (a file in
+#'   \code{raw_data/<plateID>/} belongs to that plate); filename-based
+#'   auto-discovery, which infers the plate from the filename token structure
+#'   for sample-level files left flat in \code{raw_data/} and reports the
+#'   inference (persisting it to an editable \code{plate_grouping.csv} for
+#'   confirmation); and finally the bare filename. Sample-level files that even
+#'   auto-discovery cannot group are converted with a warning (each becomes its
+#'   own plate) rather than rejected. A multi-sample \code{.wiff} is always one
+#'   plate.
 #' @param enable_HPC Logical. When \code{TRUE}, the ProteoWizard container is
 #'   invoked via Apptainer (Singularity) instead of Docker. This is the
 #'   intended runtime on HPC clusters where Docker is typically forbidden.
@@ -135,26 +139,28 @@ msConvertR <- function (input_directory, output_directory,
          output_directory, "'.", call. = FALSE)
   }
 
-  # Resolve plate membership from (priority order) the manifest, per-plate
-  # subfolders under raw_data/, or the flat filename. validate_file_types() is
-  # called inside and errors if no supported vendor files are present.
+  # Resolve plate membership from (priority order) the manifest / remembered
+  # plate_grouping.csv, per-plate subfolders under raw_data/, filename-based
+  # auto-discovery, or the flat filename. validate_file_types() is called
+  # inside and errors if no supported vendor files are present.
   groups <- derive_plate_groups(input_directory, manifest = manifest)
 
-  # Refuse-and-prompt: multiple single-sample vendor files sitting flat in
-  # raw_data/ with no declared grouping are ambiguous (we cannot tell whether
-  # they are one plate or many). Rather than silently produce one folder per
-  # sample (which collapses per-plate QC and batch correction to n = 1), stop
-  # and ask the user to declare plates. Inherently multi-sample formats
-  # (.wiff/.wiff2) are exempt: each is legitimately its own plate.
-  ambiguous <- groups$source == "flat" & !groups$plate_level
-  if (sum(ambiguous) >= 2L) {
-    stop(
-      "msConvertR: ", sum(ambiguous), " single-sample vendor file(s) were found ",
-      "flat in 'raw_data/' with no plate grouping:\n  ",
-      paste(groups$file_name[ambiguous], collapse = "\n  "),
-      "\n\nDeclare which samples belong to which plate by either:\n",
-      "  (a) placing each plate's files in a 'raw_data/<plateID>/' subfolder, or\n",
-      "  (b) passing manifest = path to a CSV with columns 'raw_file,plateID'.\n",
+  # Report-and-proceed: any sample-level vendor files that survive as "flat"
+  # could not be grouped by a manifest, a subfolder, or filename auto-discovery
+  # (no shared filename structure at all). Per the grouping policy we proceed
+  # rather than stop - but warn loudly, because each becomes its own plate,
+  # which weakens per-plate QC and batch correction. Multi-sample .wiff/.wiff2
+  # files are exempt: each is legitimately its own plate.
+  ungrouped <- groups$source == "flat" & !groups$plate_level
+  if (sum(ungrouped) >= 2L) {
+    warning(
+      "msConvertR: ", sum(ungrouped), " single-sample vendor file(s) could not ",
+      "be grouped into plates from their filenames:\n  ",
+      paste(groups$file_name[ungrouped], collapse = "\n  "),
+      "\n\nEach will be treated as its own plate. To group them, either:\n",
+      "  (a) place each plate's files in a 'raw_data/<plateID>/' subfolder,\n",
+      "  (b) pass manifest = a CSV with columns 'raw_file,plateID', or\n",
+      "  (c) edit the generated 'plate_grouping.csv' in the project directory.\n",
       "(Multi-sample .wiff files are exempt - each is treated as its own plate.)",
       call. = FALSE
     )
