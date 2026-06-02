@@ -7,7 +7,7 @@ lines indicating plate boundaries and annotations for plate IDs.
 ## Usage
 
 ``` r
-plot_run_order(scores, pc, boundaries, annotations, plot_settings)
+plot_run_order(scores, pc, boundaries, plot_settings)
 ```
 
 ## Arguments
@@ -24,14 +24,12 @@ plot_run_order(scores, pc, boundaries, annotations, plot_settings)
 
   A vector of boundaries for the plates.
 
-- annotations:
-
-  A tibble containing annotations for the plates.
-
 - plot_settings:
 
   A list containing plot settings such as colors, shapes, and sizes.
 
 ## Value
 
-A `ggplot` object representing the run order plot.
+A `plotly` object (the inner ggplot is exposed separately via
+[`plot_run_order_static()`](https://mstargetr.github.io/MStargetR/reference/plot_run_order_static.md)
+so the same figure can be written to disk as a static PDF for R users).

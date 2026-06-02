@@ -7,7 +7,7 @@ pipeline.
 ## Usage
 
 ``` r
-bc_preprocess_input(data)
+bc_preprocess_input(data, batch_column = NULL)
 ```
 
 ## Arguments
@@ -15,6 +15,15 @@ bc_preprocess_input(data)
 - data:
 
   A data.frame, tibble, or list of data.frames/tibbles.
+
+- batch_column:
+
+  Optional character. Name of the column in `data` that holds the batch
+  identifier. When `NULL` (default) the function auto-detects `batch` or
+  `sample_plate_id` (in that order). When supplied, that column's values
+  are copied into the canonical `batch` column for the rest of the
+  pipeline. Use this to drive the correction off any user-named column
+  (e.g. `plate`, `run_batch`).
 
 ## Value
 

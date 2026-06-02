@@ -457,7 +457,26 @@ ui <- bslib::page_navbar(
         ),
         shiny::uiOutput("convert_input_dir_status"),
         htmltools::tags$p(class = "help-text",
-          "Directory containing raw vendor files (e.g., .wiff, .raw, .d)"
+          "Directory containing a 'raw_data' folder of vendor files. ",
+          "Multi-sample .wiff files sit flat (each is its own plate). ",
+          "One-file-per-sample formats (.d/.raw) must be grouped into plates: ",
+          "put each plate's files in a 'raw_data/<plateID>/' subfolder, or ",
+          "supply a manifest CSV below."
+        ),
+
+        htmltools::tags$label(class = "form-label", `for` = "convert_manifest",
+                              "Plate manifest (optional)"),
+        htmltools::tags$div(
+          class = "file-upload-area",
+          shiny::fileInput(
+            "convert_manifest", NULL,
+            accept = c(".csv", "text/csv"),
+            placeholder = "raw_file,plateID CSV"
+          )
+        ),
+        htmltools::tags$p(class = "help-text",
+          "CSV with columns 'raw_file' and 'plateID' mapping each vendor ",
+          "file to a plate. Leave empty to group by subfolder instead."
         ),
 
         htmltools::tags$label(class = "form-label", `for` = "convert_output_dir", "Output Directory"),

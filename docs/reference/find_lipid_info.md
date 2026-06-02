@@ -13,7 +13,10 @@ find_lipid_info(
   FUNC_mzR,
   idx_plate,
   idx_mzML,
-  idx_mrm
+  idx_mrm,
+  strict_mz_tol = 0.01,
+  fallback_mz_tol = 0.05,
+  rt_tol = 0.1
 )
 ```
 

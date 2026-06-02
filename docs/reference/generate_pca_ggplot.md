@@ -23,4 +23,7 @@ generate_pca_ggplot(master_list, fill_var)
 
 ## Value
 
-A `ggplot` object representing the PCA scores.
+A `plotly` object representing the PCA scores (the inner `ggplot` is
+exposed separately via
+[`generate_pca_ggplot_static()`](https://mstargetr.github.io/MStargetR/reference/generate_pca_ggplot_static.md)
+so the same figure can be written to disk as a static PDF for R users).

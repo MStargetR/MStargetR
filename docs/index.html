@@ -12,8 +12,8 @@
 <link rel="icon" sizes="any" href="favicon.ico">
 <link rel="manifest" href="site.webmanifest">
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Targeted MRM Mass Spectrometry Data Processing and Quality Control">
 <meta name="description" content="Provides a comprehensive workflow for processing targeted multiple reaction monitoring (MRM) mass spectrometry data. Includes tools for raw data conversion via msConvert, peak integration, quality control assessment, batch correction using signal drift algorithms, and interactive visualisation through a Shiny application. Designed for liquid chromatography-mass spectrometry (LC-MS) metabolomics workflows.">
@@ -28,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,7 +41,9 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/MStargetR-vignette.html">MStargetR &lt;img src='man/figures/logo.png' style='float: right; height:100px;' /&gt;</a></li>
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Getting Started</h6></li>
+    <li><a class="dropdown-item" href="articles/MStargetR-vignette.html">MStargetR</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -63,14 +65,10 @@
 <img src="logo.png" class="logo" alt=""><h1 id="mstargetr-">MStargetR <a class="anchor" aria-label="anchor" href="#mstargetr-"></a>
 </h1>
 </div>
-<p><a href="LICENSE"><img src="https://img.shields.io/github/license/MStargetR/MStargetR.svg?color=%23A31F34" alt="license"></a> <a href="https://github.com/semantic-release/semantic-release" class="external-link"><img src="https://img.shields.io/badge/semantic--release-angular-E10079.svg?logo=semantic-release&amp;logoColor=%23E10079" alt="semantic-release"></a> <a href="https://doi.org/10.5281/zenodo.14996218" class="external-link"><img src="https://img.shields.io/badge/zenodo-10.5281/zenodo.14996218-blue.svg?logo=doi&amp;logoColor=blue" alt="doi-zenodo"></a></p>
-<div class="section level2">
-<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
-</h2>
+<p><a href="LICENSE"><img src="https://img.shields.io/github/license/MStargetR/MStargetR.svg?color=%23A31F34" alt="license"></a> <a href="https://github.com/semantic-release/semantic-release" class="external-link"><img src="https://img.shields.io/badge/semantic--release-angular-E10079.svg?logo=semantic-release&amp;logoColor=%23E10079" alt="semantic-release"></a> <a href="https://doi.org/10.5281/zenodo.18476537" class="external-link"><img src="https://img.shields.io/badge/zenodo-10.5281/zenodo.18476537-blue.svg?logo=doi&amp;logoColor=blue" alt="doi-zenodo"></a> <a href="https://codecov.io/gh/MStargetR/MStargetR" class="external-link"><img src="https://codecov.io/gh/MStargetR/MStargetR/branch/main/graph/badge.svg" alt="codecov"></a> ## Overview</p>
 <p>MStargetR provides a complete, end-to-end pipeline for processing targeted multiple reaction monitoring (MRM) liquid chromatography–mass spectrometry (LC-MS) data. It takes raw vendor files as input and produces quality-controlled, batch-corrected concentration data ready for downstream statistical analysis. The package is designed for metabolomics researchers who need a reproducible, automated workflow that handles multi-plate and multi-method experiments.</p>
 <p>Cross-platform support is achieved through Docker, which encapsulates the vendor file conversion and peak integration steps so that the same workflow runs on Windows, macOS, and Linux. An interactive Shiny application is also included for users who prefer a graphical interface over scripting.</p>
 <p>The core pipeline consists of three stages: (1) conversion of proprietary vendor files to open mzML format via ProteoWizard, (2) retention time optimisation and peak picking/integration via Skyline, and (3) quality control assessment with batch and signal drift correction. Each stage is exposed as an independent function that can be used on its own or combined into a single script.</p>
-</div>
 <div class="section level2">
 <h2 id="key-features">Key Features<a class="anchor" aria-label="anchor" href="#key-features"></a>
 </h2>
@@ -98,13 +96,38 @@
 <li>
 <strong>R</strong> &gt;= 4.1.0</li>
 <li>
-<strong>Docker Desktop</strong> – required for <code><a href="reference/msConvertR.html">msConvertR()</a></code> and <code><a href="reference/PeakForgeR.html">PeakForgeR()</a></code>. Download from <a href="https://www.docker.com/get-started/" class="external-link uri">https://www.docker.com/get-started/</a>. Ensure Docker is running in the background before calling these functions.</li>
+<strong>Container runtime</strong> for <code><a href="reference/msConvertR.html">msConvertR()</a></code> and <code><a href="reference/PeakForgeR.html">PeakForgeR()</a></code>:
+<ul>
 <li>
-<strong>Bioconductor dependencies</strong> – the packages <code>mzR</code>, <code>ropls</code>, and <code>statTarget</code> are installed automatically when using the helper installation function below.</li>
+<strong>Docker Desktop</strong> on workstations (default). Download from <a href="https://www.docker.com/get-started/" class="external-link uri">https://www.docker.com/get-started/</a>. Ensure Docker is running in the background before calling these functions.</li>
+<li>
+<strong>Apptainer / Singularity</strong> on HPC clusters (set <code>enable_HPC = TRUE</code>, see “Running on HPC” below).</li>
+</ul>
+</li>
+<li>
+<strong>Bioconductor dependencies</strong> – the packages <code>mzR</code>, <code>ropls</code>, and <code>statTarget</code> are installed automatically when using the helper installation function below. <code>sva</code> is also required when using <code>method = "ComBat"</code> in <code><a href="reference/batchCorrectR.html">batchCorrectR()</a></code> and can be installed with <code>BiocManager::install("sva")</code>.</li>
 <li>
 <strong>Minimum 8 GB RAM</strong> recommended for processing large datasets.</li>
 </ul>
 <p><strong>Apple Silicon limitation:</strong> Devices with Apple silicon (M1, M2, M3, M4) are currently unable to run <code><a href="reference/msConvertR.html">msConvertR()</a></code> or <code><a href="reference/PeakForgeR.html">PeakForgeR()</a></code> (with method set to Skyline) due to Docker image architecture constraints on ARM processors.</p>
+</div>
+<div class="section level2">
+<h2 id="running-on-hpc-apptainer--singularity">Running on HPC (Apptainer / Singularity)<a class="anchor" aria-label="anchor" href="#running-on-hpc-apptainer--singularity"></a>
+</h2>
+<p>Most HPC clusters forbid Docker. <code><a href="reference/msConvertR.html">msConvertR()</a></code> and <code><a href="reference/PeakForgeR.html">PeakForgeR()</a></code> accept an <code>enable_HPC = TRUE</code> argument that swaps Docker for Apptainer (formerly Singularity), which converts the same ProteoWizard image to a <code>.sif</code> and runs it as the invoking user with no daemon required.</p>
+<p><strong>Step 1 – pull the SIF on a login node (one-time, ~GB):</strong></p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="ex">module</span> load apptainer</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="ex">apptainer</span> pull mstargetr-pwiz.sif <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>    docker://proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:skyline_26.1.0.057-c07debd</span></code></pre></div>
+<p>(Substitute the tag pinned by your installed MStargetR version – <code>MStargetR:::MSTARGETR_DOCKER_IMAGE_TAG</code> prints it.)</p>
+<p><strong>Step 2 – point MStargetR at the SIF in your <code>.Rprofile</code> so every job picks it up automatically:</strong></p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span></span>
+<span>  MStargetR.enable_HPC <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  MStargetR.sif_path   <span class="op">=</span> <span class="st">"/path/to/mstargetr-pwiz.sif"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>With these set you can call <code><a href="reference/msConvertR.html">msConvertR()</a></code> and <code><a href="reference/PeakForgeR.html">PeakForgeR()</a></code> exactly as on a workstation – no other code changes needed.</p>
+<p>If <code>MStargetR.sif_path</code> is unset and the compute node has outbound network, MStargetR will auto-pull the SIF into <code>tools::R_user_dir("MStargetR", "cache")</code> on first use. HPC compute nodes typically lack internet, so set the option explicitly.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -125,17 +148,17 @@
 <h3 id="from-r-helper-function">From R: helper function<a class="anchor" aria-label="anchor" href="#from-r-helper-function"></a>
 </h3>
 <p>The quickest way to install MStargetR from an R session is with the bundled helper function:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/MStargetR/MStargetR/master/R/install.R"</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/MStargetR/MStargetR/main/R/install.R"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/install_MStargetR.html">install_MStargetR</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/rm.html" class="external-link">rm</a></span><span class="op">(</span><span class="va">install_MStargetR</span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">MStargetR</span><span class="op">)</span></span></code></pre></div>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MStargetR/MStargetR" class="external-link">MStargetR</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="from-r-manual-installation">From R: manual installation<a class="anchor" aria-label="anchor" href="#from-r-manual-installation"></a>
 </h3>
 <p>If you prefer to manage dependencies yourself:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Install Bioconductor dependencies first</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"BiocManager"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"BiocManager"</span><span class="op">)</span></span>
@@ -153,29 +176,55 @@
 <div class="section level3">
 <h3 id="id_1-set-up-the-project-directory">1. Set up the project directory<a class="anchor" aria-label="anchor" href="#id_1-set-up-the-project-directory"></a>
 </h3>
-<p>Create a project folder with a <code>raw_data</code> subfolder containing your vendor files:</p>
-<pre><code><span><span class="va">MyProject</span><span class="op">/</span></span>
-<span>  <span class="va">raw_data</span><span class="op">/</span></span>
-<span>    <span class="va">plate1_sample1.wiff</span></span>
-<span>    <span class="va">plate1_sample1.wiff.scan</span></span>
-<span>    <span class="va">plate1_sample2.wiff</span></span>
-<span>    <span class="va">...</span></span></code></pre>
+<p>Create a project folder with a <code>raw_data</code> subfolder containing your vendor files. Each output mzML is grouped under a <strong>plate</strong> folder, which is the unit used for QC and batch correction downstream.</p>
+<p><strong>SCIEX <code>.wiff</code> (one multi-sample file per plate)</strong> — place the files flat in <code>raw_data/</code>; each <code>.wiff</code> is treated as its own plate automatically:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>MyProject<span class="sc">/</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  raw_data<span class="sc">/</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>    plate1.wiff</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>    plate1.wiff.scan</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>    plate2.wiff</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>    plate2.wiff.scan</span></code></pre></div>
+<p><strong>One-file-per-sample formats (<code>.d</code>, <code>.raw</code>, …)</strong> — tell MStargetR which samples belong to which plate, either by putting each plate’s files in a <strong>subfolder of <code>raw_data/</code> named after the plate</strong>:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>MyProject<span class="sc">/</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  raw_data<span class="sc">/</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>    PlateA<span class="sc">/</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>      sample1.raw</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>      sample2.raw</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>    PlateB<span class="sc">/</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>      sample1.raw</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>      sample2.raw</span></code></pre></div>
+<p>…or by passing a <strong>manifest</strong> CSV (<code>raw_file,plateID</code>) when the grouping lives in an instrument worklist / LIMS export:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>MyProject<span class="sc">/</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  raw_data<span class="sc">/</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>    sample1.raw</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>    sample2.raw</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  manifest.csv      <span class="co"># columns: raw_file,plateID</span></span></code></pre></div>
+<blockquote>
+<p>If multiple single-sample files are left flat in <code>raw_data/</code> with <strong>no</strong> subfolder and <strong>no</strong> manifest, <code><a href="reference/msConvertR.html">msConvertR()</a></code> stops and asks you to declare the plates, rather than silently creating one folder per sample (which would make per-plate QC and batch correction meaningless).</p>
+</blockquote>
 </div>
 <div class="section level3">
 <h3 id="id_2-convert-vendor-files-to-mzml">2. Convert vendor files to mzML<a class="anchor" aria-label="anchor" href="#id_2-convert-vendor-files-to-mzml"></a>
 </h3>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">MStargetR</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MStargetR/MStargetR" class="external-link">MStargetR</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="reference/msConvertR.html">msConvertR</a></span><span class="op">(</span></span>
 <span>  input_directory  <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject/raw_data"</span>,</span>
 <span>  output_directory <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># With a manifest (one-file-per-sample formats grouped by an external sheet):</span></span>
+<span><span class="fu"><a href="reference/msConvertR.html">msConvertR</a></span><span class="op">(</span></span>
+<span>  input_directory  <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject/raw_data"</span>,</span>
+<span>  output_directory <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject"</span>,</span>
+<span>  manifest         <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject/manifest.csv"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="id_3-peak-picking-and-integration">3. Peak picking and integration<a class="anchor" aria-label="anchor" href="#id_3-peak-picking-and-integration"></a>
 </h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/PeakForgeR.html">PeakForgeR</a></span><span class="op">(</span></span>
 <span>  user_name         <span class="op">=</span> <span class="st">"jdoe"</span>,</span>
 <span>  project_directory <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject"</span>,</span>
@@ -186,8 +235,9 @@
 <div class="section level3">
 <h3 id="id_4-quality-control-and-reporting">4. Quality control and reporting<a class="anchor" aria-label="anchor" href="#id_4-quality-control-and-reporting"></a>
 </h3>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/qcCheckR.html">qcCheckR</a></span><span class="op">(</span></span>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Using QCRFSC (default, requires QC samples)</span></span>
+<span><span class="fu"><a href="reference/qcCheckR.html">qcCheckR</a></span><span class="op">(</span></span>
 <span>  user_name         <span class="op">=</span> <span class="st">"jdoe"</span>,</span>
 <span>  project_directory <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject"</span>,</span>
 <span>  mrm_template_list <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -198,7 +248,24 @@
 <span>  <span class="op">)</span>,</span>
 <span>  QC_sample_label   <span class="op">=</span> <span class="st">"LTR"</span>,</span>
 <span>  sample_tags       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sample"</span>, <span class="st">"control"</span>, <span class="st">"blank"</span>, <span class="st">"qc"</span><span class="op">)</span>,</span>
-<span>  mv_threshold      <span class="op">=</span> <span class="fl">50</span></span>
+<span>  mv_threshold      <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>  batch_method      <span class="op">=</span> <span class="st">"QCRFSC"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Using ComBat (does not require QC samples)</span></span>
+<span><span class="fu"><a href="reference/qcCheckR.html">qcCheckR</a></span><span class="op">(</span></span>
+<span>  user_name         <span class="op">=</span> <span class="st">"jdoe"</span>,</span>
+<span>  project_directory <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject"</span>,</span>
+<span>  mrm_template_list <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    v1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>      SIL_guide  <span class="op">=</span> <span class="st">"C:/Users/me/templates/lipid_mrm_v1.tsv"</span>,</span>
+<span>      conc_guide <span class="op">=</span> <span class="st">"C:/Users/me/templates/SIL_conc_guide_v1.tsv"</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  QC_sample_label   <span class="op">=</span> <span class="st">"LTR"</span>,</span>
+<span>  sample_tags       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sample"</span>, <span class="st">"control"</span>, <span class="st">"blank"</span>, <span class="st">"qc"</span><span class="op">)</span>,</span>
+<span>  mv_threshold      <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>  batch_method      <span class="op">=</span> <span class="st">"ComBat"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
@@ -206,34 +273,16 @@
 <h2 id="shiny-application">Shiny Application<a class="anchor" aria-label="anchor" href="#shiny-application"></a>
 </h2>
 <p>For an interactive, code-free experience, launch the built-in Shiny GUI:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">MStargetR</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MStargetR/MStargetR" class="external-link">MStargetR</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/launchMStargetR.html">launchMStargetR</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>The GUI requires additional packages (<code>shiny</code>, <code>bslib</code>, <code>DT</code>, <code>shinyWidgets</code>, <code>htmltools</code>). If any are missing, <code><a href="reference/launchMStargetR.html">launchMStargetR()</a></code> will display installation instructions.</p>
-</div>
-<div class="section level2">
-<h2 id="workflow-templates">Workflow Templates<a class="anchor" aria-label="anchor" href="#workflow-templates"></a>
-</h2>
-<p>MStargetR ships with pre-configured R Markdown workflow templates for common pipelines. List available templates or copy one to your working directory:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># List available workflows</span></span>
-<span><span class="fu"><a href="reference/use_workflow.html">use_workflow</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Copy the generic template (any user)</span></span>
-<span><span class="fu"><a href="reference/use_workflow.html">use_workflow</a></span><span class="op">(</span><span class="st">"generic"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Copy the ANPC CCSM lipidomics workflow</span></span>
-<span><span class="fu"><a href="reference/use_workflow.html">use_workflow</a></span><span class="op">(</span><span class="st">"CCSM"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Copy to a specific directory</span></span>
-<span><span class="fu"><a href="reference/use_workflow.html">use_workflow</a></span><span class="op">(</span><span class="st">"generic"</span>, output_dir <span class="op">=</span> <span class="st">"~/my_project"</span><span class="op">)</span></span></code></pre></div>
-<p>Edit the copied <code>.Rmd</code> file to set your project path and parameters, then knit or source it to run the full pipeline.</p>
 </div>
 <div class="section level2">
 <h2 id="standalone-batch-correction">Standalone Batch Correction<a class="anchor" aria-label="anchor" href="#standalone-batch-correction"></a>
 </h2>
 <p><code><a href="reference/batchCorrectR.html">batchCorrectR()</a></code> can be used independently of the main pipeline to apply QC-based signal drift and interbatch correction to any targeted LC-MS dataset. It accepts a data.frame with columns <code>sample_name</code>, <code>batch</code>, <code>sample_type</code>, <code>run_order</code>, and one or more numeric metabolite columns:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/batchCorrectR.html">batchCorrectR</a></span><span class="op">(</span></span>
 <span>  data   <span class="op">=</span> <span class="va">my_data</span>,</span>
 <span>  method <span class="op">=</span> <span class="st">"QCRFSC"</span>,</span>
@@ -252,27 +301,28 @@
 <h2 id="project-directory-structure">Project Directory Structure<a class="anchor" aria-label="anchor" href="#project-directory-structure"></a>
 </h2>
 <p>After running the full pipeline, the project directory will have the following structure:</p>
-<pre><code>MyProject/
-  Archive/                          # Archived vendor files and logs per plate
-  ALL/
-    data/
-      batch_correction/             # Batch and signal drift correction outputs
-      rda/                          # Saved R data objects from qcCheckR
-    html_report/                    # HTML report with PCA and control charts
-    xlsx_report/                    # Excel files for downstream analysis
-  PLATE_NAME/                       # One folder per plate
-    data/
-      mzml/                         # Converted mzML files
-      rda/                          # Saved R data objects from PeakForgeR
-      raw_data/                     # Original vendor files
-      PeakForgeR/                   # Peak picking input and output files</code></pre>
+<div class="sourceCode" id="cb13"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>MyProject<span class="sc">/</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  archive<span class="sc">/</span>                          <span class="co"># Archived vendor files and logs per plate</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  all<span class="sc">/</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>    data<span class="sc">/</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>      batch_correction<span class="sc">/</span>             <span class="co"># Batch and signal drift correction outputs</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>      qs2<span class="sc">/</span>                          <span class="co"># Saved R data objects from qcCheckR (qs2 format; load with qs2::qs_read())</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>    html_report<span class="sc">/</span>                    <span class="co"># HTML report with PCA and control charts</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>    xlsx_report<span class="sc">/</span>                    <span class="co"># Excel files for downstream analysis</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a>  PLATE_NAME<span class="sc">/</span>                       <span class="co"># One folder per plate</span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a>    data<span class="sc">/</span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a>      mzml<span class="sc">/</span>                         <span class="co"># Converted mzML files</span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a>      qs2<span class="sc">/</span>                          <span class="co"># Saved R data objects from PeakForgeR (qs2 format; load with qs2::qs_read())</span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a>      raw_data<span class="sc">/</span>                     <span class="co"># Original vendor files</span></span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a>      reports<span class="sc">/</span>                      <span class="co"># Peak picking reports</span></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a>      chromatograms<span class="sc">/</span>                <span class="co"># Exported chromatogram files</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
 <ul>
 <li>
-<strong>Vignette:</strong> A detailed user guide is available at <a href="https://mstargetr.github.io/MStargetR/MStargetR-vignette.html" class="uri">https://mstargetr.github.io/MStargetR/MStargetR-vignette.html</a>
+<strong>Vignette:</strong> A detailed user guide is available at <a href="https://mstargetr.github.io/MStargetR/articles/MStargetR-vignette.html" class="uri">https://mstargetr.github.io/MStargetR/articles/MStargetR-vignette.html</a>
 </li>
 <li>
 <strong>Function reference:</strong> Use <code><a href="reference/msConvertR.html">?msConvertR</a></code>, <code><a href="reference/PeakForgeR.html">?PeakForgeR</a></code>, <code><a href="reference/qcCheckR.html">?qcCheckR</a></code>, <code><a href="reference/batchCorrectR.html">?batchCorrectR</a></code>, <code><a href="reference/launchMStargetR.html">?launchMStargetR</a></code>, <code><a href="reference/transition_checkR.html">?transition_checkR</a></code>, or <code><a href="reference/compare_mrm_template_with_guide.html">?compare_mrm_template_with_guide</a></code> for full parameter documentation.</li>
@@ -285,7 +335,11 @@
 <li>
 <strong>Run R as administrator</strong> on Windows to ensure Docker communication works correctly.</li>
 <li>
-<strong>Verify Docker is installed and running.</strong> Both <code><a href="reference/msConvertR.html">msConvertR()</a></code> and <code><a href="reference/PeakForgeR.html">PeakForgeR()</a></code> require Docker Desktop to be active in the background.</li>
+<strong>Verify Docker is installed and running.</strong> Both <code><a href="reference/msConvertR.html">msConvertR()</a></code> and <code><a href="reference/PeakForgeR.html">PeakForgeR()</a></code> require Docker Desktop to be active in the background – unless you are on HPC, in which case set <code>enable_HPC = TRUE</code> and use Apptainer (see “Running on HPC” above).</li>
+<li>
+<strong>HPC: pre-pull the SIF on a login node.</strong> Auto-pull fails on compute nodes without outbound network; set <code>options(MStargetR.sif_path = "/path/to/mstargetr-pwiz.sif")</code> after pulling once on a login node.</li>
+<li>
+<strong>HPC: load the Apptainer module.</strong> Most HPC sites require <code>module load apptainer</code> (or <code>singularity</code>) before R is launched.</li>
 <li>
 <strong>Keep software up to date.</strong> Ensure R, RStudio, and all package dependencies are current.</li>
 <li>
@@ -301,7 +355,7 @@
 </h2>
 <p>If you use MStargetR in your work, please cite:</p>
 <blockquote>
-<p>Szemray, H., Nambiar, V., Lawler, N., Wist, J., Lodge, S., &amp; Whiley, L. (2025). <em>MStargetR</em> [Computer software]. Zenodo. <a href="https://doi.org/10.5281/zenodo.14996218" class="external-link uri">https://doi.org/10.5281/zenodo.14996218</a></p>
+<p>Szemray, H., Nambiar, V., Lawler, N., Wist, J., Lodge, S., &amp; Whiley, L. (2025). <em>MStargetR</em> [Computer software]. Zenodo. <a href="https://doi.org/10.5281/zenodo.18476537" class="external-link uri">https://doi.org/10.5281/zenodo.18476537</a></p>
 </blockquote>
 </div>
 <div class="section level2">

@@ -10,8 +10,10 @@ script log.
 msConvertR_mzml_conversion(
   input_directory,
   output_directory,
-  plateIDs,
-  vendor_extension_patterns
+  groups,
+  vendor_extension_patterns = MSTARGETR_VENDOR_EXT_PATTERN,
+  sanitized_plateIDs = NULL,
+  enable_HPC = getOption("MStargetR.enable_HPC", FALSE)
 )
 ```
 
@@ -25,13 +27,10 @@ msConvertR_mzml_conversion(
 
   Directory path for project folder if different from input directory.
 
-- plateIDs:
+- groups:
 
-  vector of vendor files names to be converted
-
-- vendor_extension_patterns:
-
-  character string of vendor file extensions.
+  Plate membership table from
+  [`derive_plate_groups()`](https://mstargetr.github.io/MStargetR/reference/derive_plate_groups.md).
 
 ## Value
 
@@ -41,6 +40,6 @@ Converted mzml files.
 
 ``` r
 if (FALSE) { # \dontrun{
-msConvertR_mzml_conversion(input_directory, output_directory, plateIDs)
+msConvertR_mzml_conversion(input_directory, output_directory, groups)
 } # }
 ```

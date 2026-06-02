@@ -1,15 +1,18 @@
 # msConvertR_restructure_directory
 
-This function restructures the directory by moving raw_data and mzML
-files to correct locations.
+Relocates each plate's raw vendor files (and any `.wiff.scan`
+companions) into `<plateID>/data/raw_data`, using the explicit plate
+membership recorded in the grouping table rather than substring
+matching. mzML files are written directly into `<plateID>/data/mzml` by
+msconvert; this function only reports their count.
 
 ## Usage
 
 ``` r
 msConvertR_restructure_directory(
   output_directory,
-  plateIDs,
-  vendor_extension_patterns
+  groups,
+  vendor_extension_patterns = MSTARGETR_VENDOR_EXT_PATTERN
 )
 ```
 
@@ -17,26 +20,21 @@ msConvertR_restructure_directory(
 
 - output_directory:
 
-  Output directory where the mzML files will be stored.
+  Output directory where the plate folders live.
 
-- plateIDs:
+- groups:
 
-  filenames for plates being converted with no extension.
-
-- vendor_extension_patterns:
-
-  vector of file extensions for vendor files
+  Membership table from
+  [`derive_plate_groups()`](https://mstargetr.github.io/MStargetR/reference/derive_plate_groups.md).
 
 ## Value
 
-The updated master list object with mzML file paths.
+`invisible(NULL)`. Called for its side effects.
 
 ## Examples
 
 ``` r
 if (FALSE) { # \dontrun{
-master_list <- msConvertR_restructure_directory(output_directory,
-                                                plateIDs,
-                                                vendor_extension_patterns)
+msConvertR_restructure_directory(output_directory, groups)
 } # }
 ```

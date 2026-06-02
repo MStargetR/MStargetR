@@ -2,9 +2,9 @@
 
 [![license](https://img.shields.io/github/license/MStargetR/MStargetR.svg?color=%23A31F34)](https://mstargetr.github.io/MStargetR/LICENSE)
 [![semantic-release](https://img.shields.io/badge/semantic--release-angular-E10079.svg?logo=semantic-release&logoColor=%23E10079)](https://github.com/semantic-release/semantic-release)
-[![doi-zenodo](https://img.shields.io/badge/zenodo-10.5281/zenodo.14996218-blue.svg?logo=doi&logoColor=blue)](https://doi.org/10.5281/zenodo.14996218)
-
-## Overview
+[![doi-zenodo](https://img.shields.io/badge/zenodo-10.5281/zenodo.18476537-blue.svg?logo=doi&logoColor=blue)](https://doi.org/10.5281/zenodo.18476537)
+[![codecov](https://codecov.io/gh/MStargetR/MStargetR/branch/main/graph/badge.svg)](https://codecov.io/gh/MStargetR/MStargetR)
+\## Overview
 
 MStargetR provides a complete, end-to-end pipeline for processing
 targeted multiple reaction monitoring (MRM) liquid chromatography–mass
@@ -67,15 +67,21 @@ used on its own or combined into a single script.
 ## Requirements
 
 - **R** \>= 4.1.0
-- **Docker Desktop** – required for
+- **Container runtime** for
   [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
   and
-  [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md).
-  Download from <https://www.docker.com/get-started/>. Ensure Docker is
-  running in the background before calling these functions.
+  [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md):
+  - **Docker Desktop** on workstations (default). Download from
+    <https://www.docker.com/get-started/>. Ensure Docker is running in
+    the background before calling these functions.
+  - **Apptainer / Singularity** on HPC clusters (set
+    `enable_HPC = TRUE`, see “Running on HPC” below).
 - **Bioconductor dependencies** – the packages `mzR`, `ropls`, and
   `statTarget` are installed automatically when using the helper
-  installation function below.
+  installation function below. `sva` is also required when using
+  `method = "ComBat"` in
+  [`batchCorrectR()`](https://mstargetr.github.io/MStargetR/reference/batchCorrectR.md)
+  and can be installed with `BiocManager::install("sva")`.
 - **Minimum 8 GB RAM** recommended for processing large datasets.
 
 **Apple Silicon limitation:** Devices with Apple silicon (M1, M2, M3,
@@ -85,6 +91,49 @@ or
 [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
 (with method set to Skyline) due to Docker image architecture
 constraints on ARM processors.
+
+## Running on HPC (Apptainer / Singularity)
+
+Most HPC clusters forbid Docker.
+[`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+and
+[`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+accept an `enable_HPC = TRUE` argument that swaps Docker for Apptainer
+(formerly Singularity), which converts the same ProteoWizard image to a
+`.sif` and runs it as the invoking user with no daemon required.
+
+**Step 1 – pull the SIF on a login node (one-time, ~GB):**
+
+``` bash
+module load apptainer
+apptainer pull mstargetr-pwiz.sif \
+    docker://proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:skyline_26.1.0.057-c07debd
+```
+
+(Substitute the tag pinned by your installed MStargetR version –
+`MStargetR:::MSTARGETR_DOCKER_IMAGE_TAG` prints it.)
+
+**Step 2 – point MStargetR at the SIF in your `.Rprofile` so every job
+picks it up automatically:**
+
+``` r
+
+options(
+  MStargetR.enable_HPC = TRUE,
+  MStargetR.sif_path   = "/path/to/mstargetr-pwiz.sif"
+)
+```
+
+With these set you can call
+[`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+and
+[`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+exactly as on a workstation – no other code changes needed.
+
+If `MStargetR.sif_path` is unset and the compute node has outbound
+network, MStargetR will auto-pull the SIF into
+`tools::R_user_dir("MStargetR", "cache")` on first use. HPC compute
+nodes typically lack internet, so set the option explicitly.
 
 ## Installation
 
@@ -109,7 +158,8 @@ The quickest way to install MStargetR from an R session is with the
 bundled helper function:
 
 ``` r
-source("https://raw.githubusercontent.com/MStargetR/MStargetR/master/R/install.R")
+
+source("https://raw.githubusercontent.com/MStargetR/MStargetR/main/R/install.R")
 install_MStargetR()
 rm(install_MStargetR)
 library(MStargetR)
@@ -120,6 +170,7 @@ library(MStargetR)
 If you prefer to manage dependencies yourself:
 
 ``` r
+
 # Install Bioconductor dependencies first
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
@@ -136,29 +187,78 @@ remotes::install_github("MStargetR/MStargetR")
 ### 1. Set up the project directory
 
 Create a project folder with a `raw_data` subfolder containing your
-vendor files:
+vendor files. Each output mzML is grouped under a **plate** folder,
+which is the unit used for QC and batch correction downstream.
 
-    MyProject/
-      raw_data/
-        plate1_sample1.wiff
-        plate1_sample1.wiff.scan
-        plate1_sample2.wiff
-        ...
+**SCIEX `.wiff` (one multi-sample file per plate)** — place the files
+flat in `raw_data/`; each `.wiff` is treated as its own plate
+automatically:
+
+``` R
+MyProject/
+  raw_data/
+    plate1.wiff
+    plate1.wiff.scan
+    plate2.wiff
+    plate2.wiff.scan
+```
+
+**One-file-per-sample formats (`.d`, `.raw`, …)** — tell MStargetR which
+samples belong to which plate, either by putting each plate’s files in a
+**subfolder of `raw_data/` named after the plate**:
+
+``` R
+MyProject/
+  raw_data/
+    PlateA/
+      sample1.raw
+      sample2.raw
+    PlateB/
+      sample1.raw
+      sample2.raw
+```
+
+…or by passing a **manifest** CSV (`raw_file,plateID`) when the grouping
+lives in an instrument worklist / LIMS export:
+
+``` R
+MyProject/
+  raw_data/
+    sample1.raw
+    sample2.raw
+  manifest.csv      # columns: raw_file,plateID
+```
+
+> If multiple single-sample files are left flat in `raw_data/` with
+> **no** subfolder and **no** manifest,
+> [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+> stops and asks you to declare the plates, rather than silently
+> creating one folder per sample (which would make per-plate QC and
+> batch correction meaningless).
 
 ### 2. Convert vendor files to mzML
 
 ``` r
+
 library(MStargetR)
 
 msConvertR(
   input_directory  = "C:/Users/me/Desktop/MyProject/raw_data",
   output_directory = "C:/Users/me/Desktop/MyProject"
 )
+
+# With a manifest (one-file-per-sample formats grouped by an external sheet):
+msConvertR(
+  input_directory  = "C:/Users/me/Desktop/MyProject/raw_data",
+  output_directory = "C:/Users/me/Desktop/MyProject",
+  manifest         = "C:/Users/me/Desktop/MyProject/manifest.csv"
+)
 ```
 
 ### 3. Peak picking and integration
 
 ``` r
+
 PeakForgeR(
   user_name         = "jdoe",
   project_directory = "C:/Users/me/Desktop/MyProject",
@@ -170,6 +270,8 @@ PeakForgeR(
 ### 4. Quality control and reporting
 
 ``` r
+
+# Using QCRFSC (default, requires QC samples)
 qcCheckR(
   user_name         = "jdoe",
   project_directory = "C:/Users/me/Desktop/MyProject",
@@ -181,7 +283,24 @@ qcCheckR(
   ),
   QC_sample_label   = "LTR",
   sample_tags       = c("sample", "control", "blank", "qc"),
-  mv_threshold      = 50
+  mv_threshold      = 50,
+  batch_method      = "QCRFSC"
+)
+
+# Using ComBat (does not require QC samples)
+qcCheckR(
+  user_name         = "jdoe",
+  project_directory = "C:/Users/me/Desktop/MyProject",
+  mrm_template_list = list(
+    v1 = list(
+      SIL_guide  = "C:/Users/me/templates/lipid_mrm_v1.tsv",
+      conc_guide = "C:/Users/me/templates/SIL_conc_guide_v1.tsv"
+    )
+  ),
+  QC_sample_label   = "LTR",
+  sample_tags       = c("sample", "control", "blank", "qc"),
+  mv_threshold      = 50,
+  batch_method      = "ComBat"
 )
 ```
 
@@ -190,6 +309,7 @@ qcCheckR(
 For an interactive, code-free experience, launch the built-in Shiny GUI:
 
 ``` r
+
 library(MStargetR)
 launchMStargetR()
 ```
@@ -198,29 +318,6 @@ The GUI requires additional packages (`shiny`, `bslib`, `DT`,
 `shinyWidgets`, `htmltools`). If any are missing,
 [`launchMStargetR()`](https://mstargetr.github.io/MStargetR/reference/launchMStargetR.md)
 will display installation instructions.
-
-## Workflow Templates
-
-MStargetR ships with pre-configured R Markdown workflow templates for
-common pipelines. List available templates or copy one to your working
-directory:
-
-``` r
-# List available workflows
-use_workflow()
-
-# Copy the generic template (any user)
-use_workflow("generic")
-
-# Copy the ANPC CCSM lipidomics workflow
-use_workflow("CCSM")
-
-# Copy to a specific directory
-use_workflow("generic", output_dir = "~/my_project")
-```
-
-Edit the copied `.Rmd` file to set your project path and parameters,
-then knit or source it to run the full pipeline.
 
 ## Standalone Batch Correction
 
@@ -231,6 +328,7 @@ accepts a data.frame with columns `sample_name`, `batch`, `sample_type`,
 `run_order`, and one or more numeric metabolite columns:
 
 ``` r
+
 result <- batchCorrectR(
   data   = my_data,
   method = "QCRFSC",
@@ -255,25 +353,28 @@ for full parameter documentation.
 After running the full pipeline, the project directory will have the
 following structure:
 
-    MyProject/
-      Archive/                          # Archived vendor files and logs per plate
-      ALL/
-        data/
-          batch_correction/             # Batch and signal drift correction outputs
-          rda/                          # Saved R data objects from qcCheckR
-        html_report/                    # HTML report with PCA and control charts
-        xlsx_report/                    # Excel files for downstream analysis
-      PLATE_NAME/                       # One folder per plate
-        data/
-          mzml/                         # Converted mzML files
-          rda/                          # Saved R data objects from PeakForgeR
-          raw_data/                     # Original vendor files
-          PeakForgeR/                   # Peak picking input and output files
+``` R
+MyProject/
+  archive/                          # Archived vendor files and logs per plate
+  all/
+    data/
+      batch_correction/             # Batch and signal drift correction outputs
+      qs2/                          # Saved R data objects from qcCheckR (qs2 format; load with qs2::qs_read())
+    html_report/                    # HTML report with PCA and control charts
+    xlsx_report/                    # Excel files for downstream analysis
+  PLATE_NAME/                       # One folder per plate
+    data/
+      mzml/                         # Converted mzML files
+      qs2/                          # Saved R data objects from PeakForgeR (qs2 format; load with qs2::qs_read())
+      raw_data/                     # Original vendor files
+      reports/                      # Peak picking reports
+      chromatograms/                # Exported chromatogram files
+```
 
 ## Documentation
 
 - **Vignette:** A detailed user guide is available at
-  <https://mstargetr.github.io/MStargetR/MStargetR-vignette.html>
+  <https://mstargetr.github.io/MStargetR/articles/MStargetR-vignette.html>
 - **Function reference:** Use
   [`?msConvertR`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md),
   [`?PeakForgeR`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md),
@@ -293,7 +394,15 @@ following structure:
   [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
   and
   [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
-  require Docker Desktop to be active in the background.
+  require Docker Desktop to be active in the background – unless you are
+  on HPC, in which case set `enable_HPC = TRUE` and use Apptainer (see
+  “Running on HPC” above).
+- **HPC: pre-pull the SIF on a login node.** Auto-pull fails on compute
+  nodes without outbound network; set
+  `options(MStargetR.sif_path = "/path/to/mstargetr-pwiz.sif")` after
+  pulling once on a login node.
+- **HPC: load the Apptainer module.** Most HPC sites require
+  `module load apptainer` (or `singularity`) before R is launched.
 - **Keep software up to date.** Ensure R, RStudio, and all package
   dependencies are current.
 - **Check for file corruption.** Corrupted vendor files or incomplete
@@ -310,7 +419,7 @@ If you use MStargetR in your work, please cite:
 
 > Szemray, H., Nambiar, V., Lawler, N., Wist, J., Lodge, S., & Whiley,
 > L. (2025). *MStargetR* \[Computer software\]. Zenodo.
-> <https://doi.org/10.5281/zenodo.14996218>
+> <https://doi.org/10.5281/zenodo.18476537>
 
 ## License
 

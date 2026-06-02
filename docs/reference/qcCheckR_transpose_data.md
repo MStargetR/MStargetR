@@ -24,6 +24,10 @@ The updated `master_list` object with transposed peak area data.
 
 ``` r
 if (FALSE) { # \dontrun{
-qcCheckR_transpose_data(master_list)
+# master_list must first be built by qcCheckR_setup_project():
+# master_list <- qcCheckR_setup_project(user_name, project_directory,
+#                                        mrm_template_list, QC_sample_label,
+#                                        sample_tags, mv_threshold)
+master_list <- qcCheckR_transpose_data(master_list)
 } # }
 ```

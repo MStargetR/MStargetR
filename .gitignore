@@ -228,5 +228,10 @@ network-requests.txt
 tests/testthat/_problems/
 tests/testthat/testthat-problems.rds
 
-# Research artifacts not part of the package
-benchmark/
+# Research artifacts not part of the package.
+# Use benchmark/** (not benchmark/) so negation exceptions below can
+# override individual files inside the directory.
+benchmark/**
+# Force-include the HPC smoke driver; generated summary.md stays ignored.
+!benchmark/hpc-smoke/
+!benchmark/hpc-smoke/run.R

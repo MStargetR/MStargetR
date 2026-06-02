@@ -257,6 +257,13 @@ Before running the pipeline, create a project directory and place your
 vendor raw files (e.g., `.wiff`, `.wiff.scan`, `.raw`, `.d`) inside a
 subdirectory named `raw_data`.
 
+The pipeline organises everything by **plate** -- one folder per plate,
+which is the unit used for QC and batch correction. How you arrange
+`raw_data/` tells `msConvertR()` which samples belong to which plate.
+
+**SCIEX `.wiff` (one multi-sample file per plate).** Place the files flat
+in `raw_data/`; each `.wiff` is its own plate automatically.
+
 ```{r project_setup, eval=FALSE}
 # Define the project directory
 project_dir <- "/path/to/my_project"
@@ -265,16 +272,45 @@ project_dir <- "/path/to/my_project"
 raw_data_dir <- file.path(project_dir, "raw_data")
 dir.create(raw_data_dir, recursive = TRUE)
 
-# Copy or move your vendor files into raw_data_dir.
-# Example structure:
+# Flat .wiff layout (each file = one plate):
 #   my_project/
 #     raw_data/
-#       STUDY_PLATE_1-sample_01.wiff
-#       STUDY_PLATE_1-sample_01.wiff.scan
-#       STUDY_PLATE_1-sample_02.wiff
-#       STUDY_PLATE_1-sample_02.wiff.scan
-#       ...
+#       STUDY_PLATE_1.wiff
+#       STUDY_PLATE_1.wiff.scan
+#       STUDY_PLATE_2.wiff
+#       STUDY_PLATE_2.wiff.scan
 ```
+
+**One-file-per-sample formats (`.d`, `.raw`, ...).** These vendors write
+one file per sample, so you must tell `msConvertR()` how to group them
+into plates. Use **either** a per-plate subfolder (recommended) **or** a
+manifest CSV.
+
+```{r project_setup_grouping, eval=FALSE}
+# Option A -- per-plate subfolders (subfolder name = plate ID):
+#   my_project/
+#     raw_data/
+#       PlateA/
+#         sample01.raw
+#         sample02.raw
+#       PlateB/
+#         sample01.raw
+#         sample02.raw
+
+# Option B -- a manifest CSV mapping each file to a plate
+#   (use when grouping comes from an instrument worklist or LIMS export):
+manifest <- data.frame(
+  raw_file = c("sample01.raw", "sample02.raw", "sample03.raw"),
+  plateID  = c("PlateA",       "PlateA",       "PlateB")
+)
+write.csv(manifest, file.path(project_dir, "manifest.csv"), row.names = FALSE)
+```
+
+> **Why grouping matters.** If several single-sample files are left flat
+> in `raw_data/` with no subfolder and no manifest, `msConvertR()` stops
+> with guidance instead of silently creating one folder per sample --
+> which would collapse per-plate QC and batch correction to a single
+> sample. Multi-sample `.wiff` files are exempt; each is its own plate.
 
 ---
 
@@ -291,8 +327,9 @@ eliminates the need for a Windows-only ProteoWizard installation.
 
 | Parameter | Type | Description |
 |:--|:--|:--|
-| `input_directory` | Character | Path to the directory containing vendor raw files. |
+| `input_directory` | Character | Path to the directory containing a `raw_data/` folder of vendor raw files. |
 | `output_directory` | Character | Path where converted mzML files and the project structure will be created. May be the same as `input_directory`. |
+| `manifest` | Character / data.frame / NULL | Optional `raw_file,plateID` mapping (CSV path or data frame) used to group one-file-per-sample formats into plates. When `NULL` (default), plate membership is inferred from per-plate subfolders under `raw_data/`, falling back to the filename for flat files. |
 
 ### Supported vendor formats
 
@@ -303,16 +340,26 @@ Bruker (`.d`, `.baf`, `.fid`, `.yep`, `.tsf`, `.tdf`), SCIEX (`.wiff`,
 ### Example
 
 ```{r msconvertr_example, eval=FALSE}
+# Flat .wiff or per-plate subfolders -- no manifest needed:
 msConvertR(
   input_directory  = "/path/to/my_project",
   output_directory = "/path/to/my_project"
+)
+
+# One-file-per-sample formats grouped by a manifest:
+msConvertR(
+  input_directory  = "/path/to/my_project",
+  output_directory = "/path/to/my_project",
+  manifest         = "/path/to/my_project/manifest.csv"
 )
 ```
 
 After conversion, `msConvertR` creates a structured project directory
 with one subfolder per plate. Each plate folder contains `data/mzml/`
 holding the converted files and `data/raw_data/` holding the original
-vendor files.
+vendor files. All samples belonging to a plate -- whether they came from
+one multi-sample `.wiff` or many single-sample `.d`/`.raw` files -- land
+together in that plate's `data/mzml/`.
 
 **Note:** Docker Desktop must be running before calling `msConvertR()`.
 The function will stop with an informative error if Docker is not

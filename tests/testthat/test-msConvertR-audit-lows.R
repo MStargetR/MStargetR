@@ -60,7 +60,7 @@ test_that("msConvertR_construct_command_for_terminal suppresses full docker args
   withr::with_options(list(MStargetR.verbose = FALSE), {
     withCallingHandlers(
       msConvertR_construct_command_for_terminal(tmp, file.path(tmp, "out"),
-                                               plateIDs = "plate1"),
+                                               "plate1"),
       message = function(m) {
         msgs <<- c(msgs, conditionMessage(m))
         invokeRestart("muffleMessage")
@@ -84,7 +84,7 @@ test_that("msConvertR_construct_command_for_terminal emits full docker args when
   withr::with_options(list(MStargetR.verbose = TRUE), {
     withCallingHandlers(
       msConvertR_construct_command_for_terminal(tmp, file.path(tmp, "out"),
-                                               plateIDs = "plate1"),
+                                               "plate1"),
       message = function(m) {
         msgs <<- c(msgs, conditionMessage(m))
         invokeRestart("muffleMessage")
@@ -310,7 +310,7 @@ test_that("msConvertR_mzml_conversion delegates planning to construct and execut
 
   suppressMessages(
     msConvertR_mzml_conversion("in", "out",
-                               plateIDs = character(0),
+                               character(0),
                                vendor_extension_patterns = "\\.wiff$")
   )
   expect_true(construct_called)

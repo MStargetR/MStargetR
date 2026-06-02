@@ -8,7 +8,14 @@ against the sample run index.
 ## Usage
 
 ``` r
-plot_control_chart(master_list, metabolite, plate_boundaries, annotate_label)
+plot_control_chart(
+  master_list,
+  metabolite,
+  plate_boundaries,
+  area_imp = NULL,
+  conc_imp = NULL,
+  conc_st = NULL
+)
 ```
 
 ## Arguments
@@ -25,11 +32,24 @@ plot_control_chart(master_list, metabolite, plate_boundaries, annotate_label)
 
   A vector of plate boundaries for vertical lines in the plot.
 
-- annotate_label:
+- area_imp:
 
-  A tibble containing annotations for the plates.
+  Pre-bound peak area imputed tibble (optional; computed internally if
+  NULL).
+
+- conc_imp:
+
+  Pre-bound concentration imputed tibble (optional; computed internally
+  if NULL).
+
+- conc_st:
+
+  Pre-bound statTargetProcessed concentration tibble (optional; computed
+  internally if NULL).
 
 ## Value
 
-A `ggplot` object representing the control chart for the specified
-metabolite.
+A `plotly` object representing the control chart for the specified
+metabolite (the inner ggplot is exposed separately via
+[`plot_control_chart_static()`](https://mstargetr.github.io/MStargetR/reference/plot_control_chart_static.md)
+so the same figure can be written to disk as a static PDF for R users).

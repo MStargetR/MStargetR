@@ -51,6 +51,9 @@ The updated `master_list` object with the project setup details.
 
 ``` r
 if (FALSE) { # \dontrun{
-qcCheckR_setup_project(user_name, project_directory, QC_sample_label, sample_tags, mv_threshold)
+qcCheckR_setup_project(
+  user_name, project_directory, mrm_template_list,
+  QC_sample_label, sample_tags, mv_threshold
+)
 } # }
 ```

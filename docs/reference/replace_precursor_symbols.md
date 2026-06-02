@@ -22,6 +22,16 @@ Updated mrm_template with special characters replaced in 'Precursor
 Name' and 'Note', while the original names are preserved for the columns
 in original_col
 
+## Scope of sanitisation
+
+This function only replaces `/` and `\` with underscores to satisfy
+Skyline's path parser. It does *not* provide general shell safety. If
+any returned value is later interpolated into a shell command, callers
+must use `system2(args = vector)` (never string interpolation) or pass
+the value through
+[`sanitize_identifier()`](https://mstargetr.github.io/MStargetR/reference/sanitize_identifier.md)
+first.
+
 ## Examples
 
 ``` r

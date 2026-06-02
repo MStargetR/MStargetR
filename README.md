@@ -165,14 +165,45 @@ remotes::install_github("MStargetR/MStargetR")
 ### 1. Set up the project directory
 
 Create a project folder with a `raw_data` subfolder containing your
-vendor files:
+vendor files. Each output mzML is grouped under a **plate** folder, which
+is the unit used for QC and batch correction downstream.
+
+**SCIEX `.wiff` (one multi-sample file per plate)** — place the files flat
+in `raw_data/`; each `.wiff` is treated as its own plate automatically:
 
     MyProject/
       raw_data/
-        plate1_sample1.wiff
-        plate1_sample1.wiff.scan
-        plate1_sample2.wiff
-        ...
+        plate1.wiff
+        plate1.wiff.scan
+        plate2.wiff
+        plate2.wiff.scan
+
+**One-file-per-sample formats (`.d`, `.raw`, …)** — tell MStargetR which
+samples belong to which plate, either by putting each plate's files in a
+**subfolder of `raw_data/` named after the plate**:
+
+    MyProject/
+      raw_data/
+        PlateA/
+          sample1.raw
+          sample2.raw
+        PlateB/
+          sample1.raw
+          sample2.raw
+
+…or by passing a **manifest** CSV (`raw_file,plateID`) when the grouping
+lives in an instrument worklist / LIMS export:
+
+    MyProject/
+      raw_data/
+        sample1.raw
+        sample2.raw
+      manifest.csv      # columns: raw_file,plateID
+
+> If multiple single-sample files are left flat in `raw_data/` with **no**
+> subfolder and **no** manifest, `msConvertR()` stops and asks you to
+> declare the plates, rather than silently creating one folder per sample
+> (which would make per-plate QC and batch correction meaningless).
 
 ### 2. Convert vendor files to mzML
 
@@ -182,6 +213,13 @@ library(MStargetR)
 msConvertR(
   input_directory  = "C:/Users/me/Desktop/MyProject/raw_data",
   output_directory = "C:/Users/me/Desktop/MyProject"
+)
+
+# With a manifest (one-file-per-sample formats grouped by an external sheet):
+msConvertR(
+  input_directory  = "C:/Users/me/Desktop/MyProject/raw_data",
+  output_directory = "C:/Users/me/Desktop/MyProject",
+  manifest         = "C:/Users/me/Desktop/MyProject/manifest.csv"
 )
 ```
 

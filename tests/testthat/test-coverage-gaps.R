@@ -80,33 +80,26 @@ test_that("msConvertR_construct_command_for_terminal skips plates with existing 
 })
 
 # ============================================================================
-# msConvertR.R — Duplicate plateIDs deduplication (lines 102-107)
+# derive_plate_groups — a .wiff and its .wiff.scan companion form ONE plate
+# (the .scan is never treated as a separate plate/member)
 # ============================================================================
 
-test_that("msConvertR deduplicates plateIDs from vendor files", {
+test_that("derive_plate_groups maps a .wiff + .scan companion to a single plate", {
   suppressMessages({
-    stub(msConvertR, "validate_input_directory", function(dir) TRUE)
-    # Return files that resolve to the same plateID after extension removal
-    stub(msConvertR, "validate_file_types", function(dir) {
-      c("path/to/raw_data/PLATE_1.wiff",
-        "path/to/raw_data/PLATE_1.wiff.scan")
-    })
-    stub(msConvertR, "check_docker", function() TRUE)
+    temp_dir <- tempfile("dedup_wiff_scan_")
+    raw_dir <- file.path(temp_dir, "raw_data")
+    dir.create(raw_dir, recursive = TRUE, showWarnings = FALSE)
+    on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
 
-    captured_plateIDs <- NULL
-    stub(msConvertR, "msConvertR_mzml_conversion",
-         function(input, output, plateIDs, pattern, ...) {
-           captured_plateIDs <<- plateIDs
-         })
+    file.create(file.path(raw_dir, "PLATE_1.wiff"))
+    file.create(file.path(raw_dir, "PLATE_1.wiff.scan"))
 
-    expect_message(
-      msConvertR("input_dir", "output_dir"),
-      "Removing.*duplicate"
-    )
+    groups <- derive_plate_groups(temp_dir)
 
-    # Should be deduplicated to a single plateID
-    expect_equal(length(captured_plateIDs), 1)
-    expect_equal(captured_plateIDs, "PLATE_1")
+    # Single plate, single member (the .wiff); the .scan is not a member
+    expect_equal(nrow(groups), 1L)
+    expect_equal(groups$sanitized_plateID, "PLATE_1")
+    expect_equal(groups$file_name, "PLATE_1.wiff")
   })
 })
 

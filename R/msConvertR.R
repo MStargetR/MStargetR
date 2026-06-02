@@ -1,6 +1,5 @@
 #' @keywords internal
 #' @name import_external_functions
-#' @importFrom stringr str_remove str_extract
 NULL
 
 #' Convert Vendor Mass Spectrometry Files to mzML Format
@@ -16,6 +15,18 @@ NULL
 #' @param output_directory A character string specifying the path to the
 #'   directory where the converted \code{.mzML} files and project structure
 #'   will be created.
+#' @param manifest Optional. Either a path to a CSV file or a
+#'   \code{data.frame} mapping each raw vendor file to a plate, with
+#'   (case-insensitive) columns \code{raw_file} and \code{plateID}. Use this
+#'   when plate membership for one-file-per-sample formats (e.g. \code{.d},
+#'   \code{.raw}) comes from an instrument worklist or LIMS export rather than
+#'   the folder layout. When \code{NULL} (default), plate membership is inferred
+#'   from per-plate subfolders under \code{raw_data/} (a file in
+#'   \code{raw_data/<plateID>/} belongs to that plate), falling back to the
+#'   filename for files placed flat in \code{raw_data/}. Multiple single-sample
+#'   files left flat with no grouping are rejected with guidance rather than
+#'   silently producing one folder per sample. A multi-sample \code{.wiff} is
+#'   always one plate.
 #' @param enable_HPC Logical. When \code{TRUE}, the ProteoWizard container is
 #'   invoked via Apptainer (Singularity) instead of Docker. This is the
 #'   intended runtime on HPC clusters where Docker is typically forbidden.
@@ -86,6 +97,7 @@ NULL
 
 
 msConvertR <- function (input_directory, output_directory,
+                        manifest = NULL,
                         enable_HPC = getOption("MStargetR.enable_HPC", FALSE),
                         ...) {
   # Warn callers who supply unexpected named arguments (forward-compat guard).
@@ -123,54 +135,57 @@ msConvertR <- function (input_directory, output_directory,
          output_directory, "'.", call. = FALSE)
   }
 
-  # Validate wiff files
-  file_paths <- validate_file_types(input_directory)
+  # Resolve plate membership from (priority order) the manifest, per-plate
+  # subfolders under raw_data/, or the flat filename. validate_file_types() is
+  # called inside and errors if no supported vendor files are present.
+  groups <- derive_plate_groups(input_directory, manifest = manifest)
 
-  # Check if wiff files are found
-  if (length(file_paths) == 0) {
+  # Refuse-and-prompt: multiple single-sample vendor files sitting flat in
+  # raw_data/ with no declared grouping are ambiguous (we cannot tell whether
+  # they are one plate or many). Rather than silently produce one folder per
+  # sample (which collapses per-plate QC and batch correction to n = 1), stop
+  # and ask the user to declare plates. Inherently multi-sample formats
+  # (.wiff/.wiff2) are exempt: each is legitimately its own plate.
+  ambiguous <- groups$source == "flat" & !groups$plate_level
+  if (sum(ambiguous) >= 2L) {
     stop(
-      "No supported files found in the specified input directory for processing. ",
-      "Checked: '", input_directory, "'. ",
-      "Please ensure the directory contains vendor files (.wiff, .raw, .d, etc.) and try again.",
+      "msConvertR: ", sum(ambiguous), " single-sample vendor file(s) were found ",
+      "flat in 'raw_data/' with no plate grouping:\n  ",
+      paste(groups$file_name[ambiguous], collapse = "\n  "),
+      "\n\nDeclare which samples belong to which plate by either:\n",
+      "  (a) placing each plate's files in a 'raw_data/<plateID>/' subfolder, or\n",
+      "  (b) passing manifest = path to a CSV with columns 'raw_file,plateID'.\n",
+      "(Multi-sample .wiff files are exempt - each is treated as its own plate.)",
       call. = FALSE
     )
   }
 
-  # Vendor file extensions — single authoritative pattern from config.R
-  vendor_extension_patterns <- MSTARGETR_VENDOR_EXT_PATTERN
-
-  # Set plateIDs
-  plateIDs <- str_remove(basename(file_paths), vendor_extension_patterns)
-
-  # Deduplicate plateIDs to prevent running conversion multiple times for the
-
-  # same plate when multiple vendor files resolve to the same name
-  if (anyDuplicated(plateIDs)) {
-    dupes <- plateIDs[duplicated(plateIDs)]
-    message("msConvertR: Removing ", length(dupes),
-            " duplicate plateID(s): ", paste(unique(dupes), collapse = ", "))
-    plateIDs <- unique(plateIDs)
-  }
-
-  # Keep original (filename-derived) IDs for disk lookups; produce a parallel
-  # vector of sanitized IDs used only in output paths / directory names.
-  raw_plateIDs <- plateIDs
-  sanitized_plateIDs <- vapply(plateIDs, function(pid) {
-    sanitize_identifier(pid, context = "plateID")
-  }, character(1), USE.NAMES = FALSE)
-
-  # Deduplication must also be checked AFTER sanitization because two distinct
-  # raw names can collapse to the same sanitized name (e.g. "plate/A" and
-  # "plate_A" both become "plate_A"), which would cause log-file collisions.
-  if (anyDuplicated(sanitized_plateIDs)) {
-    dup_sane <- sanitized_plateIDs[duplicated(sanitized_plateIDs)]
-    dup_raw  <- raw_plateIDs[sanitized_plateIDs %in% dup_sane]
+  # Post-sanitization collision guard: two DISTINCT plate IDs must not collapse
+  # to the same sanitized directory name (e.g. "plate/A" and "plate_A" both
+  # sanitize to "plate_A"), which would merge unrelated plates / clobber logs.
+  plate_map <- unique(groups[, c("raw_plateID", "sanitized_plateID")])
+  if (anyDuplicated(plate_map$sanitized_plateID)) {
+    dup_sane <- plate_map$sanitized_plateID[duplicated(plate_map$sanitized_plateID)]
+    dup_raw  <- plate_map$raw_plateID[plate_map$sanitized_plateID %in% dup_sane]
     stop(
-      "msConvertR: the following vendor file names produce the same sanitized plateID ",
-      "after sanitization, which would cause output collisions. ",
-      "Rename the source files to make them unique: ",
+      "msConvertR: the following plate IDs collapse to the same sanitized name ",
+      "after sanitization, which would merge unrelated plates. ",
+      "Rename the plate folder(s) / manifest entries to make them unique: ",
       paste(dup_raw, collapse = ", "),
       call. = FALSE
+    )
+  }
+
+  # Warn if a derived plateID collides with a reserved directory name, since
+  # downstream plate discovery (PeakForgeR) excludes those names and would
+  # silently skip the plate.
+  reserved <- unique(plate_map$sanitized_plateID[
+    plate_map$sanitized_plateID %in% MSTARGETR_EXCLUDE_DIRS])
+  if (length(reserved) > 0) {
+    warning(
+      "msConvertR: plate ID(s) collide with reserved directory names and will be ",
+      "skipped by downstream plate discovery: ", paste(reserved, collapse = ", "),
+      ". Rename the plate folder(s) / manifest entries.", call. = FALSE
     )
   }
 
@@ -188,9 +203,7 @@ msConvertR <- function (input_directory, output_directory,
   tryCatch({
     msConvertR_mzml_conversion(input_directory,
                                output_directory,
-                               raw_plateIDs,
-                               vendor_extension_patterns,
-                               sanitized_plateIDs,
+                               groups,
                                enable_HPC = enable_HPC)
 
   }, error = function(e) {
