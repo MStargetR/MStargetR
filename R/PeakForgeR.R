@@ -265,6 +265,7 @@ PeakForgeR <- function(user_name,
 
     tryCatch({
       write_log(paste("Starting processing for plate:", plateID))
+      write_log(paste("Runtime:", if (isTRUE(enable_HPC)) "Apptainer" else "Docker"))
 
       write_log("Step 1: Setting up project...")
       master_list <- PeakForgeR_setup_project(

@@ -7,8 +7,7 @@
 msConvertR_construct_command_for_terminal(
   input_directory,
   output_directory,
-  plateIDs,
-  sanitized_plateIDs = plateIDs,
+  groups,
   enable_HPC = getOption("MStargetR.enable_HPC", FALSE)
 )
 }
@@ -17,10 +16,12 @@ msConvertR_construct_command_for_terminal(
 
 \item{output_directory}{path to output directory.}
 
-\item{plateIDs}{The names of vendor files to convert}
+\item{groups}{Plate membership table from \code{derive_plate_groups()}; one
+command is produced per plate, with one msconvert invocation per member.}
 }
 \value{
-The constructed command string.
+A list of per-plate command objects, each with an \code{invocations}
+list. Carries an \code{active_plateIDs} attribute.
 }
 \description{
 This function constructs the command for terminal to convert files to mzML format.

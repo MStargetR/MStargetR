@@ -6,28 +6,28 @@
 \usage{
 msConvertR_restructure_directory(
   output_directory,
-  plateIDs,
-  vendor_extension_patterns
+  groups,
+  vendor_extension_patterns = MSTARGETR_VENDOR_EXT_PATTERN
 )
 }
 \arguments{
-\item{output_directory}{Output directory where the mzML files will be stored.}
+\item{output_directory}{Output directory where the plate folders live.}
 
-\item{plateIDs}{filenames for plates being converted with no extension.}
-
-\item{vendor_extension_patterns}{vector of file extensions for vendor files}
+\item{groups}{Membership table from \code{derive_plate_groups()}.}
 }
 \value{
 \code{invisible(NULL)}. Called for its side effects.
 }
 \description{
-This function restructures the directory by moving raw_data and mzML files to correct locations.
+Relocates each plate's raw vendor files (and any \code{.wiff.scan}
+companions) into \code{<plateID>/data/raw_data}, using the explicit plate
+membership recorded in the grouping table rather than substring matching.
+mzML files are written directly into \code{<plateID>/data/mzml} by msconvert;
+this function only reports their count.
 }
 \examples{
 \dontrun{
-master_list <- msConvertR_restructure_directory(output_directory,
-                                                plateIDs,
-                                                vendor_extension_patterns)
+msConvertR_restructure_directory(output_directory, groups)
 }
 }
 \keyword{internal}

@@ -48,8 +48,11 @@ test_that("MS-009: same-dir message fires when paths normalise to equal strings"
   tmp <- withr::local_tempdir()
 
   stub(msConvertR, "validate_input_directory",    function(...) NULL)
-  stub(msConvertR, "validate_file_types",          function(...) "file.wiff")
-  stub(msConvertR, "sanitize_identifier",          function(x, ...) x)
+  stub(msConvertR, "derive_plate_groups", function(...) data.frame(
+    raw_path = "file.wiff", file_name = "file.wiff", rel_dir = "",
+    raw_plateID = "file", sanitized_plateID = "file",
+    is_dir = FALSE, plate_level = TRUE, source = "flat",
+    stringsAsFactors = FALSE))
   stub(msConvertR, "check_docker",                 function(...) NULL)
   stub(msConvertR, "msConvertR_mzml_conversion",   function(...) NULL)
 
@@ -121,10 +124,14 @@ test_that("MS-015: msConvertR stops when two raw IDs sanitize to the same string
   file.create(file.path(raw_dir, "plate-A.wiff"))
 
   stub(msConvertR, "validate_input_directory", function(...) NULL)
-  stub(msConvertR, "validate_file_types",
-       function(...) c(file.path(raw_dir, "plate_A.wiff"),
-                       file.path(raw_dir, "plate-A.wiff")))
-  stub(msConvertR, "sanitize_identifier", function(x, ...) gsub("[-]", "_", x))
+  # Two distinct raw plate IDs that collapse to the same sanitized name.
+  stub(msConvertR, "derive_plate_groups", function(...) data.frame(
+    raw_path = c("plate_A.wiff", "plate-A.wiff"),
+    file_name = c("plate_A.wiff", "plate-A.wiff"), rel_dir = "",
+    raw_plateID = c("plate_A", "plate-A"),
+    sanitized_plateID = c("plate_A", "plate_A"),
+    is_dir = FALSE, plate_level = TRUE, source = "flat",
+    stringsAsFactors = FALSE))
   stub(msConvertR, "check_docker",  function(...) NULL)
   stub(msConvertR, "dir.create",    function(...) TRUE)
   stub(msConvertR, "dir.exists",    function(...) TRUE)
@@ -132,7 +139,7 @@ test_that("MS-015: msConvertR stops when two raw IDs sanitize to the same string
 
   expect_error(
     suppressMessages(msConvertR(input_dir, output_dir)),
-    "sanitized plateID"
+    "sanitized name"
   )
 })
 

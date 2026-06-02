@@ -1,7 +1,7 @@
 # Run ComBat Batch Correction
 
-Applies empirical Bayes batch correction using `sva::ComBat`. Unlike
-statTarget methods, ComBat does not require QC samples.
+Applies [`sva::ComBat`](https://rdrr.io/pkg/sva/man/ComBat.html) to a
+data.frame that has a `batch` column and numeric metabolite columns.
 
 ## Usage
 
@@ -19,7 +19,7 @@ bc_run_combat(
 
 - data:
 
-  Data.frame with sample metadata and metabolite columns.
+  Data.frame with a `batch` column and metabolite value columns.
 
 - metabolite_cols:
 
@@ -40,3 +40,8 @@ bc_run_combat(
 ## Value
 
 Data.frame in the same format as input with corrected metabolite values.
+
+## Details
+
+Handles NA imputation (column-median fill), zero-variance feature
+removal, and reconstruction of the corrected data.frame.

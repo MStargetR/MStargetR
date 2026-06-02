@@ -1,14 +1,16 @@
-# PeakForgeR
+# Peak Picking and Integration via Skyline in Docker
 
 This function performs peak picking and integration via Skyline in a
 Docker image. Allowing for usage across all major OS systems.
 
 We strongly recommend checking your mrm transition list using
-MStargetR::TransitionCheckR prior to using it in PeakForgeR
+MStargetR::transition_checkR prior to using it in PeakForgeR
 
 If the user has not used MStargetR::msConvertR to convert vendor files
-please ensure you create a project folder containing sub folder
-"msConvert_mzml_output" with mzml files for the project.
+please ensure each plate folder exists under the project directory with
+mzML files located at `<project_directory>/<plateID>/data/mzml/*.mzML`.
+The `plateID_outputs` parameter must be supplied to identify the plate
+folders.
 
 ## Usage
 
@@ -18,7 +20,8 @@ PeakForgeR(
   project_directory,
   mrm_template_list = NULL,
   QC_sample_label = NULL,
-  plateID_outputs = NULL
+  plateID_outputs = NULL,
+  enable_HPC = getOption("MStargetR.enable_HPC", FALSE)
 )
 ```
 
@@ -64,6 +67,16 @@ PeakForgeR(
   - plateID_outputs = c("JANE_DOE_C5_URI_MS-LIPIDS_PLATE_1",
     "JANE_DOE_C5_URI_MS-LIPIDS_PLATE_2")
 
+- enable_HPC:
+
+  Logical. When `TRUE`, Skyline is run via Apptainer (Singularity)
+  instead of Docker. This is the intended runtime on HPC clusters where
+  Docker is typically forbidden. The default is
+  `getOption("MStargetR.enable_HPC", FALSE)` so HPC users can set
+  `options(MStargetR.enable_HPC = TRUE)` once in their `.Rprofile` and
+  never pass the argument explicitly. See the "Running on HPC" section
+  of the README for SIF setup instructions.
+
 ## Value
 
 A curated project directory with sub folders for each plate containing
@@ -108,9 +121,9 @@ Skyline exports.
 if (FALSE) { # \dontrun{
 #Load example mrm_guide
   file_path <- system.file("extdata", "LGW_lipid_mrm_template_v1.tsv", package = "MStargetR")
-  example_mrm_template <- read_tsv(file_path)
+  example_mrm_template <- readr::read_tsv(file_path)
 
-#Run PeakForgeR function
+#Default (Docker) on a workstation
 PeakForgeR(user_name = "Mad_max",
            project_directory = "USER/PATH/TO/PROJECT/DIRECTORY",
            mrm_template_list = list("User/path/to/user_mrm_guide_v1.tsv",
@@ -118,5 +131,17 @@ PeakForgeR(user_name = "Mad_max",
            QC_sample_label = "LTR",
            plateID_outputs = NULL
           )
+
+# HPC (Apptainer): pre-pull the SIF on a login node, then run a job:
+#   apptainer pull mstargetr-pwiz.sif \
+#     docker://proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:<tag>
+options(
+  MStargetR.enable_HPC = TRUE,
+  MStargetR.sif_path   = "/scratch/me/mstargetr-pwiz.sif"
+)
+PeakForgeR(user_name         = "Mad_max",
+           project_directory = "/scratch/me/MyProject",
+           mrm_template_list = list("/scratch/me/templates/lipid_mrm_v1.tsv"),
+           QC_sample_label   = "LTR")
 } # }
 ```

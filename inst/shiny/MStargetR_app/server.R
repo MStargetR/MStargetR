@@ -882,9 +882,18 @@ function(input, output, session) {
             shiny::incProgress(0.3, detail = "Running ProteoWizard conversion...")
             out_dir <- input$convert_output_dir
             if (is.null(out_dir) || !nzchar(out_dir)) out_dir <- input$convert_input_dir
+            # Optional plate manifest (raw_file,plateID) for one-file-per-sample
+            # vendors. Shiny stores the upload under an opaque temp name; pass the
+            # datapath straight to msConvertR(), which reads it by column name.
+            manifest_path <- NULL
+            mf <- input$convert_manifest
+            if (!is.null(mf) && nzchar(mf$datapath %||% "")) {
+              manifest_path <- mf$datapath
+            }
             MStargetR::msConvertR(
               input_directory = input$convert_input_dir,
-              output_directory = out_dir
+              output_directory = out_dir,
+              manifest = manifest_path
             )
           },
           message = function(m) {

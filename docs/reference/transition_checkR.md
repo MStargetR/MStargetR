@@ -8,7 +8,7 @@ by PeakForgeR and qcCheckR.
 ## Usage
 
 ``` r
-transition_checkR(transition_df)
+transition_checkR(transition_df, tolerance = 0.001)
 ```
 
 ## Arguments
@@ -18,6 +18,14 @@ transition_checkR(transition_df)
   A data.frame containing MRM transitions. Must include the columns
   `"Precursor Mz"` (numeric), `"Product Mz"` (numeric), and
   `"Precursor Name"` (character).
+
+- tolerance:
+
+  Numeric. Pairs whose Precursor Mz and Product Mz both differ by less
+  than this value (in Da) are considered duplicates. Defaults to
+  `0.001`. Using a tolerance-based comparison avoids false negatives
+  caused by R's banker's rounding at half-unit boundaries (e.g. 500.0005
+  rounds down at precision 3 while 500.0015 rounds up).
 
 ## Value
 
@@ -31,5 +39,6 @@ prints a warning message.
 ``` r
 if (FALSE) { # \dontrun{
 transition_checkR(transition_df)
+transition_checkR(transition_df, tolerance = 0.005)
 } # }
 ```
