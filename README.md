@@ -178,32 +178,42 @@ in `raw_data/`; each `.wiff` is treated as its own plate automatically:
         plate2.wiff
         plate2.wiff.scan
 
-**One-file-per-sample formats (`.d`, `.raw`, …)** — tell MStargetR which
-samples belong to which plate, either by putting each plate's files in a
-**subfolder of `raw_data/` named after the plate**:
+**One-file-per-sample formats (`.d`, `.raw`, …)** — in most cases just place
+the files flat in `raw_data/` and let MStargetR group them. It infers plate
+membership in this priority order:
 
-    MyProject/
-      raw_data/
-        PlateA/
-          sample1.raw
-          sample2.raw
-        PlateB/
-          sample1.raw
-          sample2.raw
+1. **A remembered `plate_grouping.csv`** at the project root, or an explicit
+   `manifest =` argument (both are `raw_file,plateID` CSVs) — the override.
+2. **Per-plate subfolders** of `raw_data/` named after the plate:
 
-…or by passing a **manifest** CSV (`raw_file,plateID`) when the grouping
-lives in an instrument worklist / LIMS export:
+       MyProject/
+         raw_data/
+           PlateA/
+             sample1.raw
+             sample2.raw
+           PlateB/
+             sample1.raw
+             sample2.raw
 
-    MyProject/
-      raw_data/
-        sample1.raw
-        sample2.raw
-      manifest.csv      # columns: raw_file,plateID
+3. **Filename auto-discovery** — for files left flat, MStargetR detects which
+   part of the filename identifies the plate (no lab-specific pattern needed),
+   **reports** the grouping it inferred, and saves it to an editable
+   `plate_grouping.csv` so the decision is stable across runs and you can
+   correct it once if it guessed wrong:
 
-> If multiple single-sample files are left flat in `raw_data/` with **no**
-> subfolder and **no** manifest, `msConvertR()` stops and asks you to
-> declare the plates, rather than silently creating one folder per sample
-> (which would make per-plate QC and batch correction meaningless).
+       MyProject/
+         raw_data/
+           ..._COVp298_001.raw   # plate COVp298
+           ..._COVp298_002.raw
+           ..._COVp299_001.raw   # plate COVp299
+           ..._COVp299_002.raw
+
+> Auto-discovery proceeds rather than blocking: it always reports what it
+> grouped, so a wrong guess is visible before conversion. If the filenames
+> share no structure it can use, each file is converted as its own plate with
+> a **warning** — group them by adding a subfolder, a `manifest =`, or by
+> editing the generated `plate_grouping.csv`. Multi-sample `.wiff` files are
+> exempt: each is always its own plate.
 
 ### 2. Convert vendor files to mzML
 

@@ -44,30 +44,175 @@ validate_input_directory <- function(input_directory) {
   message(paste("Accessing project directory ", input_directory))
 }
 
+#' discover_plate_grouping
+#'
+#' Infers plate membership for a set of one-file-per-sample vendor files by
+#' detecting which positional filename token partitions the files into
+#' plate-like groups. Filenames are tokenised on \code{[-_.]} (the same
+#' separators used by \code{extract_sample_id()}); the token position whose
+#' distinct values best cluster the files - more than one value, fewer than
+#' one per file, and grouping into plural, balanced sets - is taken as the
+#' plate identifier.
+#'
+#' This is the "auto-discover" rung of \code{derive_plate_groups()}: it removes
+#' the need for a manifest or per-plate subfolders when the plate is already
+#' encoded in the filename, \emph{without} a lab-specific pattern. When no token
+#' groups the files but they share a constant prefix, the files are assumed to
+#' form a single plate named by that prefix (the common "one plate per run"
+#' case). Both fallbacks set \code{ambiguous = TRUE} so callers report the
+#' inference for confirmation rather than trusting it silently.
+#'
+#' @keywords internal
+#' @param file_name Character vector of vendor file basenames. Pass only
+#'   sample-level files; plate-level formats (\code{.wiff}/\code{.wiff2}) are
+#'   one-plate-per-file and must not be routed through here.
+#' @return A list with \code{plateID} (per-file plate token, same length/order
+#'   as \code{file_name}, or \code{NULL} when nothing could be inferred),
+#'   \code{position} (chosen token index or \code{NA}), \code{n_plates},
+#'   \code{ambiguous} (\code{TRUE} when the inference is not confident), and a
+#'   human-readable \code{reason}.
+discover_plate_grouping <- function(file_name) {
+  n <- length(file_name)
+  if (n < 2L) {
+    return(list(plateID = NULL, position = NA_integer_, n_plates = 0L,
+                ambiguous = TRUE, reason = "fewer than two files"))
+  }
+  stems <- sub(MSTARGETR_VENDOR_EXT_PATTERN, "", file_name, ignore.case = TRUE)
+  token_lists <- strsplit(stems, "[-_.]")
+  tok_counts <- lengths(token_lists)
+
+  # Positional alignment needs a consistent token count; operate on the
+  # dominant count. Files that disagree fall back to their full stem below.
+  dom <- as.integer(names(sort(table(tok_counts), decreasing = TRUE))[1])
+  aligned <- tok_counts == dom
+  if (sum(aligned) < 2L || dom < 1L) {
+    return(list(plateID = NULL, position = NA_integer_, n_plates = 0L,
+                ambiguous = TRUE,
+                reason = "filenames do not share a consistent token structure"))
+  }
+
+  mat <- do.call(rbind, token_lists[aligned])
+  m <- nrow(mat)
+
+  # Score each token position as a plate-grouping candidate: reward larger,
+  # more balanced, singleton-free groups; tie-break toward earlier positions.
+  score_pos <- function(j) {
+    vals <- mat[, j]
+    d <- length(unique(vals))
+    if (d <= 1L || d >= m) return(-Inf)        # constant or all-unique: not a group
+    sizes <- as.integer(table(vals))
+    singleton_frac <- mean(sizes == 1L)
+    balance <- 1 - (stats::sd(sizes) / mean(sizes))
+    mean(sizes) + 2 * (1 - singleton_frac) + balance - 0.05 * j
+  }
+  scores <- vapply(seq_len(dom), score_pos, numeric(1))
+  const_tokens <- vapply(seq_len(dom),
+                         function(j) length(unique(mat[, j])) == 1L, logical(1))
+
+  if (!any(is.finite(scores))) {
+    # No grouping token. If a constant prefix exists, treat the files as one
+    # plate named by that prefix; otherwise we cannot infer anything.
+    lead <- which(!const_tokens)[1]
+    prefix_to <- if (is.na(lead)) dom else lead - 1L
+    if (prefix_to >= 1L) {
+      pid <- paste(mat[1, seq_len(prefix_to)], collapse = "_")
+      return(list(plateID = rep(pid, n), position = NA_integer_, n_plates = 1L,
+                  ambiguous = TRUE,
+                  reason = sprintf(
+                    "no grouping token; assuming one plate '%s' from common prefix",
+                    pid)))
+    }
+    return(list(plateID = NULL, position = NA_integer_, n_plates = 0L,
+                ambiguous = TRUE,
+                reason = "no token groups the files (each looks like a unique sample ID)"))
+  }
+
+  ord <- order(scores, decreasing = TRUE)
+  best <- ord[1]
+  # A near-tie between the top two candidate positions (e.g. a run token and a
+  # plate token both splitting evenly) means structure alone cannot decide.
+  ambiguous <- length(ord) >= 2L && is.finite(scores[ord[2]]) &&
+    (scores[ord[1]] - scores[ord[2]]) < 0.5
+
+  plateID <- vapply(seq_len(n), function(i) {
+    tk <- token_lists[[i]]
+    if (length(tk) >= best) tk[best] else stems[i]
+  }, character(1))
+
+  list(plateID = plateID, position = best,
+       n_plates = length(unique(plateID)), ambiguous = ambiguous,
+       reason = sprintf("grouped by filename token %d (%d plate(s))",
+                        best, length(unique(plateID))))
+}
+
+#' Path of the per-project remembered plate-grouping manifest
+#' @keywords internal
+#' @param input_directory Project directory containing \code{raw_data/}.
+#' @return Absolute-ish path to \code{plate_grouping.csv} at the project root.
+mst_remembered_manifest_path <- function(input_directory) {
+  file.path(input_directory, "plate_grouping.csv")
+}
+
+#' Persist an inferred plate grouping as an editable manifest (best-effort)
+#'
+#' Writes \code{raw_file,plateID} to \code{path} so the decision is stable
+#' across re-runs and the user can correct it once. Never overwrites an
+#' existing file and never errors: a write failure is reported and ignored.
+#' @keywords internal
+#' @param path Destination CSV path (see \code{mst_remembered_manifest_path}).
+#' @param raw_file,plateID Parallel character vectors of the inferred mapping.
+#' @return Invisibly \code{TRUE} if written, \code{FALSE} otherwise.
+mst_write_remembered_manifest <- function(path, raw_file, plateID) {
+  if (file.exists(path)) return(invisible(FALSE))
+  tryCatch({
+    utils::write.csv(
+      data.frame(raw_file = raw_file, plateID = plateID,
+                 stringsAsFactors = FALSE),
+      path, row.names = FALSE)
+    message("msConvertR: saved inferred grouping to '", path,
+            "'. Edit it to correct plate assignments; it is reused next run.")
+    invisible(TRUE)
+  }, error = function(e) {
+    message("msConvertR: could not save grouping to '", path, "': ",
+            conditionMessage(e), " (continuing).")
+    invisible(FALSE)
+  })
+}
+
 #' derive_plate_groups
 #'
 #' Resolves which samples belong to which plate, producing a single membership
 #' table consumed by every downstream msConvertR helper. Resolution priority:
 #' \enumerate{
-#'   \item \strong{Manifest} (\code{manifest=}) — explicit \code{raw_file ->
-#'     plateID} mapping; overrides everything else.
+#'   \item \strong{Manifest} (\code{manifest=}, or a remembered
+#'     \code{plate_grouping.csv} at the project root) — explicit
+#'     \code{raw_file -> plateID} mapping; overrides everything else.
 #'   \item \strong{Subfolder} — a vendor file in \code{raw_data/<plateID>/}
 #'     belongs to plate \code{<plateID>} (the subfolder name).
-#'   \item \strong{Flat} — a vendor file directly in \code{raw_data/} forms its
-#'     own plate from the filename (legacy behaviour; keeps \code{.wiff} working
-#'     unchanged, as one \code{.wiff} is one multi-sample plate).
+#'   \item \strong{Filename} — for sample-level vendor files left flat,
+#'     \code{discover_plate_grouping()} infers the plate from the filename
+#'     token structure (no lab-specific pattern needed). The inference is
+#'     reported and, when \code{remember = TRUE}, persisted as an editable
+#'     \code{plate_grouping.csv} so corrections stick and re-runs are stable.
+#'   \item \strong{Flat} — a single sample-level file, or files filename
+#'     discovery could not group, form their own plate from the filename
+#'     (keeps \code{.wiff} working unchanged: one \code{.wiff} is one plate).
 #' }
-#' The returned \code{source}/\code{plate_level} columns let the caller apply the
-#' refuse-and-prompt policy for ambiguous flat single-sample inputs.
+#' The returned \code{source}/\code{plate_level} columns let the caller report
+#' (and, for genuinely ungroupable inputs, warn about) the chosen grouping.
 #'
 #' @keywords internal
 #' @param input_directory Project directory containing a \code{raw_data/} folder.
 #' @param manifest Optional CSV path or \code{data.frame} (see
-#'   \code{read_plate_manifest}).
+#'   \code{read_plate_manifest}). When \code{NULL}, a remembered
+#'   \code{plate_grouping.csv} at the project root is loaded if present.
+#' @param remember When \code{TRUE} (default), an inferred filename grouping is
+#'   persisted to \code{plate_grouping.csv} for reuse and manual correction.
 #' @return A \code{data.frame}, one row per vendor file, with columns
 #'   \code{raw_path}, \code{file_name}, \code{rel_dir}, \code{raw_plateID},
 #'   \code{sanitized_plateID}, \code{is_dir}, \code{plate_level}, \code{source}.
-derive_plate_groups <- function(input_directory, manifest = NULL) {
+derive_plate_groups <- function(input_directory, manifest = NULL,
+                                remember = TRUE) {
   validated <- validate_file_types(input_directory)
   raw_root <- normalizePath(file.path(input_directory, "raw_data"),
                             mustWork = FALSE)
@@ -78,6 +223,16 @@ derive_plate_groups <- function(input_directory, manifest = NULL) {
   is_dir    <- dir.exists(validated)
   # Plate-level (inherently multi-sample) vendor formats: one file == one plate.
   plate_level <- tolower(tools::file_ext(file_name)) %in% c("wiff", "wiff2")
+
+  # A remembered grouping (plate_grouping.csv written by a previous run, or a
+  # hand-authored manifest) is used when the caller did not pass one
+  # explicitly. An explicit manifest always wins over the remembered file.
+  remembered_path <- mst_remembered_manifest_path(input_directory)
+  if (is.null(manifest) && file.exists(remembered_path)) {
+    manifest <- remembered_path
+    message("msConvertR: using remembered plate grouping from '",
+            remembered_path, "' (delete this file to re-detect).")
+  }
 
   man <- if (!is.null(manifest)) {
     read_plate_manifest(manifest, known_files = file_name)
@@ -99,6 +254,37 @@ derive_plate_groups <- function(input_directory, manifest = NULL) {
       raw_plateID[i] <- sub(MSTARGETR_VENDOR_EXT_PATTERN, "", file_name[i],
                             ignore.case = TRUE)
       source[i]      <- "flat"
+    }
+  }
+
+  # Auto-discover rung: for sample-level vendor files still resolved as "flat"
+  # (no manifest entry, no subfolder), infer plate membership from the filename
+  # token structure so labs need neither a manifest nor per-plate subfolders.
+  disc_idx <- which(source == "flat" & !plate_level)
+  if (length(disc_idx) >= 2L) {
+    disc <- discover_plate_grouping(file_name[disc_idx])
+    if (!is.null(disc$plateID)) {
+      raw_plateID[disc_idx] <- disc$plateID
+      source[disc_idx]      <- "filename"
+      if (isTRUE(disc$ambiguous)) {
+        message("msConvertR: filename-based plate grouping is uncertain - ",
+                disc$reason, ".\n  Review the grouping below; to correct it, ",
+                "edit or supply a manifest (raw_file,plateID).")
+      } else {
+        message("msConvertR: inferred plate grouping from filenames - ",
+                disc$reason, ".")
+      }
+      # Report the inferred mapping so a wrong guess is visible before running.
+      tab <- table(disc$plateID)
+      for (p in names(tab)) {
+        message(sprintf("    %s  (%d file%s)", p, tab[[p]],
+                        if (tab[[p]] == 1L) "" else "s"))
+      }
+      # Remember the decision so re-runs are stable and corrections stick.
+      if (isTRUE(remember)) {
+        mst_write_remembered_manifest(remembered_path,
+                                      file_name[disc_idx], disc$plateID)
+      }
     }
   }
 

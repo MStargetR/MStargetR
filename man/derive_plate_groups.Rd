@@ -4,13 +4,17 @@
 \alias{derive_plate_groups}
 \title{derive_plate_groups}
 \usage{
-derive_plate_groups(input_directory, manifest = NULL)
+derive_plate_groups(input_directory, manifest = NULL, remember = TRUE)
 }
 \arguments{
 \item{input_directory}{Project directory containing a \code{raw_data/} folder.}
 
 \item{manifest}{Optional CSV path or \code{data.frame} (see
-\code{read_plate_manifest}).}
+\code{read_plate_manifest}). When \code{NULL}, a remembered
+\code{plate_grouping.csv} at the project root is loaded if present.}
+
+\item{remember}{When \code{TRUE} (default), an inferred filename grouping is
+persisted to \code{plate_grouping.csv} for reuse and manual correction.}
 }
 \value{
 A \code{data.frame}, one row per vendor file, with columns
@@ -21,15 +25,21 @@ A \code{data.frame}, one row per vendor file, with columns
 Resolves which samples belong to which plate, producing a single membership
 table consumed by every downstream msConvertR helper. Resolution priority:
 \enumerate{
-\item \strong{Manifest} (\code{manifest=}) — explicit \code{raw_file ->
-    plateID} mapping; overrides everything else.
+\item \strong{Manifest} (\code{manifest=}, or a remembered
+\code{plate_grouping.csv} at the project root) — explicit
+\code{raw_file -> plateID} mapping; overrides everything else.
 \item \strong{Subfolder} — a vendor file in \code{raw_data/<plateID>/}
 belongs to plate \code{<plateID>} (the subfolder name).
-\item \strong{Flat} — a vendor file directly in \code{raw_data/} forms its
-own plate from the filename (legacy behaviour; keeps \code{.wiff} working
-unchanged, as one \code{.wiff} is one multi-sample plate).
+\item \strong{Filename} — for sample-level vendor files left flat,
+\code{discover_plate_grouping()} infers the plate from the filename
+token structure (no lab-specific pattern needed). The inference is
+reported and, when \code{remember = TRUE}, persisted as an editable
+\code{plate_grouping.csv} so corrections stick and re-runs are stable.
+\item \strong{Flat} — a single sample-level file, or files filename
+discovery could not group, form their own plate from the filename
+(keeps \code{.wiff} working unchanged: one \code{.wiff} is one plate).
 }
-The returned \code{source}/\code{plate_level} columns let the caller apply the
-refuse-and-prompt policy for ambiguous flat single-sample inputs.
+The returned \code{source}/\code{plate_level} columns let the caller report
+(and, for genuinely ungroupable inputs, warn about) the chosen grouping.
 }
 \keyword{internal}
