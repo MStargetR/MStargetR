@@ -14,6 +14,11 @@
 #' @param sample_tags A character vector specifying the tags to filter sample types from file names. E.g. c("sample","control", "qc").
 #' @param user_name A character string specifying the name of the user.
 #' @param mv_threshold A numeric value  between 0 and 100 specifying the threshold for missing values in the data. Default is 50(50%).
+#' @param lod_threshold Numeric. Instrumental limit of detection (LOD),
+#'   expressed as a peak area. Peak-area values below this threshold are counted
+#'   as below-LOD (missing) when flagging samples and features. The LOD is
+#'   instrument- and lab-specific, so set this to your instrument's detection
+#'   floor. Default is \code{5000}.
 #' @param batch_method Character string specifying the batch correction method.
 #'   One of \code{"QCRFSC"} (QC-based random forest signal correction, default),
 #'   \code{"ComBat"} (empirical Bayes, QC-free), or \code{"QCRLSC"} (QC-based
@@ -215,6 +220,7 @@ qcCheckR <- function(user_name,
                      QC_sample_label = "LTR",
                      sample_tags = NULL,
                      mv_threshold = 50,
+                     lod_threshold = 5000,
                      batch_method = "QCRFSC",
                      batch_ntree = 500,
                      batch_coCV = 100,
@@ -247,6 +253,13 @@ qcCheckR <- function(user_name,
   if (!is.logical(write_rda) || length(write_rda) != 1 || is.na(write_rda)) {
     stop("qcCheckR: 'write_rda' must be TRUE or FALSE. Got: ",
          deparse(write_rda), call. = FALSE)
+  }
+  # validate lod_threshold early -- a bad value would otherwise silently
+  # corrupt the below-LOD counts deep in the filtering stage.
+  if (!is.numeric(lod_threshold) || length(lod_threshold) != 1L ||
+      is.na(lod_threshold) || lod_threshold < 0) {
+    stop("qcCheckR: 'lod_threshold' must be a single non-negative number. Got: ",
+         deparse(lod_threshold), call. = FALSE)
   }
   # qs2::qs_save accepts integer nthreads >= 1 and compress_level in
   # the zstd-supported range [-22, 22]. Catch bad values up-front so the
@@ -415,7 +428,8 @@ qcCheckR <- function(user_name,
     mrm_template_list = mrm_template_list,
     QC_sample_label = QC_sample_label,
     sample_tags = sample_tags,
-    mv_threshold = mv_threshold
+    mv_threshold = mv_threshold,
+    lod_threshold = lod_threshold
   )
   # store batch correction parameters----
   master_list$project_details$batch_method <- batch_method

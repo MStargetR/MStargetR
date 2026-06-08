@@ -1482,6 +1482,8 @@ function(input, output, session) {
       QC_sample_label   = input$qc_qc_label,
       sample_tags       = tags_vec,
       mv_threshold      = input$qc_mv_threshold,
+      lod_threshold     = safe_numeric(input$qc_lod_threshold, default = 5000,
+                                       min = 0),
       batch_method      = input$qc_batch_method,
       batch_ntree       = qc_ntree,
       batch_coCV        = input$qc_batch_coCV,

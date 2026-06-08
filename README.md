@@ -41,7 +41,9 @@ used on its own or combined into a single script.
 - **Quality control and reporting** – `qcCheckR()` performs missing
   value imputation, batch and signal drift correction, sample and
   feature filtering, and generates HTML and Excel reports with
-  interactive PCA and control chart visualisations.
+  interactive PCA and control chart visualisations. The instrumental
+  limit of detection used for below-LOD flagging is configurable via
+  `lod_threshold` (default `5000`) to match each lab's instrument.
 - **Standalone batch correction** – `batchCorrectR()` provides
   independent QC-based signal drift and interbatch correction using
   random forest (QCRFSC) or empirical Bayes (ComBat) methods. It accepts

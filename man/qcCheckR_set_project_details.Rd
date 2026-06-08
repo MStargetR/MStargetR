@@ -10,7 +10,8 @@ qcCheckR_set_project_details(
   project_directory,
   QC_sample_label,
   sample_tags,
-  mv_threshold
+  mv_threshold,
+  lod_threshold = 5000
 )
 }
 \arguments{
@@ -25,6 +26,9 @@ qcCheckR_set_project_details(
 \item{sample_tags}{Character vector of sample tags to filter sample types from file_names.}
 
 \item{mv_threshold}{Numeric value for the missing value sample threshold.}
+
+\item{lod_threshold}{Numeric instrumental limit of detection (peak area)
+below which values are counted as missing. Default is 5000.}
 }
 \value{
 The updated master list object with project details.
@@ -39,7 +43,8 @@ master_list <- qcCheckR_set_project_details(master_list,
                                             project_directory,
                                             QC_sample_label,
                                             sample_tags,
-                                            mv_threshold)
+                                            mv_threshold,
+                                            lod_threshold)
 }
 }
 \keyword{internal}

@@ -50,6 +50,14 @@ Released 2026-05-27 ([compare](https://github.com/MStargetR/MStargetR/compare/v1
   pass the argument explicitly. Docker remains the default and
   workstation behaviour is unchanged. See the "Running on HPC" sections
   of the README and vignette for SIF setup.
+- **qcCheckR:** the instrumental limit of detection (LOD) used for below-LOD
+  flagging is now configurable via a new `lod_threshold` argument (default
+  `5000`, preserving previous behaviour), exposed both in `qcCheckR()` and the
+  Shiny QC Check tab. The LOD is instrument- and lab-specific, so labs can set
+  it to their instrument's detection floor instead of the hardcoded `5000`.
+  **Breaking:** the QC missing-value summary column `peakArea_5000_LOD` is
+  renamed to `peakArea_below_LOD` (threshold-independent); update any code that
+  reads this column by name.
 
 ## MStargetR 1.1.2
 

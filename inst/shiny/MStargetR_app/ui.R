@@ -882,6 +882,17 @@ ui <- bslib::page_navbar(
           "Metabolites with more missing values than this threshold are filtered"
         ),
 
+        shiny::numericInput(
+          "qc_lod_threshold", "Limit of Detection (peak area)",
+          value = 5000, min = 0, step = 500
+        ),
+        htmltools::tags$p(class = "help-text",
+          "Instrumental limit of detection. Peak areas below this value are ",
+          "counted as below-LOD (missing) in QC flagging. This is specific to ",
+          "your lab's instrument; set it to your instrument's detection floor ",
+          "(default 5000)."
+        ),
+
         htmltools::tags$hr(),
         htmltools::tags$h6(class = "fw-semibold", "Batch Correction Options"),
 
