@@ -78,7 +78,7 @@
 <li>
 <strong>Peak picking and integration</strong> – <code><a href="reference/PeakForgeR.html">PeakForgeR()</a></code> performs QC-based retention time optimisation, peak boundary refinement, and peak integration via Skyline in Docker. Supports multi-method and multi-plate projects.</li>
 <li>
-<strong>Quality control and reporting</strong> – <code><a href="reference/qcCheckR.html">qcCheckR()</a></code> performs missing value imputation, batch and signal drift correction, sample and feature filtering, and generates HTML and Excel reports with interactive PCA and control chart visualisations.</li>
+<strong>Quality control and reporting</strong> – <code><a href="reference/qcCheckR.html">qcCheckR()</a></code> performs missing value imputation, batch and signal drift correction, sample and feature filtering, and generates HTML and Excel reports with interactive PCA and control chart visualisations. The instrumental limit of detection used for below-LOD flagging is configurable via <code>lod_threshold</code> (default <code>5000</code>) to match each lab’s instrument.</li>
 <li>
 <strong>Standalone batch correction</strong> – <code><a href="reference/batchCorrectR.html">batchCorrectR()</a></code> provides independent QC-based signal drift and interbatch correction using random forest (QCRFSC) or empirical Bayes (ComBat) methods. It accepts a simple data.frame and can be used outside the main MStargetR pipeline.</li>
 <li>
@@ -176,29 +176,64 @@
 <div class="section level3">
 <h3 id="id_1-set-up-the-project-directory">1. Set up the project directory<a class="anchor" aria-label="anchor" href="#id_1-set-up-the-project-directory"></a>
 </h3>
-<p>Create a project folder with a <code>raw_data</code> subfolder containing your vendor files:</p>
+<p>Create a project folder with a <code>raw_data</code> subfolder containing your vendor files. Each output mzML is grouped under a <strong>plate</strong> folder, which is the unit used for QC and batch correction downstream.</p>
+<p><strong>SCIEX <code>.wiff</code> (one multi-sample file per plate)</strong> — place the files flat in <code>raw_data/</code>; each <code>.wiff</code> is treated as its own plate automatically:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>MyProject<span class="sc">/</span></span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  raw_data<span class="sc">/</span></span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>    plate1_sample1.wiff</span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>    plate1_sample1.wiff.scan</span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>    plate1_sample2.wiff</span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>    ...</span></code></pre></div>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>    plate1.wiff</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>    plate1.wiff.scan</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>    plate2.wiff</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>    plate2.wiff.scan</span></code></pre></div>
+<p><strong>One-file-per-sample formats (<code>.d</code>, <code>.raw</code>, …)</strong> — in most cases just place the files flat in <code>raw_data/</code> and let MStargetR group them. It infers plate membership in this priority order:</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>A remembered <code>plate_grouping.csv</code></strong> at the project root, or an explicit <code>manifest =</code> argument (both are <code>raw_file,plateID</code> CSVs) — the override.</p></li>
+<li>
+<p><strong>Per-plate subfolders</strong> of <code>raw_data/</code> named after the plate:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>MyProject<span class="sc">/</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  raw_data<span class="sc">/</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>    PlateA<span class="sc">/</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>      sample1.raw</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>      sample2.raw</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>    PlateB<span class="sc">/</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>      sample1.raw</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>      sample2.raw</span></code></pre></div>
+</li>
+<li>
+<p><strong>Filename auto-discovery</strong> — for files left flat, MStargetR detects which part of the filename identifies the plate (no lab-specific pattern needed), <strong>reports</strong> the grouping it inferred, and saves it to an editable <code>plate_grouping.csv</code> so the decision is stable across runs and you can correct it once if it guessed wrong:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>MyProject<span class="sc">/</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  raw_data<span class="sc">/</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>    ..._COVp298_001.raw   <span class="co"># plate COVp298</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>    ..._COVp298_002.raw</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>    ..._COVp299_001.raw   <span class="co"># plate COVp299</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>    ..._COVp299_002.raw</span></code></pre></div>
+</li>
+</ol>
+<blockquote>
+<p>Auto-discovery proceeds rather than blocking: it always reports what it grouped, so a wrong guess is visible before conversion. If the filenames share no structure it can use, each file is converted as its own plate with a <strong>warning</strong> — group them by adding a subfolder, a <code>manifest =</code>, or by editing the generated <code>plate_grouping.csv</code>. Multi-sample <code>.wiff</code> files are exempt: each is always its own plate.</p>
+</blockquote>
 </div>
 <div class="section level3">
 <h3 id="id_2-convert-vendor-files-to-mzml">2. Convert vendor files to mzML<a class="anchor" aria-label="anchor" href="#id_2-convert-vendor-files-to-mzml"></a>
 </h3>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MStargetR/MStargetR" class="external-link">MStargetR</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="reference/msConvertR.html">msConvertR</a></span><span class="op">(</span></span>
 <span>  input_directory  <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject/raw_data"</span>,</span>
 <span>  output_directory <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># With a manifest (one-file-per-sample formats grouped by an external sheet):</span></span>
+<span><span class="fu"><a href="reference/msConvertR.html">msConvertR</a></span><span class="op">(</span></span>
+<span>  input_directory  <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject/raw_data"</span>,</span>
+<span>  output_directory <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject"</span>,</span>
+<span>  manifest         <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject/manifest.csv"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="id_3-peak-picking-and-integration">3. Peak picking and integration<a class="anchor" aria-label="anchor" href="#id_3-peak-picking-and-integration"></a>
 </h3>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/PeakForgeR.html">PeakForgeR</a></span><span class="op">(</span></span>
 <span>  user_name         <span class="op">=</span> <span class="st">"jdoe"</span>,</span>
 <span>  project_directory <span class="op">=</span> <span class="st">"C:/Users/me/Desktop/MyProject"</span>,</span>
@@ -209,7 +244,7 @@
 <div class="section level3">
 <h3 id="id_4-quality-control-and-reporting">4. Quality control and reporting<a class="anchor" aria-label="anchor" href="#id_4-quality-control-and-reporting"></a>
 </h3>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Using QCRFSC (default, requires QC samples)</span></span>
 <span><span class="fu"><a href="reference/qcCheckR.html">qcCheckR</a></span><span class="op">(</span></span>
 <span>  user_name         <span class="op">=</span> <span class="st">"jdoe"</span>,</span>
@@ -247,7 +282,7 @@
 <h2 id="shiny-application">Shiny Application<a class="anchor" aria-label="anchor" href="#shiny-application"></a>
 </h2>
 <p>For an interactive, code-free experience, launch the built-in Shiny GUI:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MStargetR/MStargetR" class="external-link">MStargetR</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/launchMStargetR.html">launchMStargetR</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>The GUI requires additional packages (<code>shiny</code>, <code>bslib</code>, <code>DT</code>, <code>shinyWidgets</code>, <code>htmltools</code>). If any are missing, <code><a href="reference/launchMStargetR.html">launchMStargetR()</a></code> will display installation instructions.</p>
@@ -256,7 +291,7 @@
 <h2 id="standalone-batch-correction">Standalone Batch Correction<a class="anchor" aria-label="anchor" href="#standalone-batch-correction"></a>
 </h2>
 <p><code><a href="reference/batchCorrectR.html">batchCorrectR()</a></code> can be used independently of the main pipeline to apply QC-based signal drift and interbatch correction to any targeted LC-MS dataset. It accepts a data.frame with columns <code>sample_name</code>, <code>batch</code>, <code>sample_type</code>, <code>run_order</code>, and one or more numeric metabolite columns:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/batchCorrectR.html">batchCorrectR</a></span><span class="op">(</span></span>
 <span>  data   <span class="op">=</span> <span class="va">my_data</span>,</span>
 <span>  method <span class="op">=</span> <span class="st">"QCRFSC"</span>,</span>
@@ -275,21 +310,21 @@
 <h2 id="project-directory-structure">Project Directory Structure<a class="anchor" aria-label="anchor" href="#project-directory-structure"></a>
 </h2>
 <p>After running the full pipeline, the project directory will have the following structure:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>MyProject<span class="sc">/</span></span>
-<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  archive<span class="sc">/</span>                          <span class="co"># Archived vendor files and logs per plate</span></span>
-<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  all<span class="sc">/</span></span>
-<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>    data<span class="sc">/</span></span>
-<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>      batch_correction<span class="sc">/</span>             <span class="co"># Batch and signal drift correction outputs</span></span>
-<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>      qs2<span class="sc">/</span>                          <span class="co"># Saved R data objects from qcCheckR (qs2 format; load with qs2::qs_read())</span></span>
-<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>    html_report<span class="sc">/</span>                    <span class="co"># HTML report with PCA and control charts</span></span>
-<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>    xlsx_report<span class="sc">/</span>                    <span class="co"># Excel files for downstream analysis</span></span>
-<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>  PLATE_NAME<span class="sc">/</span>                       <span class="co"># One folder per plate</span></span>
-<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>    data<span class="sc">/</span></span>
-<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>      mzml<span class="sc">/</span>                         <span class="co"># Converted mzML files</span></span>
-<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>      qs2<span class="sc">/</span>                          <span class="co"># Saved R data objects from PeakForgeR (qs2 format; load with qs2::qs_read())</span></span>
-<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>      raw_data<span class="sc">/</span>                     <span class="co"># Original vendor files</span></span>
-<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a>      reports<span class="sc">/</span>                      <span class="co"># Peak picking reports</span></span>
-<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a>      chromatograms<span class="sc">/</span>                <span class="co"># Exported chromatogram files</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>MyProject<span class="sc">/</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  archive<span class="sc">/</span>                          <span class="co"># Archived vendor files and logs per plate</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  all<span class="sc">/</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>    data<span class="sc">/</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>      batch_correction<span class="sc">/</span>             <span class="co"># Batch and signal drift correction outputs</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>      qs2<span class="sc">/</span>                          <span class="co"># Saved R data objects from qcCheckR (qs2 format; load with qs2::qs_read())</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>    html_report<span class="sc">/</span>                    <span class="co"># HTML report with PCA and control charts</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>    xlsx_report<span class="sc">/</span>                    <span class="co"># Excel files for downstream analysis</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a>  PLATE_NAME<span class="sc">/</span>                       <span class="co"># One folder per plate</span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a>    data<span class="sc">/</span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a>      mzml<span class="sc">/</span>                         <span class="co"># Converted mzML files</span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a>      qs2<span class="sc">/</span>                          <span class="co"># Saved R data objects from PeakForgeR (qs2 format; load with qs2::qs_read())</span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a>      raw_data<span class="sc">/</span>                     <span class="co"># Original vendor files</span></span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a>      reports<span class="sc">/</span>                      <span class="co"># Peak picking reports</span></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a>      chromatograms<span class="sc">/</span>                <span class="co"># Exported chromatogram files</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>

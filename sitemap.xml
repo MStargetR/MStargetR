@@ -7,6 +7,7 @@
 <url><loc>https://mstargetr.github.io/MStargetR/authors.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/index.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/news/index.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/DEFAULT_LOD_THRESHOLD.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/DEFAULT_RSD_THRESHOLD.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/MSTARGETR_EXCLUDE_DIRS.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/MSTARGETR_QC_SUPPORT_PATTERN.html</loc></url>
@@ -82,8 +83,10 @@
 <url><loc>https://mstargetr.github.io/MStargetR/reference/create_user_guide.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/default_mrm_templates.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/delete_source_directory.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/derive_plate_groups.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/detect_cohort_date_order.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/determine_qc_type.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/discover_plate_grouping.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/execute_PeakForgeR_command.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/export_files.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/export_html_report.html</loc></url>
@@ -141,7 +144,10 @@
 <url><loc>https://mstargetr.github.io/MStargetR/reference/msConvertR_set_working_directory.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/msConvertR_setup_project_directories.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/mst_cleanup_mount_junctions.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/mst_groups_from_plateIDs.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/mst_make_safe_mount_path.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/mst_remembered_manifest_path.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/mst_write_remembered_manifest.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/mstargetr_bind_args.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/mstargetr_find_apptainer.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/mstargetr_image_ref.html</loc></url>
@@ -204,10 +210,12 @@
 <url><loc>https://mstargetr.github.io/MStargetR/reference/re_plot_rsd_scatter.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/re_plot_runorder.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/read_mrm_guides.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/read_plate_manifest.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/reimport_PeakForgeR_file.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/replace_precursor_symbols.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/replace_problematic_values.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/report_peak_picking_failure.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/resolve_lod_threshold.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/resolve_sif.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/resultsExplorerR.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/run_container.html</loc></url>

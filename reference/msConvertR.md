@@ -12,6 +12,7 @@ directory structure.
 msConvertR(
   input_directory,
   output_directory,
+  manifest = NULL,
   enable_HPC = getOption("MStargetR.enable_HPC", FALSE),
   ...
 )
@@ -28,6 +29,24 @@ msConvertR(
 
   A character string specifying the path to the directory where the
   converted `.mzML` files and project structure will be created.
+
+- manifest:
+
+  Optional. Either a path to a CSV file or a `data.frame` mapping each
+  raw vendor file to a plate, with (case-insensitive) columns `raw_file`
+  and `plateID`. Use this last-resort override when plate membership for
+  one-file-per-sample formats (e.g. `.d`, `.raw`) cannot be recovered
+  automatically. When `NULL` (default), plate membership is resolved
+  automatically in priority order: a remembered `plate_grouping.csv` at
+  the project root; per-plate subfolders under `raw_data/` (a file in
+  `raw_data/<plateID>/` belongs to that plate); filename-based
+  auto-discovery, which infers the plate from the filename token
+  structure for sample-level files left flat in `raw_data/` and reports
+  the inference (persisting it to an editable `plate_grouping.csv` for
+  confirmation); and finally the bare filename. Sample-level files that
+  even auto-discovery cannot group are converted with a warning (each
+  becomes its own plate) rather than rejected. A multi-sample `.wiff` is
+  always one plate.
 
 - enable_HPC:
 

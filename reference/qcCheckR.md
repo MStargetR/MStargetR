@@ -13,6 +13,7 @@ qcCheckR(
   QC_sample_label = "LTR",
   sample_tags = NULL,
   mv_threshold = 50,
+  lod_threshold = 5000,
   batch_method = "QCRFSC",
   batch_ntree = 500,
   batch_coCV = 100,
@@ -68,6 +69,14 @@ qcCheckR(
 
   A numeric value between 0 and 100 specifying the threshold for missing
   values in the data. Default is 50(50%).
+
+- lod_threshold:
+
+  Numeric. Instrumental limit of detection (LOD), expressed as a peak
+  area. Peak-area values below this threshold are counted as below-LOD
+  (missing) when flagging samples and features. The LOD is instrument-
+  and lab-specific, so set this to your instrument's detection floor.
+  Default is `5000`.
 
 - batch_method:
 

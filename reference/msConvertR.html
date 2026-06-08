@@ -42,7 +42,7 @@ standardised project directory structure."><meta property="og:image" content="ht
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Convert Vendor Mass Spectrometry Files to mzML Format</h1>
-      <small class="dont-index">Source: <a href="https://github.com/MStargetR/MStargetR/blob/v1.3.0/R/msConvertR.R" class="external-link"><code>R/msConvertR.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/MStargetR/MStargetR/blob/main/R/msConvertR.R" class="external-link"><code>R/msConvertR.R</code></a></small>
       <div class="d-none name"><code>msConvertR.Rd</code></div>
     </div>
 
@@ -59,6 +59,7 @@ standardised project directory structure.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">msConvertR</span><span class="op">(</span></span>
 <span>  <span class="va">input_directory</span>,</span>
 <span>  <span class="va">output_directory</span>,</span>
+<span>  manifest <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  enable_HPC <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"MStargetR.enable_HPC"</span>, <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -77,6 +78,25 @@ directory containing vendor files to convert.</p></dd>
 <dd><p>A character string specifying the path to the
 directory where the converted <code>.mzML</code> files and project structure
 will be created.</p></dd>
+
+
+<dt id="arg-manifest">manifest<a class="anchor" aria-label="anchor" href="#arg-manifest"></a></dt>
+<dd><p>Optional. Either a path to a CSV file or a
+<code>data.frame</code> mapping each raw vendor file to a plate, with
+(case-insensitive) columns <code>raw_file</code> and <code>plateID</code>. Use this
+last-resort override when plate membership for one-file-per-sample formats
+(e.g. <code>.d</code>, <code>.raw</code>) cannot be recovered automatically. When
+<code>NULL</code> (default), plate membership is resolved automatically in
+priority order: a remembered <code>plate_grouping.csv</code> at the project root;
+per-plate subfolders under <code>raw_data/</code> (a file in
+<code>raw_data/&lt;plateID&gt;/</code> belongs to that plate); filename-based
+auto-discovery, which infers the plate from the filename token structure
+for sample-level files left flat in <code>raw_data/</code> and reports the
+inference (persisting it to an editable <code>plate_grouping.csv</code> for
+confirmation); and finally the bare filename. Sample-level files that even
+auto-discovery cannot group are converted with a warning (each becomes its
+own plate) rather than rejected. A multi-sample <code>.wiff</code> is always one
+plate.</p></dd>
 
 
 <dt id="arg-enable-hpc">enable_HPC<a class="anchor" aria-label="anchor" href="#arg-enable-hpc"></a></dt>

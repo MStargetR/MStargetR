@@ -9,8 +9,7 @@ mzML format.
 msConvertR_construct_command_for_terminal(
   input_directory,
   output_directory,
-  plateIDs,
-  sanitized_plateIDs = plateIDs,
+  groups,
   enable_HPC = getOption("MStargetR.enable_HPC", FALSE)
 )
 ```
@@ -25,13 +24,17 @@ msConvertR_construct_command_for_terminal(
 
   path to output directory.
 
-- plateIDs:
+- groups:
 
-  The names of vendor files to convert
+  Plate membership table from
+  [`derive_plate_groups()`](https://mstargetr.github.io/MStargetR/reference/derive_plate_groups.md);
+  one command is produced per plate, with one msconvert invocation per
+  member.
 
 ## Value
 
-The constructed command string.
+A list of per-plate command objects, each with an `invocations` list.
+Carries an `active_plateIDs` attribute.
 
 ## Examples
 

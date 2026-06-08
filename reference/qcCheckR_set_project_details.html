@@ -34,7 +34,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>qcCheckR_set_project_details</h1>
-      <small class="dont-index">Source: <a href="https://github.com/MStargetR/MStargetR/blob/v1.3.0/R/qcCheckR_setup.R" class="external-link"><code>R/qcCheckR_setup.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/MStargetR/MStargetR/blob/main/R/qcCheckR_setup.R" class="external-link"><code>R/qcCheckR_setup.R</code></a></small>
       <div class="d-none name"><code>qcCheckR_set_project_details.Rd</code></div>
     </div>
 
@@ -50,7 +50,8 @@
 <span>  <span class="va">project_directory</span>,</span>
 <span>  <span class="va">QC_sample_label</span>,</span>
 <span>  <span class="va">sample_tags</span>,</span>
-<span>  <span class="va">mv_threshold</span></span>
+<span>  <span class="va">mv_threshold</span>,</span>
+<span>  lod_threshold <span class="op">=</span> <span class="fl">5000</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -81,6 +82,11 @@
 <dt id="arg-mv-threshold">mv_threshold<a class="anchor" aria-label="anchor" href="#arg-mv-threshold"></a></dt>
 <dd><p>Numeric value for the missing value sample threshold.</p></dd>
 
+
+<dt id="arg-lod-threshold">lod_threshold<a class="anchor" aria-label="anchor" href="#arg-lod-threshold"></a></dt>
+<dd><p>Numeric instrumental limit of detection (peak area)
+below which values are counted as missing. Default is 5000.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -95,7 +101,8 @@
 <span class="r-in"><span>                                            <span class="va">project_directory</span>,</span></span>
 <span class="r-in"><span>                                            <span class="va">QC_sample_label</span>,</span></span>
 <span class="r-in"><span>                                            <span class="va">sample_tags</span>,</span></span>
-<span class="r-in"><span>                                            <span class="va">mv_threshold</span><span class="op">)</span></span></span>
+<span class="r-in"><span>                                            <span class="va">mv_threshold</span>,</span></span>
+<span class="r-in"><span>                                            <span class="va">lod_threshold</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

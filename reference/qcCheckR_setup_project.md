@@ -12,7 +12,8 @@ qcCheckR_setup_project(
   mrm_template_list,
   QC_sample_label,
   sample_tags,
-  mv_threshold
+  mv_threshold,
+  lod_threshold = 5000
 )
 ```
 
@@ -43,6 +44,11 @@ qcCheckR_setup_project(
 
   threshold for missing value filter. default is 50%.
 
+- lod_threshold:
+
+  Numeric instrumental limit of detection (peak area) below which values
+  are counted as missing. default is 5000.
+
 ## Value
 
 The updated `master_list` object with the project setup details.
@@ -53,7 +59,7 @@ The updated `master_list` object with the project setup details.
 if (FALSE) { # \dontrun{
 qcCheckR_setup_project(
   user_name, project_directory, mrm_template_list,
-  QC_sample_label, sample_tags, mv_threshold
+  QC_sample_label, sample_tags, mv_threshold, lod_threshold
 )
 } # }
 ```

@@ -11,7 +11,8 @@ qcCheckR_set_project_details(
   project_directory,
   QC_sample_label,
   sample_tags,
-  mv_threshold
+  mv_threshold,
+  lod_threshold = 5000
 )
 ```
 
@@ -42,6 +43,11 @@ qcCheckR_set_project_details(
 
   Numeric value for the missing value sample threshold.
 
+- lod_threshold:
+
+  Numeric instrumental limit of detection (peak area) below which values
+  are counted as missing. Default is 5000.
+
 ## Value
 
 The updated master list object with project details.
@@ -55,6 +61,7 @@ master_list <- qcCheckR_set_project_details(master_list,
                                             project_directory,
                                             QC_sample_label,
                                             sample_tags,
-                                            mv_threshold)
+                                            mv_threshold,
+                                            lod_threshold)
 } # }
 ```
