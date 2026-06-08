@@ -10,7 +10,8 @@ qcCheckR_setup_project(
   mrm_template_list,
   QC_sample_label,
   sample_tags,
-  mv_threshold
+  mv_threshold,
+  lod_threshold = 5000
 )
 }
 \arguments{
@@ -25,6 +26,9 @@ qcCheckR_setup_project(
 \item{sample_tags}{Vector of character strings to pull sample types for names}
 
 \item{mv_threshold}{threshold for missing value filter. default is 50\%.}
+
+\item{lod_threshold}{Numeric instrumental limit of detection (peak area)
+below which values are counted as missing. default is 5000.}
 }
 \value{
 The updated \code{master_list} object with the project setup details.
@@ -36,7 +40,7 @@ This function sets up the project by initialising the master list, setting up pr
 \dontrun{
 qcCheckR_setup_project(
   user_name, project_directory, mrm_template_list,
-  QC_sample_label, sample_tags, mv_threshold
+  QC_sample_label, sample_tags, mv_threshold, lod_threshold
 )
 }
 }

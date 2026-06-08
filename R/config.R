@@ -37,6 +37,17 @@ MSTARGETR_EXCLUDE_DIRS <- c(
 #' @keywords internal
 DEFAULT_RSD_THRESHOLD <- 30L
 
+#' Default instrumental limit-of-detection (LOD) threshold
+#'
+#' Peak-area values below this threshold are counted as "below LOD" (missing)
+#' when flagging samples and features in \code{qcCheckR()}. The LOD is
+#' instrument- and lab-specific; override it via the \code{lod_threshold}
+#' argument of \code{qcCheckR()} (stored in
+#' \code{master_list$project_details$lod_threshold}). The filter functions in
+#' \code{qcCheckR_filter.R} fall back to this constant when no value is set.
+#' @keywords internal
+DEFAULT_LOD_THRESHOLD <- 5000
+
 #' Regex pattern matching all supported vendor-file extensions
 #'
 #' Used by \code{msConvertR()} to strip extensions when deriving plate IDs from

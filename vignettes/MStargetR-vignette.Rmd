@@ -737,6 +737,7 @@ head(peakforger_report[, 1:6])
 | `QC_sample_label` | Character | Tag to identify QC samples in file names (e.g., `"LTR"`, `"qc"`). Default is `"LTR"`. |
 | `sample_tags` | Character vector | Tags that identify sample types in file names (e.g., `c("sample", "control", "qc")`). |
 | `mv_threshold` | Numeric | Percentage threshold for missing value filtering (0--100). Features with a higher percentage of missing values than this threshold are removed. Default is `50`. |
+| `lod_threshold` | Numeric | Instrumental limit of detection (LOD), expressed as a peak area. Peak areas below this value are counted as below-LOD (missing) when flagging samples and features. The LOD is **instrument- and lab-specific**, so set it to your instrument's detection floor. Default is `5000`. |
 | `batch_method` | Character | Batch correction method: `"QCRFSC"` (random forest, default), `"ComBat"` (empirical Bayes, QC-free), or `"QCRLSC"` (robust LOESS, requires QC samples). |
 | `batch_ntree` | Integer | Number of trees for random forest correction. Ignored for other methods. Default is `500`. |
 | `batch_coCV` | Numeric | Coefficient of variation cutoff (%, 1--100) for feature filtering inside statTarget. Features with QC CV above this threshold are removed. Default is `100` (no filtering). |
@@ -1374,6 +1375,19 @@ expects a high proportion of missing values. Alternatively, inspect the
 `PeakForgeR` reports to determine whether missing values result from
 failed integrations, which may indicate issues with the MRM template or
 chromatographic quality.
+
+Also check that `lod_threshold` matches your instrument. The limit of
+detection is **instrument- and lab-specific**: peak areas below
+`lod_threshold` (default `5000`) are counted as below-LOD in the
+`peakArea_below_LOD` column of the QC summary, which feeds the per-feature
+missing-value totals. If your instrument's detection floor differs from
+the default, set `lod_threshold` accordingly so genuine signal is not
+mistaken for below-LOD noise (or vice versa).
+
+Note that `lod_threshold` controls only this below-LOD **flagging**. It is
+distinct from imputation: missing/zero values are imputed separately during
+data preparation by replacing them with half the minimum observed non-zero
+value for each feature (`xmin/2`), independent of `lod_threshold`.
 
 ## batchCorrectR returns errors about QC samples
 

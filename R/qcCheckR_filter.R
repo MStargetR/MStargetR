@@ -2,6 +2,23 @@
 # QC filtering, RSD calculation, SIL flagging, metabolite filtering
 # Split from qcCheckR_Utils.R
 
+#' Resolve the configured instrumental LOD threshold
+#'
+#' Returns \code{master_list$project_details$lod_threshold} when it is a single
+#' valid numeric, otherwise falls back to \code{DEFAULT_LOD_THRESHOLD}. Mirrors
+#' the \code{sil_mv_threshold} / \code{rsd_threshold} fallback idiom used
+#' elsewhere so every below-LOD count uses the same threshold.
+#' @keywords internal
+#' @param master_list The master list object.
+#' @return A single numeric LOD threshold (peak area).
+resolve_lod_threshold <- function(master_list) {
+  lod <- master_list$project_details$lod_threshold
+  if (is.null(lod) || !is.numeric(lod) || length(lod) != 1L || is.na(lod)) {
+    lod <- DEFAULT_LOD_THRESHOLD
+  }
+  lod
+}
+
 ## Set QC Type for Filtering ----
 ###Primary Function ----
 #' Set QC Type for Filtering
@@ -145,6 +162,7 @@ stop_with_qc_error <- function(project_name,
 qcCheckR_sample_filter <- function(master_list) {
   master_list$filters$samples.missingValues <- list()
   master_list$filters$failed_samples <- list()
+  lod <- resolve_lod_threshold(master_list)
 
   for (idx_batch in names(master_list$data$peakArea$sorted)) {
     sample_data <- master_list$data$peakArea$sorted[[idx_batch]]
@@ -170,10 +188,10 @@ qcCheckR_sample_filter <- function(master_list) {
       #Summed signal intensities
       summed.lipid.signal = rowSums(lipid_data, na.rm = TRUE),
       summed.SIL.Int.Std.signal = rowSums(sil_data, na.rm = TRUE),
-      #Missing /zero values <5000 (LOD). Explicitly require non-NA so that
-      # all-NA features are not counted as passing the LOD threshold.
-      missing.lipid = rowSums(!is.na(lipid_data) & lipid_data < 5000),
-      missing.SIL = rowSums(!is.na(sil_data) & sil_data < 5000),
+      #Missing /zero values below the LOD threshold. Explicitly require non-NA
+      # so that all-NA features are not counted as passing the LOD threshold.
+      missing.lipid = rowSums(!is.na(lipid_data) & lipid_data < lod),
+      missing.SIL = rowSums(!is.na(sil_data) & sil_data < lod),
       #NA values
       na.lipid = rowSums(is.na(lipid_data), na.rm = TRUE),
       na.SIL = rowSums(is.na(sil_data), na.rm = TRUE),
@@ -309,7 +327,7 @@ initialise_sil_summary <- function() {
     lipid = character(),
     template_version = character(),
     plateID = character(),
-    peakArea_5000_LOD = numeric(),
+    peakArea_below_LOD = numeric(),
     naValues = numeric(),
     nanValues = numeric(),
     infValues = numeric(),
@@ -329,6 +347,7 @@ initialise_sil_summary <- function() {
 #' @param idx_batch The index of the batch (plate) to process.
 #' @return A tibble containing SIL flags for each lipid, including counts of peak areas below a threshold, missing values, and flags for excessive missing values.
 calculate_sil_flags_per_plate <- function(master_list, idx_batch) {
+  lod <- resolve_lod_threshold(master_list)
   sil_names <- master_list$data$peakArea$sorted[[idx_batch]] %>%
     dplyr::select(dplyr::contains("SIL")) %>%
     names()
@@ -345,14 +364,14 @@ calculate_sil_flags_per_plate <- function(master_list, idx_batch) {
   flags <- tibble::tibble(
     lipid = sil_names,
     # Require non-NA: NA must not be counted as "below LOD pass".
-    peakArea_5000_LOD = colSums(!is.na(sil_matrix) & sil_matrix < 5000),
+    peakArea_below_LOD = colSums(!is.na(sil_matrix) & sil_matrix < lod),
     naValues = colSums(is.na(sil_matrix), na.rm = TRUE),
     nanValues = colSums(is.nan(sil_matrix), na.rm = TRUE),
     infValues = colSums(is.infinite(sil_matrix), na.rm = TRUE)
   )
 
   flags$totalMissingValues <- rowSums(
-    flags[, c("peakArea_5000_LOD", "naValues", "nanValues", "infValues")],
+    flags[, c("peakArea_below_LOD", "naValues", "nanValues", "infValues")],
     na.rm = TRUE
   )
 
@@ -378,6 +397,7 @@ calculate_sil_flags_per_plate <- function(master_list, idx_batch) {
 #' @param master_list A list containing project details and data.
 #' @return The updated `master_list` with SIL flags calculated for each version.
 calculate_sil_flags_per_version <- function(master_list) {
+  lod <- resolve_lod_threshold(master_list)
   master_list$filters$sil.intStd.missingValues$PROJECT.flag.SIL.intStd <- list()
   master_list$filters$failed_sil.intStds <- list()
 
@@ -428,7 +448,7 @@ calculate_sil_flags_per_version <- function(master_list) {
     version_flags <- tibble::tibble(
       lipid = colnames(sil_matrix),
       # Require non-NA: NA must not be counted as "below LOD pass".
-      peakArea_5000_LOD = colSums(!is.na(sil_matrix) & sil_matrix < 5000),
+      peakArea_below_LOD = colSums(!is.na(sil_matrix) & sil_matrix < lod),
       naValues = colSums(is.na(sil_matrix), na.rm = TRUE),
       nanValues = colSums(is.nan(sil_matrix), na.rm = TRUE),
       infValues = colSums(is.infinite(sil_matrix), na.rm = TRUE)
@@ -443,7 +463,7 @@ calculate_sil_flags_per_version <- function(master_list) {
     if (length(missing_sils) > 0) {
       missing_rows <- tibble::tibble(
         lipid = missing_sils,
-        peakArea_5000_LOD = 0,
+        peakArea_below_LOD = 0,
         naValues = valid_sample_count,
         nanValues = 0,
         infValues = 0,
@@ -514,7 +534,7 @@ initialise_lipid_filter <- function(master_list) {
   master_list$filters$lipid.missingValues$summary <- data.frame(
     lipid = character(),
     silFilter.flag.Lipid = numeric(),
-    peakArea_5000_LOD = numeric(),
+    peakArea_below_LOD = numeric(),
     naValues = numeric(),
     nanValues = numeric(),
     infValues = numeric(),
@@ -563,6 +583,7 @@ get_lipid_data <- function(master_list, idx_batch) {
 #' @return A tibble containing lipid flags, including counts of peak areas below a threshold, missing values, and flags for excessive missing values.
 calculate_lipid_flags <- function(master_list, idx_batch, lipid_matrix) {
 
+  lod <- resolve_lod_threshold(master_list)
   lipid_names <- colnames(lipid_matrix)
   SIL_version <- master_list$templates$`Plate SIL version`[[idx_batch]]
   failed_sil <- master_list$filters$failed_sil.intStds
@@ -575,7 +596,7 @@ calculate_lipid_flags <- function(master_list, idx_batch, lipid_matrix) {
     return(tibble::tibble(
       lipid = character(),
       silFilter.flag.Lipid = numeric(),
-      peakArea_5000_LOD = numeric(),
+      peakArea_below_LOD = numeric(),
       naValues = numeric(),
       nanValues = numeric(),
       infValues = numeric(),
@@ -605,14 +626,14 @@ calculate_lipid_flags <- function(master_list, idx_batch, lipid_matrix) {
     lipid = lipid_names,
     silFilter.flag.Lipid = sil_flag,
     # Require non-NA: NA must not be counted as "below LOD pass".
-    peakArea_5000_LOD = colSums(!is.na(lipid_matrix) & lipid_matrix < 5000),
+    peakArea_below_LOD = colSums(!is.na(lipid_matrix) & lipid_matrix < lod),
     naValues = colSums(is.na(lipid_matrix), na.rm = TRUE),
     nanValues = colSums(is.nan(lipid_matrix), na.rm = TRUE),
     infValues = colSums(is.infinite(lipid_matrix), na.rm = TRUE),
     template_version = SIL_version,
     plateID = idx_batch
   )
-  count_cols <- c("peakArea_5000_LOD", "naValues", "nanValues", "infValues")
+  count_cols <- c("peakArea_below_LOD", "naValues", "nanValues", "infValues")
   lipid_flags$totalMissingValues <- rowSums(
     lipid_flags[, count_cols, drop = FALSE],
     na.rm = TRUE
@@ -633,6 +654,7 @@ calculate_lipid_flags <- function(master_list, idx_batch, lipid_matrix) {
 #' @importFrom rlang .env .data
 #' @param master_list A list containing project details and data.
 process_lipid_versions <- function(master_list) {
+  lod <- resolve_lod_threshold(master_list)
   for (version in unique(master_list$filters$lipid.missingValues$summary$template_version)) {
     version_data <- master_list$filters$lipid.missingValues$summary %>%
       dplyr::filter(template_version == version)
@@ -659,7 +681,7 @@ process_lipid_versions <- function(master_list) {
     version_flags <- tibble::tibble(
       lipid = colnames(lipid_matrix),
       # Require non-NA: NA must not be counted as "below LOD pass".
-      peakArea_5000_LOD = colSums(!is.na(lipid_matrix) & lipid_matrix < 5000),
+      peakArea_below_LOD = colSums(!is.na(lipid_matrix) & lipid_matrix < lod),
       naValues = colSums(is.na(lipid_matrix), na.rm = TRUE),
       nanValues = colSums(is.nan(lipid_matrix), na.rm = TRUE),
       infValues = colSums(is.infinite(lipid_matrix), na.rm = TRUE)
