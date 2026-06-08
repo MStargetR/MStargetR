@@ -5,7 +5,7 @@ Function to check Docker installation, daemon, and containers
 ## Usage
 
 ``` r
-check_docker()
+check_docker(auto_pull = interactive())
 ```
 
 ## Value

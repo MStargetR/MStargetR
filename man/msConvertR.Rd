@@ -7,6 +7,7 @@
 msConvertR(
   input_directory,
   output_directory,
+  manifest = NULL,
   enable_HPC = getOption("MStargetR.enable_HPC", FALSE),
   ...
 )
@@ -18,6 +19,23 @@ directory containing vendor files to convert.}
 \item{output_directory}{A character string specifying the path to the
 directory where the converted \code{.mzML} files and project structure
 will be created.}
+
+\item{manifest}{Optional. Either a path to a CSV file or a
+\code{data.frame} mapping each raw vendor file to a plate, with
+(case-insensitive) columns \code{raw_file} and \code{plateID}. Use this
+last-resort override when plate membership for one-file-per-sample formats
+(e.g. \code{.d}, \code{.raw}) cannot be recovered automatically. When
+\code{NULL} (default), plate membership is resolved automatically in
+priority order: a remembered \code{plate_grouping.csv} at the project root;
+per-plate subfolders under \code{raw_data/} (a file in
+\code{raw_data/<plateID>/} belongs to that plate); filename-based
+auto-discovery, which infers the plate from the filename token structure
+for sample-level files left flat in \code{raw_data/} and reports the
+inference (persisting it to an editable \code{plate_grouping.csv} for
+confirmation); and finally the bare filename. Sample-level files that even
+auto-discovery cannot group are converted with a warning (each becomes its
+own plate) rather than rejected. A multi-sample \code{.wiff} is always one
+plate.}
 
 \item{enable_HPC}{Logical. When \code{TRUE}, the ProteoWizard container is
 invoked via Apptainer (Singularity) instead of Docker. This is the

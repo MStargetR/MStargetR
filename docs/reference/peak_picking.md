@@ -6,7 +6,11 @@ times, updates peak boundaries, and checks for SIL internal standards.
 ## Usage
 
 ``` r
-peak_picking(plateID, master_list)
+peak_picking(
+  plateID,
+  master_list,
+  enable_HPC = getOption("MStargetR.enable_HPC", FALSE)
+)
 ```
 
 ## Arguments
@@ -18,6 +22,11 @@ peak_picking(plateID, master_list)
 - master_list:
 
   Master list generated internally.
+
+- enable_HPC:
+
+  Logical. `FALSE` (default) runs Skyline via Docker; `TRUE` runs it via
+  Apptainer using the cached SIF.
 
 ## Value
 

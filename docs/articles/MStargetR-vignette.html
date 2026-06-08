@@ -5,17 +5,17 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>MStargetR &lt;img src='man/figures/logo.png' style='float: right; height:100px;' /&gt; • MStargetR</title>
+<title>MStargetR • MStargetR</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="MStargetR &lt;img src='man/figures/logo.png' style='float: right; height:100px;' /&gt;">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="MStargetR">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,7 +38,9 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/MStargetR-vignette.html">MStargetR &lt;img src='man/figures/logo.png' style='float: right; height:100px;' /&gt;</a></li>
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Getting Started</h6></li>
+    <li><a class="dropdown-item" href="../articles/MStargetR-vignette.html">MStargetR</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -60,11 +62,11 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>MStargetR &lt;img src='man/figures/logo.png' style='float: right; height:100px;' /&gt;</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>MStargetR</h1>
                         <h4 data-toc-skip class="author">Harrison
 Szemray</h4>
             
-            <h4 data-toc-skip class="date">2026-03-31</h4>
+            <h4 data-toc-skip class="date">2026-06-02</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/MStargetR/MStargetR/blob/HEAD/vignettes/MStargetR-vignette.Rmd" class="external-link"><code>vignettes/MStargetR-vignette.Rmd</code></a></small>
       <div class="d-none name"><code>MStargetR-vignette.Rmd</code></div>
@@ -72,6 +74,13 @@ Szemray</h4>
 
     
     
+<blockquote>
+<p><strong>Note:</strong> Code examples in this vignette use
+<code>eval=FALSE</code> because the pipeline requires Docker containers
+for file conversion and peak integration. To run the examples, ensure
+Docker Desktop is installed and running, then copy the code into an
+interactive R session.</p>
+</blockquote>
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
@@ -91,9 +100,12 @@ encapsulate vendor-dependent conversion and peak-picking tools.</p>
 <p>This vignette describes:</p>
 <ul>
 <li>Installation and prerequisites</li>
+<li>A one-time <strong>Lab Setup Walkthrough</strong> for adapting the
+pipeline to your lab’s conventions</li>
 <li>The three-step core pipeline (<code>msConvertR</code> -&gt;
 <code>PeakForgeR</code> -&gt; <code>qcCheckR</code>)</li>
-<li>Batch correction methods (QC-based and QC-free ComBat)</li>
+<li>Batch correction methods (QC-based QCRFSC and QC-RLSC, QC-free
+ComBat)</li>
 <li>Standalone batch correction with <code>batchCorrectR</code>
 </li>
 <li>The interactive Shiny application</li>
@@ -115,6 +127,14 @@ use containerised ProteoWizard and Skyline tools.</li>
 <li>An active internet connection for the initial Docker image
 pulls.</li>
 </ul>
+<blockquote>
+<p><strong>HPC users:</strong> Docker is typically forbidden on HPC
+clusters. Pass <code>enable_HPC = TRUE</code> (or set
+<code>options(MStargetR.enable_HPC = TRUE)</code>) to route
+<code><a href="../reference/msConvertR.html">msConvertR()</a></code> and <code><a href="../reference/PeakForgeR.html">PeakForgeR()</a></code> through
+Apptainer / Singularity instead. See the “Running on HPC” section of the
+README for SIF setup instructions.</p>
+</blockquote>
 <hr>
 </div>
 </div>
@@ -143,7 +163,7 @@ after installation.</p>
 remotes, and all Bioconductor dependencies are installed and up to date
 before installing the package from GitHub.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/MStargetR/MStargetR/master/R/install.R"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/MStargetR/MStargetR/main/R/install.R"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/install_MStargetR.html">install_MStargetR</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -168,10 +188,123 @@ packages are available:</p>
 </div>
 </div>
 <div class="section level2">
+<h2 id="running-on-hpc-apptainer-singularity">Running on HPC (Apptainer / Singularity)<a class="anchor" aria-label="anchor" href="#running-on-hpc-apptainer-singularity"></a>
+</h2>
+<p>Docker is forbidden on most HPC clusters. <code><a href="../reference/msConvertR.html">msConvertR()</a></code>
+and <code><a href="../reference/PeakForgeR.html">PeakForgeR()</a></code> accept an <code>enable_HPC</code> argument
+that swaps Docker for <strong>Apptainer</strong> (formerly Singularity)
+without changing anything else in the pipeline. The same pinned
+ProteoWizard image is used; Apptainer pulls it into a <code>.sif</code>
+file and runs it as the invoking user, no daemon required.</p>
+<p>If you are running on a workstation with Docker, you can skip this
+section – the default (<code>enable_HPC = FALSE</code>) keeps Docker
+behaviour unchanged.</p>
+<div class="section level3">
+<h3 id="one-time-setup-on-the-login-node">One-time setup on the login node<a class="anchor" aria-label="anchor" href="#one-time-setup-on-the-login-node"></a>
+</h3>
+<p>HPC compute nodes typically have no outbound network, so build the
+<code>.sif</code> once on a login node and stash the path. The image tag
+is pinned by your installed MStargetR version; print it with
+<code>MStargetR:::MSTARGETR_DOCKER_IMAGE_TAG</code>.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># On a login node (shell), with Apptainer available:</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="ex">module</span> load apptainer</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="ex">apptainer</span> pull <span class="dt">\</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  /scratch/<span class="va">$USER</span>/mstargetr-pwiz.sif <span class="dt">\</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  docker://proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:skyline_26.1.0.057-c07debd</span></code></pre></div>
+<p>The pull is ~GB and only needs to be repeated when the MStargetR
+image tag changes (a major release).</p>
+</div>
+<div class="section level3">
+<h3 id="per-job-r-configuration">Per-job R configuration<a class="anchor" aria-label="anchor" href="#per-job-r-configuration"></a>
+</h3>
+<p>Set the two MStargetR options once – either in your project script,
+your <code>~/.Rprofile</code>, or via <code>R_PROFILE_USER</code> in
+your job script. With these set, you call <code><a href="../reference/msConvertR.html">msConvertR()</a></code> and
+<code><a href="../reference/PeakForgeR.html">PeakForgeR()</a></code> exactly as on a workstation.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span></span>
+<span>  MStargetR.enable_HPC <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  MStargetR.sif_path   <span class="op">=</span> <span class="st">"/scratch/your_user/mstargetr-pwiz.sif"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MStargetR/MStargetR" class="external-link">MStargetR</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/msConvertR.html">msConvertR</a></span><span class="op">(</span></span>
+<span>  input_directory  <span class="op">=</span> <span class="st">"/scratch/your_user/MyProject/raw_data"</span>,</span>
+<span>  output_directory <span class="op">=</span> <span class="st">"/scratch/your_user/MyProject"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/PeakForgeR.html">PeakForgeR</a></span><span class="op">(</span></span>
+<span>  user_name         <span class="op">=</span> <span class="st">"your_user"</span>,</span>
+<span>  project_directory <span class="op">=</span> <span class="st">"/scratch/your_user/MyProject"</span>,</span>
+<span>  mrm_template_list <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"/scratch/your_user/templates/lipid_mrm_v1.tsv"</span><span class="op">)</span>,</span>
+<span>  QC_sample_label   <span class="op">=</span> <span class="st">"LTR"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>You can also enable HPC mode for a single call without setting the
+option:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/msConvertR.html">msConvertR</a></span><span class="op">(</span></span>
+<span>  input_directory  <span class="op">=</span> <span class="st">"/scratch/your_user/MyProject/raw_data"</span>,</span>
+<span>  output_directory <span class="op">=</span> <span class="st">"/scratch/your_user/MyProject"</span>,</span>
+<span>  enable_HPC       <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="sif-resolution-order">SIF resolution order<a class="anchor" aria-label="anchor" href="#sif-resolution-order"></a>
+</h3>
+<p><code>enable_HPC = TRUE</code> looks for a <code>.sif</code> in this
+order:</p>
+<ol style="list-style-type: decimal">
+<li>
+<code>getOption("MStargetR.sif_path")</code> – the explicit option
+(most reliable on HPC because it bypasses any pull attempt).</li>
+<li>
+<code>tools::R_user_dir("MStargetR", "cache")/mstargetr-pwiz-&lt;tag&gt;.sif</code>
+– a tag-versioned cache populated by step 3.</li>
+<li>
+<code>apptainer pull docker://...</code> into the cache – only
+succeeds if the node has outbound network. The pull is one-time per tag;
+older <code>.sif</code> files stay on disk so prior analyses remain
+reproducible.</li>
+</ol>
+<p>If you forget to set <code>MStargetR.sif_path</code> on a
+network-less compute node, the auto-pull fails with a clear error
+pointing you back at the login-node command above.</p>
+</div>
+<div class="section level3">
+<h3 id="sample-slurm-script">Sample SLURM script<a class="anchor" aria-label="anchor" href="#sample-slurm-script"></a>
+</h3>
+<p>A minimal sketch – adapt module names and resource requests to your
+site:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#SBATCH --job-name=mstargetr</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=8</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#SBATCH --mem=32G</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#SBATCH --time=04:00:00</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="ex">module</span> load apptainer</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="ex">module</span> load r/4.4.0</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="st">  options(</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="st">    MStargetR.enable_HPC = TRUE,</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="st">    MStargetR.sif_path   = "/scratch/$USER/mstargetr-pwiz.sif"</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="st">  )</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="st">  library(MStargetR)</span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="st">  msConvertR("/scratch/$USER/MyProject/raw_data",</span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="st">             "/scratch/$USER/MyProject")</span></span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="st">'</span></span></code></pre></div>
+<hr>
+</div>
+</div>
+<div class="section level2">
 <h2 id="core-workflow">Core Workflow<a class="anchor" aria-label="anchor" href="#core-workflow"></a>
 </h2>
 <p>The MStargetR pipeline consists of three sequential steps. Each step
 produces outputs that feed into the next.</p>
+<p>First-time setup? Work through the <strong>Lab Setup
+Walkthrough</strong> below before running the steps.</p>
 <pre><code>Raw vendor files
       |
       v
@@ -186,6 +319,524 @@ produces outputs that feed into the next.</p>
       v
  Concentration data ready for statistics</code></pre>
 <hr>
+</div>
+<div class="section level2">
+<h2 id="lab-setup-walkthrough">Lab Setup Walkthrough<a class="anchor" aria-label="anchor" href="#lab-setup-walkthrough"></a>
+</h2>
+<p>Getting MStargetR running for your lab is a one-time exercise: you
+make a handful of decisions about how your data is named and how it
+should be corrected, encode them in a workflow template, validate them
+on a quick dry run, and from then on every new study is a parameter swap
+rather than a fresh setup. This section is
+<strong>decision-oriented</strong> – it walks through each choice in
+order and points to the reference sections below for the full parameter
+tables. Work through it once with a representative batch of files in
+front of you.</p>
+<div class="section level3">
+<h3 id="before-you-start-a-decision-map">Before you start: a decision map<a class="anchor" aria-label="anchor" href="#before-you-start-a-decision-map"></a>
+</h3>
+<p>Everything you need to decide before your first production run, in
+one place:</p>
+<table class="table">
+<colgroup>
+<col width="20%">
+<col width="20%">
+<col width="20%">
+<col width="20%">
+<col width="20%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Decision</th>
+<th align="left">Options</th>
+<th align="left">Default</th>
+<th align="left">Driven by</th>
+<th align="left">See</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Container runtime</td>
+<td align="left">Docker / Apptainer</td>
+<td align="left">Docker</td>
+<td align="left">Workstation vs HPC</td>
+<td align="left">
+<em>Choose your container runtime</em> + <em>Running on
+HPC</em>
+</td>
+</tr>
+<tr class="even">
+<td align="left">Plate grouping</td>
+<td align="left">auto-discovery / subfolders / manifest</td>
+<td align="left">auto-discovery</td>
+<td align="left">Your filename convention</td>
+<td align="left">
+<em>Decide how plates are grouped</em> + <em>Project
+Setup</em>
+</td>
+</tr>
+<tr class="odd">
+<td align="left">Filename convention</td>
+<td align="left">lab-defined tokens</td>
+<td align="left">–</td>
+<td align="left">QC + sample-type detection</td>
+<td align="left"><em>Adopt a filename convention</em></td>
+</tr>
+<tr class="even">
+<td align="left">MRM template</td>
+<td align="left">10-column CSV/TSV</td>
+<td align="left">–</td>
+<td align="left">Your assay</td>
+<td align="left">
+<em>Prepare and validate your MRM template</em> +
+<em>Step 2</em>
+</td>
+</tr>
+<tr class="odd">
+<td align="left">Concentration guide</td>
+<td align="left">CSV/TSV (<code>SIL_name</code> to factor)</td>
+<td align="left">–</td>
+<td align="left">Your SIL mix</td>
+<td align="left">
+<em>Prepare and validate your MRM template</em> +
+<em>Step 3</em>
+</td>
+</tr>
+<tr class="even">
+<td align="left">Batch-correction method</td>
+<td align="left">QCRFSC / QCRLSC / ComBat</td>
+<td align="left">QCRFSC</td>
+<td align="left">QC availability per batch</td>
+<td align="left"><em>Choose a batch-correction method</em></td>
+</tr>
+<tr class="odd">
+<td align="left"><code>mv_threshold</code></td>
+<td align="left">0–100</td>
+<td align="left">50</td>
+<td align="left">Expected missingness</td>
+<td align="left">
+<em>Step 3</em> + <em>Troubleshooting</em>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level3">
+<h3 id="choose-your-container-runtime">Choose your container runtime<a class="anchor" aria-label="anchor" href="#choose-your-container-runtime"></a>
+</h3>
+<p>MStargetR runs the vendor conversion (<code>msConvertR</code>) and
+peak-picking (<code>PeakForgeR</code>) tools inside a container, so you
+need exactly one runtime available:</p>
+<ul>
+<li>
+<strong>Workstation -&gt; Docker</strong> (the default). Install
+Docker Desktop, make sure it is running, and you are done – nothing to
+configure in R.</li>
+<li>
+<strong>Shared HPC cluster -&gt; Apptainer / Singularity.</strong>
+Set this once and every call uses it:</li>
+</ul>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>MStargetR.enable_HPC <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># use Apptainer instead of Docker</span></span></code></pre></div>
+<blockquote>
+<p>The one-time SIF build, the <code>MStargetR.sif_path</code> option,
+and a sample SLURM script are covered in <strong>Running on HPC
+(Apptainer / Singularity)</strong> above; Docker installation is covered
+in <strong>Prerequisites</strong>. Choose your runtime here, then follow
+that section for the mechanics.</p>
+</blockquote>
+</div>
+<div class="section level3">
+<h3 id="adopt-a-filename-convention">Adopt a filename convention<a class="anchor" aria-label="anchor" href="#adopt-a-filename-convention"></a>
+</h3>
+<p>This is the most consequential lab-wide decision, because the
+<strong>raw file name drives three separate things</strong>:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Plate grouping</strong> – auto-discovery reads a plate token
+from the name (see <em>Decide how plates are grouped</em>).</li>
+<li>
+<strong>QC detection</strong> – the <code>QC_sample_label</code>
+(default <code>"LTR"</code>) marks which injections are pooled QC.</li>
+<li>
+<strong>Sample-type assignment</strong> – <code>sample_tags</code>
+label each injection’s type (sample, blank, conditioning, …).</li>
+</ol>
+<p>MStargetR splits each file name into tokens on any non-letter
+boundary (<code>_</code>, <code>-</code>, <code>.</code>, space), then
+matches your labels as whole tokens: longest label first,
+case-insensitive, first match wins; anything untagged becomes
+<code>"sample"</code>. A label only needs to appear as its own token
+somewhere in the name – <code>LTR</code> matches
+<code>..._LTR_19.raw</code> but not <code>VLTR</code>.</p>
+<p>Annotated example (placeholder convention):</p>
+<pre><code>STUDY_PlateA_PLASMA_LTR_19.raw
+  |     |      |     |   |
+  |     |      |     |   +- injection index
+  |     |      |     +----- QC token   -&gt; QC_sample_label = "LTR"
+  |     |      +----------- matrix      -&gt; sample_tags
+  |     +------------------ plate token -&gt; plate grouping
+  +------------------------ study/project prefix (shared, ignored)</code></pre>
+<table class="table">
+<thead><tr class="header">
+<th align="left">Token role</th>
+<th align="left">Parameter</th>
+<th align="left">Default</th>
+<th align="left">Used in</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Plate token</td>
+<td align="left">(auto-discovery)</td>
+<td align="left">–</td>
+<td align="left"><code>msConvertR</code></td>
+</tr>
+<tr class="even">
+<td align="left">QC token</td>
+<td align="left"><code>QC_sample_label</code></td>
+<td align="left"><code>"LTR"</code></td>
+<td align="left">
+<code>PeakForgeR</code>, <code>qcCheckR</code>
+</td>
+</tr>
+<tr class="odd">
+<td align="left">Sample-type tokens</td>
+<td align="left"><code>sample_tags</code></td>
+<td align="left">–</td>
+<td align="left"><code>qcCheckR</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Worked example – ANPC lipidomics:</strong> in
+<code>covid19_mauritiusC2_PLA_MS-LIPIDS-2@fEPP_COVr57_COVp298</code>,
+<code>covid19</code> is the project, <code>PLA</code> the matrix,
+<code>MS-LIPIDS-2@fEPP</code> the method, <code>COVr57</code> the
+run/batch, and <code>COVp298</code> the plate. Pooled-QC injections
+carry the <code>LTR</code> token, so
+<code>QC_sample_label = "LTR"</code>.</p>
+</blockquote>
+<p>Full <code>QC_sample_label</code> and <code>sample_tags</code>
+semantics are in <strong>Step 3: qcCheckR</strong>.</p>
+</div>
+<div class="section level3">
+<h3 id="decide-how-plates-are-grouped">Decide how plates are grouped<a class="anchor" aria-label="anchor" href="#decide-how-plates-are-grouped"></a>
+</h3>
+<p>A “plate” is the unit of per-plate QC and batch correction. Pick the
+strategy that matches how your files arrive:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Strategy</th>
+<th align="left">Choose when</th>
+<th align="left">How</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Filename auto-discovery (default)</td>
+<td align="left">Files share a consistent plate token in their
+names</td>
+<td align="left">Do nothing; review the reported grouping and the
+generated <code>plate_grouping.csv</code>
+</td>
+</tr>
+<tr class="even">
+<td align="left">Per-plate subfolders</td>
+<td align="left">You organise by folder, or names are inconsistent</td>
+<td align="left">Put each plate’s files in
+<code>raw_data/&lt;plateID&gt;/</code>
+</td>
+</tr>
+<tr class="odd">
+<td align="left">Explicit manifest</td>
+<td align="left">Grouping comes from a worklist / LIMS, or to lock a
+correction</td>
+<td align="left">Provide a <code>raw_file,plateID</code> CSV via
+<code>manifest =</code>
+</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Avoid these plate IDs</strong> – they collide with reserved
+project folders and would be skipped by downstream plate discovery:
+<code>raw_data</code>, <code>msConvert_mzml_output</code>,
+<code>all</code>, <code>archive</code>, <code>MStargetR_logs</code>,
+<code>logs</code>, <code>user_files</code>, <code>error_log.txt</code>.
+<code><a href="../reference/msConvertR.html">msConvertR()</a></code> warns and skips any plate whose name collides
+with these.</p>
+</blockquote>
+<blockquote>
+<p><strong>Worked example – ANPC lipidomics:</strong> ANPC acquires
+SCIEX <code>.wiff</code>, which is plate-level (one file = one plate),
+so no grouping decision is needed – each <code>.wiff</code> becomes its
+own plate automatically (here <code>COVp298</code>,
+<code>COVp299</code>, …).</p>
+</blockquote>
+<p>The directory layouts, <code>.wiff</code> handling, and a manifest
+example are in <strong>Project Setup</strong> below.</p>
+</div>
+<div class="section level3">
+<h3 id="prepare-and-validate-your-mrm-template">Prepare and validate your MRM template<a class="anchor" aria-label="anchor" href="#prepare-and-validate-your-mrm-template"></a>
+</h3>
+<p><code>PeakForgeR</code> and <code>qcCheckR</code> both need your
+assay’s MRM transition template – a CSV or TSV with these ten
+columns:</p>
+<table class="table">
+<thead><tr class="header">
+<th align="left">Column</th>
+<th align="left">Meaning</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>Molecule List Name</code></td>
+<td align="left">Metabolite class (e.g. <code>CE</code>,
+<code>TAG</code>)</td>
+</tr>
+<tr class="even">
+<td align="left"><code>Precursor Name</code></td>
+<td align="left">Unique metabolite / transition identifier</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>Precursor Mz</code></td>
+<td align="left">Q1 m/z</td>
+</tr>
+<tr class="even">
+<td align="left"><code>Precursor Charge</code></td>
+<td align="left">Q1 charge</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>Product Mz</code></td>
+<td align="left">Q3 m/z</td>
+</tr>
+<tr class="even">
+<td align="left"><code>Product Charge</code></td>
+<td align="left">Q3 charge</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>Explicit Retention Time</code></td>
+<td align="left">Expected RT (min)</td>
+</tr>
+<tr class="even">
+<td align="left"><code>Explicit Retention Time Window</code></td>
+<td align="left">RT window (min)</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>Note</code></td>
+<td align="left">SIL internal-standard name for this transition</td>
+</tr>
+<tr class="even">
+<td align="left"><code>control_chart</code></td>
+<td align="left">
+<code>TRUE</code> / <code>FALSE</code> – include in
+control charts</td>
+</tr>
+</tbody>
+</table>
+<p>For absolute quantitation, <code>qcCheckR</code> also needs a
+<strong>concentration guide</strong> whose <code>SIL_name</code> values
+match the template’s <code>Note</code> column (each
+<code>SIL_name</code> carries a <code>concentration_factor</code>). The
+cross-file rule is simple: <strong>every <code>Note</code> in the
+template must have a matching <code>SIL_name</code> in the
+guide.</strong></p>
+<blockquote>
+<p><strong>Worked example – ANPC lipidomics:</strong> SIL standards are
+named like <code>SIL_CE(16:0)_d7_Lipidyzer</code>; that exact string
+appears in the template <code>Note</code> and again as a
+<code>SIL_name</code> row in the concentration guide.</p>
+</blockquote>
+<p>You can load and inspect the bundled example templates with
+<code><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file()</a></code> – see the inspect chunks in <strong>Step 2:
+PeakForgeR</strong> and <strong>Step 3: qcCheckR</strong>.</p>
+</div>
+<div class="section level3">
+<h3 id="dry-run-before-burning-compute">Dry-run before burning compute<a class="anchor" aria-label="anchor" href="#dry-run-before-burning-compute"></a>
+</h3>
+<p>Conversion and peak-picking are the slow, container-bound steps.
+Validate everything cheaply first, in this order:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># 1. Project directory exists and is well-formed</span></span>
+<span><span class="fu"><a href="../reference/validate_project_directory.html">validate_project_directory</a></span><span class="op">(</span><span class="va">project_dir</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2. raw_data/ holds supported vendor files</span></span>
+<span><span class="fu"><a href="../reference/validate_file_types.html">validate_file_types</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"raw_data"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 3. Plate grouping resolves as you expect -- review the printed grouping and</span></span>
+<span><span class="co">#    the generated plate_grouping.csv. If you use an explicit manifest, check it</span></span>
+<span><span class="co">#    against the files:</span></span>
+<span><span class="co"># read_plate_manifest(</span></span>
+<span><span class="co">#   "plate_grouping.csv",</span></span>
+<span><span class="co">#   known_files = list.files(file.path(project_dir, "raw_data"))</span></span>
+<span><span class="co"># )</span></span>
+<span></span>
+<span><span class="co"># 4. MRM template has unique Q1/Q3 transitions</span></span>
+<span><span class="fu"><a href="../reference/transition_checkR.html">transition_checkR</a></span><span class="op">(</span><span class="va">mrm_template</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 5. Every template Note has a matching concentration-guide SIL_name</span></span>
+<span><span class="fu"><a href="../reference/compare_mrm_template_with_guide.html">compare_mrm_template_with_guide</a></span><span class="op">(</span><span class="va">mrm_template</span>, <span class="va">conc_guide</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Check</th>
+<th align="left">Helper</th>
+<th align="left">Passes when</th>
+<th align="left">If it fails</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Project dir</td>
+<td align="left"><code><a href="../reference/validate_project_directory.html">validate_project_directory()</a></code></td>
+<td align="left">Directory exists</td>
+<td align="left">Create it / fix the path</td>
+</tr>
+<tr class="even">
+<td align="left">Vendor files</td>
+<td align="left"><code><a href="../reference/validate_file_types.html">validate_file_types()</a></code></td>
+<td align="left">Supported files found in <code>raw_data/</code>
+</td>
+<td align="left">Check formats / placement</td>
+</tr>
+<tr class="odd">
+<td align="left">Plate grouping</td>
+<td align="left">reported grouping +
+<code>plate_grouping.csv</code>
+</td>
+<td align="left">Plates match expectation</td>
+<td align="left">Edit <code>plate_grouping.csv</code>, add a subfolder,
+or pass <code>manifest=</code>
+</td>
+</tr>
+<tr class="even">
+<td align="left">Transitions</td>
+<td align="left"><code><a href="../reference/transition_checkR.html">transition_checkR()</a></code></td>
+<td align="left">No duplicate Q1/Q3</td>
+<td align="left">Resolve clashing transitions in the template</td>
+</tr>
+<tr class="odd">
+<td align="left">Template -&gt; guide</td>
+<td align="left"><code><a href="../reference/compare_mrm_template_with_guide.html">compare_mrm_template_with_guide()</a></code></td>
+<td align="left">All <code>Note</code>s matched</td>
+<td align="left">Add the missing <code>SIL_name</code>s to the
+guide</td>
+</tr>
+</tbody>
+</table>
+<p>Full parameter docs for <code><a href="../reference/transition_checkR.html">transition_checkR()</a></code> and
+<code><a href="../reference/compare_mrm_template_with_guide.html">compare_mrm_template_with_guide()</a></code> are in <strong>Utility
+Functions</strong>.</p>
+</div>
+<div class="section level3">
+<h3 id="choose-a-batch-correction-method">Choose a batch-correction method<a class="anchor" aria-label="anchor" href="#choose-a-batch-correction-method"></a>
+</h3>
+<p>Pick the method that matches your QC design (a “batch” is one run /
+plate):</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Method</th>
+<th align="left">QC required?</th>
+<th align="left">Extra package</th>
+<th align="left">Choose when</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">
+<code>QCRFSC</code> (default)</td>
+<td align="left">Yes (&gt;= 2 QC/batch)</td>
+<td align="left">–</td>
+<td align="left">You inject pooled QC every batch</td>
+</tr>
+<tr class="even">
+<td align="left"><code>QCRLSC</code></td>
+<td align="left">Yes (&gt;= 2 QC/batch)</td>
+<td align="left"><code>qcrlscR</code></td>
+<td align="left">You want Dunn-protocol LOESS drift correction</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>ComBat</code></td>
+<td align="left">No</td>
+<td align="left"><code>sva</code></td>
+<td align="left">No / insufficient QC per batch</td>
+</tr>
+</tbody>
+</table>
+<p>QC-required methods need at least two valid QC injections per batch
+(low-signal QCs are reclassified as samples first). Install the optional
+package only if you choose that method,
+e.g. <code>BiocManager::install("sva")</code>.</p>
+<p>Per-method tuning parameters (<code>batch_ntree</code>,
+<code>qcrlsc_*</code>, <code>combat_*</code>) and full
+<code><a href="../reference/qcCheckR.html">qcCheckR()</a></code> call examples are in <strong>Step 3:
+qcCheckR</strong>; QC-count errors are covered in
+<strong>Troubleshooting -&gt; batchCorrectR returns errors about QC
+samples</strong>.</p>
+</div>
+<div class="section level3">
+<h3 id="encode-your-decisions-in-a-workflow-template">Encode your decisions in a workflow template<a class="anchor" aria-label="anchor" href="#encode-your-decisions-in-a-workflow-template"></a>
+</h3>
+<p>Capture every choice above in a reusable script so the next study is
+a copy-edit, not a setup:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/use_workflow.html">use_workflow</a></span><span class="op">(</span><span class="st">"generic"</span><span class="op">)</span>   <span class="co"># copies a starter .Rmd into your working directory</span></span></code></pre></div>
+<p>Edit the user-parameter block at the top (project path,
+<code>QC_sample_label</code>, <code>sample_tags</code>,
+<code>mrm_template_list</code>, <code>batch_method</code>,
+<code>mv_threshold</code>) with your decided values, then commit it as
+your lab’s standard. The template catalog and options are in
+<strong>Workflow Templates</strong>.</p>
+<blockquote>
+<p><strong>Worked example – ANPC lipidomics:</strong>
+<code>use_workflow("CCSM")</code> ships a template pre-filled with the
+ANPC lipidomics conventions (built-in templates, <code>LTR</code> QC
+label) as a ready starting point.</p>
+</blockquote>
+</div>
+<div class="section level3">
+<h3 id="walkthrough-checklist">Walkthrough checklist<a class="anchor" aria-label="anchor" href="#walkthrough-checklist"></a>
+</h3>
+<p>Before your first production run, confirm:</p>
+<ul class="task-list">
+<li><label><input type="checkbox">Container runtime chosen and working
+(Docker running, or <code>MStargetR.enable_HPC = TRUE</code> + a
+resolvable SIF) – <em>Choose your container runtime</em></label></li>
+<li><label><input type="checkbox">Filename convention adopted, with
+clear plate / QC / sample-type tokens – <em>Adopt a filename
+convention</em></label></li>
+<li><label><input type="checkbox">Plate-grouping strategy decided –
+<em>Decide how plates are grouped</em></label></li>
+<li><label><input type="checkbox">MRM template prepared (10 columns),
+<code><a href="../reference/transition_checkR.html">transition_checkR()</a></code> passes – <em>Prepare and validate your
+MRM template</em></label></li>
+<li><label><input type="checkbox">Concentration guide matches the
+template (<code><a href="../reference/compare_mrm_template_with_guide.html">compare_mrm_template_with_guide()</a></code> passes) –
+<em>Prepare and validate your MRM template</em></label></li>
+<li><label><input type="checkbox"><code>QC_sample_label</code> and
+<code>sample_tags</code> set to your tokens – <em>Adopt a filename
+convention</em></label></li>
+<li><label><input type="checkbox">Batch-correction method chosen (and
+its package installed if needed) – <em>Choose a batch-correction
+method</em></label></li>
+<li><label><input type="checkbox">Decisions saved in a workflow
+template – <em>Encode your decisions in a workflow
+template</em></label></li>
+</ul>
+<p>With these settled, proceed to <strong>Project Setup</strong> and
+<strong>Step 1: msConvertR</strong> below.</p>
+<hr>
+</div>
 <div class="section level3">
 <h3 id="project-setup">Project Setup<a class="anchor" aria-label="anchor" href="#project-setup"></a>
 </h3>
@@ -193,7 +844,18 @@ produces outputs that feed into the next.</p>
 your vendor raw files (e.g., <code>.wiff</code>,
 <code>.wiff.scan</code>, <code>.raw</code>, <code>.d</code>) inside a
 subdirectory named <code>raw_data</code>.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<p>Your filename convention and plate-grouping strategy are decided in
+<strong>Adopt a filename convention</strong> and <strong>Decide how
+plates are grouped</strong> in the Lab Setup Walkthrough above; this
+section covers the resulting directory layout.</p>
+<p>The pipeline organises everything by <strong>plate</strong> – one
+folder per plate, which is the unit used for QC and batch correction.
+How you arrange <code>raw_data/</code> tells <code><a href="../reference/msConvertR.html">msConvertR()</a></code>
+which samples belong to which plate.</p>
+<p><strong>SCIEX <code>.wiff</code> (one multi-sample file per
+plate).</strong> Place the files flat in <code>raw_data/</code>; each
+<code>.wiff</code> is its own plate automatically.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Define the project directory</span></span>
 <span><span class="va">project_dir</span> <span class="op">&lt;-</span> <span class="st">"/path/to/my_project"</span></span>
 <span></span>
@@ -201,15 +863,66 @@ subdirectory named <code>raw_data</code>.</p>
 <span><span class="va">raw_data_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"raw_data"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">raw_data_dir</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Copy or move your vendor files into raw_data_dir.</span></span>
-<span><span class="co"># Example structure:</span></span>
+<span><span class="co"># Flat .wiff layout (each file = one plate):</span></span>
 <span><span class="co">#   my_project/</span></span>
 <span><span class="co">#     raw_data/</span></span>
-<span><span class="co">#       STUDY_PLATE_1-sample_01.wiff</span></span>
-<span><span class="co">#       STUDY_PLATE_1-sample_01.wiff.scan</span></span>
-<span><span class="co">#       STUDY_PLATE_1-sample_02.wiff</span></span>
-<span><span class="co">#       STUDY_PLATE_1-sample_02.wiff.scan</span></span>
-<span><span class="co">#       ...</span></span></code></pre></div>
+<span><span class="co">#       STUDY_PLATE_1.wiff</span></span>
+<span><span class="co">#       STUDY_PLATE_1.wiff.scan</span></span>
+<span><span class="co">#       STUDY_PLATE_2.wiff</span></span>
+<span><span class="co">#       STUDY_PLATE_2.wiff.scan</span></span></code></pre></div>
+<p><strong>One-file-per-sample formats (<code>.d</code>,
+<code>.raw</code>, …).</strong> These vendors write one file per sample.
+In most cases you can place the files flat in <code>raw_data/</code> and
+let <code><a href="../reference/msConvertR.html">msConvertR()</a></code> group them automatically: it infers plate
+membership in priority order – a remembered
+<code>plate_grouping.csv</code> (or an explicit <code>manifest</code>),
+then per-plate subfolders, then <strong>filename
+auto-discovery</strong>, then the bare filename.</p>
+<p>Auto-discovery detects which part of the filename identifies the
+plate (no lab-specific pattern needed), <strong>reports</strong> the
+grouping it inferred, and saves it to an editable
+<code>plate_grouping.csv</code> at the project root so the decision is
+stable across runs and you can correct it once if it guessed wrong.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Default -- flat files, grouped automatically from the filename.</span></span>
+<span><span class="co">#   my_project/</span></span>
+<span><span class="co">#     raw_data/</span></span>
+<span><span class="co">#       study_PlateA_001.raw   # -&gt; plate PlateA</span></span>
+<span><span class="co">#       study_PlateA_002.raw</span></span>
+<span><span class="co">#       study_PlateB_001.raw   # -&gt; plate PlateB</span></span>
+<span><span class="co">#       study_PlateB_002.raw</span></span>
+<span><span class="co"># msConvertR() reports: "inferred plate grouping from filenames ... PlateA (2 files), PlateB (2 files)"</span></span>
+<span><span class="co"># and writes my_project/plate_grouping.csv (edit it to correct any mistake).</span></span>
+<span></span>
+<span><span class="co"># Explicit override A -- per-plate subfolders (subfolder name = plate ID):</span></span>
+<span><span class="co">#   my_project/</span></span>
+<span><span class="co">#     raw_data/</span></span>
+<span><span class="co">#       PlateA/</span></span>
+<span><span class="co">#         sample01.raw</span></span>
+<span><span class="co">#         sample02.raw</span></span>
+<span><span class="co">#       PlateB/</span></span>
+<span><span class="co">#         sample01.raw</span></span>
+<span><span class="co">#         sample02.raw</span></span>
+<span></span>
+<span><span class="co"># Explicit override B -- a manifest CSV mapping each file to a plate</span></span>
+<span><span class="co">#   (use when grouping comes from an instrument worklist or LIMS export,</span></span>
+<span><span class="co">#    or to lock in a correction; an explicit manifest always wins):</span></span>
+<span><span class="va">manifest</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  raw_file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sample01.raw"</span>, <span class="st">"sample02.raw"</span>, <span class="st">"sample03.raw"</span><span class="op">)</span>,</span>
+<span>  plateID  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PlateA"</span>,       <span class="st">"PlateA"</span>,       <span class="st">"PlateB"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">manifest</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"manifest.csv"</span><span class="op">)</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<blockquote>
+<p><strong>Why grouping matters.</strong> Plate is the unit of per-plate
+QC and batch correction, so files must be grouped correctly.
+<code><a href="../reference/msConvertR.html">msConvertR()</a></code> always <em>reports</em> the grouping it chose,
+so a wrong guess is visible before conversion. If several single-sample
+files share no filename structure it can use, each is converted as its
+own plate with a <strong>warning</strong> – group them with a subfolder,
+a <code>manifest</code>, or by editing the generated
+<code>plate_grouping.csv</code>. Multi-sample <code>.wiff</code> files
+are exempt; each is its own plate.</p>
+</blockquote>
 <hr>
 </div>
 <div class="section level3">
@@ -242,7 +955,8 @@ ProteoWizard installation.</p>
 <tr class="odd">
 <td align="left"><code>input_directory</code></td>
 <td align="left">Character</td>
-<td align="left">Path to the directory containing vendor raw files.</td>
+<td align="left">Path to the directory containing a
+<code>raw_data/</code> folder of vendor raw files.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>output_directory</code></td>
@@ -250,6 +964,18 @@ ProteoWizard installation.</p>
 <td align="left">Path where converted mzML files and the project
 structure will be created. May be the same as
 <code>input_directory</code>.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>manifest</code></td>
+<td align="left">Character / data.frame / NULL</td>
+<td align="left">Optional <code>raw_file,plateID</code> mapping (CSV
+path or data frame) – a last-resort override for grouping
+one-file-per-sample formats. When <code>NULL</code> (default), plate
+membership is resolved automatically: a remembered
+<code>plate_grouping.csv</code> at the project root, then per-plate
+subfolders under <code>raw_data/</code>, then filename auto-discovery
+(which reports its inference and saves an editable
+<code>plate_grouping.csv</code>), then the bare filename.</td>
 </tr>
 </tbody>
 </table>
@@ -267,15 +993,27 @@ others.</p>
 <div class="section level4">
 <h4 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
 </h4>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/msConvertR.html">msConvertR</a></span><span class="op">(</span></span>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Flat .wiff or per-plate subfolders -- no manifest needed:</span></span>
+<span><span class="fu"><a href="../reference/msConvertR.html">msConvertR</a></span><span class="op">(</span></span>
 <span>  input_directory  <span class="op">=</span> <span class="st">"/path/to/my_project"</span>,</span>
 <span>  output_directory <span class="op">=</span> <span class="st">"/path/to/my_project"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># One-file-per-sample formats grouped by a manifest:</span></span>
+<span><span class="fu"><a href="../reference/msConvertR.html">msConvertR</a></span><span class="op">(</span></span>
+<span>  input_directory  <span class="op">=</span> <span class="st">"/path/to/my_project"</span>,</span>
+<span>  output_directory <span class="op">=</span> <span class="st">"/path/to/my_project"</span>,</span>
+<span>  manifest         <span class="op">=</span> <span class="st">"/path/to/my_project/manifest.csv"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>After conversion, <code>msConvertR</code> creates a structured
 project directory with one subfolder per plate. Each plate folder
 contains <code>data/mzml/</code> holding the converted files and
-<code>data/raw_data/</code> holding the original vendor files.</p>
+<code>data/raw_data/</code> holding the original vendor files. All
+samples belonging to a plate – whether they came from one multi-sample
+<code>.wiff</code> or many single-sample
+<code>.d</code>/<code>.raw</code> files – land together in that plate’s
+<code>data/mzml/</code>.</p>
 <p><strong>Note:</strong> Docker Desktop must be running before calling
 <code><a href="../reference/msConvertR.html">msConvertR()</a></code>. The function will stop with an informative
 error if Docker is not detected.</p>
@@ -350,34 +1088,26 @@ plate names manually. Default is <code>NULL</code>.</td>
 <p>The MRM template is a tab-separated (TSV) or comma-separated (CSV)
 file that defines the transitions to be monitored. The package includes
 several example templates. The required columns are:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mrm_template_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span></span>
 <span>  <span class="st">"extdata"</span>, <span class="st">"LGW_lipid_mrm_template_v1.tsv"</span>,</span>
 <span>  package <span class="op">=</span> <span class="st">"MStargetR"</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">mrm_template</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="va">mrm_template_path</span>, check.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">mrm_template</span> <span class="op">&lt;-</span> <span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">read_tsv</a></span><span class="op">(</span><span class="va">mrm_template_path</span>, show_col_types <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>                                name_repair <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mrm_template</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   Molecule List Name Precursor Name Precursor Mz Precursor Charge Product Mz</span></span>
-<span><span class="co">#&gt; 1                 CE       CE(14:0)        614.6                1      369.4</span></span>
-<span><span class="co">#&gt; 2                 CE       CE(16:0)        642.6                1      369.4</span></span>
-<span><span class="co">#&gt; 3                 CE       CE(16:1)        640.6                1      369.4</span></span>
-<span><span class="co">#&gt; 4                 CE       CE(18:0)        670.6                1      369.4</span></span>
-<span><span class="co">#&gt; 5                 CE       CE(18:1)        668.6                1      369.4</span></span>
-<span><span class="co">#&gt; 6                 CE       CE(18:2)        666.6                1      369.4</span></span>
-<span><span class="co">#&gt;   Product Charge Explicit Retention Time Explicit Retention Time Window</span></span>
-<span><span class="co">#&gt; 1              1                  11.600                            0.5</span></span>
-<span><span class="co">#&gt; 2              1                  12.295                            0.5</span></span>
-<span><span class="co">#&gt; 3              1                  11.615                            0.5</span></span>
-<span><span class="co">#&gt; 4              1                  12.845                            0.5</span></span>
-<span><span class="co">#&gt; 5              1                  12.310                            0.5</span></span>
-<span><span class="co">#&gt; 6              1                  11.685                            0.5</span></span>
-<span><span class="co">#&gt;                        Note control_chart</span></span>
-<span><span class="co">#&gt; 1 SIL_CE(16:0)_d7_Lipidyzer         FALSE</span></span>
-<span><span class="co">#&gt; 2 SIL_CE(16:0)_d7_Lipidyzer          TRUE</span></span>
-<span><span class="co">#&gt; 3 SIL_CE(16:1)_d7_Lipidyzer          TRUE</span></span>
-<span><span class="co">#&gt; 4 SIL_CE(18:1)_d7_Lipidyzer         FALSE</span></span>
-<span><span class="co">#&gt; 5 SIL_CE(18:1)_d7_Lipidyzer          TRUE</span></span>
-<span><span class="co">#&gt; 6 SIL_CE(18:2)_d7_Lipidyzer          TRUE</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 10</span></span></span>
+<span><span class="co">#&gt;   `Molecule List Name` `Precursor Name` `Precursor Mz` `Precursor Charge`</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CE                   CE(14:0)                   615.                  1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> CE                   CE(16:0)                   643.                  1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> CE                   CE(16:1)                   641.                  1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> CE                   CE(18:0)                   671.                  1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> CE                   CE(18:1)                   669.                  1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> CE                   CE(18:2)                   667.                  1</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 6 more variables: `Product Mz` &lt;dbl&gt;, `Product Charge` &lt;dbl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   `Explicit Retention Time` &lt;dbl&gt;, `Explicit Retention Time Window` &lt;dbl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   Note &lt;chr&gt;, control_chart &lt;lgl&gt;</span></span></span></code></pre></div>
 <p>Key columns include <code>Precursor Name</code>,
 <code>Precursor Mz</code>, <code>Product Mz</code>,
 <code>Explicit Retention Time</code>, and <code>Note</code> (which links
@@ -387,7 +1117,7 @@ standard).</p>
 <div class="section level4">
 <h4 id="example-1">Example<a class="anchor" aria-label="anchor" href="#example-1"></a>
 </h4>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/PeakForgeR.html">PeakForgeR</a></span><span class="op">(</span></span>
 <span>  user_name         <span class="op">=</span> <span class="st">"HSzemray"</span>,</span>
 <span>  project_directory <span class="op">=</span> <span class="st">"/path/to/my_project"</span>,</span>
@@ -404,7 +1134,7 @@ standard).</p>
 <p><code>PeakForgeR</code> writes a CSV report per plate containing
 integrated peak areas. An example of this output is bundled with the
 package:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">report_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span></span>
 <span>  <span class="st">"extdata"</span>, <span class="st">"Example_PeakForgeR_report.csv"</span>,</span>
 <span>  package <span class="op">=</span> <span class="st">"MStargetR"</span></span>
@@ -505,8 +1235,8 @@ threshold are removed. Default is <code>50</code>.</td>
 <td align="left"><code>batch_method</code></td>
 <td align="left">Character</td>
 <td align="left">Batch correction method: <code>"QCRFSC"</code> (random
-forest, default) or <code>"ComBat"</code> (empirical Bayes,
-QC-free).</td>
+forest, default), <code>"ComBat"</code> (empirical Bayes, QC-free), or
+<code>"QCRLSC"</code> (robust LOESS, requires QC samples).</td>
 </tr>
 <tr class="even">
 <td align="left"><code>batch_ntree</code></td>
@@ -517,8 +1247,9 @@ for other methods. Default is <code>500</code>.</td>
 <tr class="odd">
 <td align="left"><code>batch_coCV</code></td>
 <td align="left">Numeric</td>
-<td align="left">Coefficient of variation cutoff for feature filtering
-inside statTarget. Default is <code>10000</code>.</td>
+<td align="left">Coefficient of variation cutoff (%, 1–100) for feature
+filtering inside statTarget. Features with QC CV above this threshold
+are removed. Default is <code>100</code> (no filtering).</td>
 </tr>
 <tr class="even">
 <td align="left"><code>batch_Frule</code></td>
@@ -552,6 +1283,31 @@ Default is <code>"minHalf"</code>.</td>
 <td align="left">Reference batch for ComBat. Only used when
 <code>batch_method = "ComBat"</code>. Default is <code>NULL</code>.</td>
 </tr>
+<tr class="odd">
+<td align="left"><code>qcrlsc_method</code></td>
+<td align="left">Character</td>
+<td align="left">QC-RLSC scaling: <code>"subtract"</code> (default, Dunn
+et al. protocol) or <code>"divide"</code> (preserves non-negativity).
+Only used when <code>batch_method = "QCRLSC"</code>.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>qcrlsc_intra</code></td>
+<td align="left">Logical</td>
+<td align="left">Intra-batch (<code>TRUE</code>) vs inter-batch
+(<code>FALSE</code>, default) QC-RLSC. Only used when
+<code>batch_method = "QCRLSC"</code>.</td>
+</tr>
+<tr class="odd">
+<td align="left">
+<code>qcrlsc_opti</code> / <code>qcrlsc_log10</code> /
+<code>qcrlsc_outl</code> / <code>qcrlsc_shift</code>
+</td>
+<td align="left">Logical</td>
+<td align="left">Optimise LOESS span by GCV, log10-transform before
+fitting, QC outlier detection, and apply <code>batch.shift</code> after
+correction. All default <code>TRUE</code>. Only used when
+<code>batch_method = "QCRLSC"</code>.</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -569,7 +1325,7 @@ file used in <code>PeakForgeR</code>).</li>
 <code>conc_guide</code>: A concentration guide file that maps SIL
 internal standard names to their known concentrations.</li>
 </ul>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mrm_template_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  v1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    SIL_guide  <span class="op">=</span> <span class="st">"/path/to/LGW_lipid_mrm_template_v1.tsv"</span>,</span>
@@ -582,7 +1338,7 @@ internal standard names to their known concentrations.</li>
 </h4>
 <p>The concentration guide is a TSV file mapping each internal standard
 to its known concentration. An example is included in the package:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">conc_guide_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span></span>
 <span>  <span class="st">"extdata"</span>, <span class="st">"LGW_SIL_batch_103.tsv"</span>,</span>
 <span>  package <span class="op">=</span> <span class="st">"MStargetR"</span></span>
@@ -616,8 +1372,8 @@ to its known concentration. An example is included in the package:</p>
 <div class="section level4">
 <h4 id="example-2">Example<a class="anchor" aria-label="anchor" href="#example-2"></a>
 </h4>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Default batch correction (QC-based Random Forest)</span></span>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Using QCRFSC (default, requires QC samples)</span></span>
 <span><span class="fu"><a href="../reference/qcCheckR.html">qcCheckR</a></span><span class="op">(</span></span>
 <span>  user_name          <span class="op">=</span> <span class="st">"HSzemray"</span>,</span>
 <span>  project_directory  <span class="op">=</span> <span class="st">"/path/to/my_project"</span>,</span>
@@ -629,7 +1385,8 @@ to its known concentration. An example is included in the package:</p>
 <span>  <span class="op">)</span>,</span>
 <span>  QC_sample_label    <span class="op">=</span> <span class="st">"LTR"</span>,</span>
 <span>  sample_tags        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sample"</span>, <span class="st">"control"</span>, <span class="st">"qc"</span><span class="op">)</span>,</span>
-<span>  mv_threshold       <span class="op">=</span> <span class="fl">50</span></span>
+<span>  mv_threshold       <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>  batch_method       <span class="op">=</span> <span class="st">"QCRFSC"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Using ComBat (does not require QC samples)</span></span>
@@ -648,6 +1405,23 @@ to its known concentration. An example is included in the package:</p>
 <span>  batch_method       <span class="op">=</span> <span class="st">"ComBat"</span>,</span>
 <span>  combat_par.prior   <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  combat_mean.only   <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Using QC-RLSC (QC-based robust LOESS signal correction; requires QC samples)</span></span>
+<span><span class="fu"><a href="../reference/qcCheckR.html">qcCheckR</a></span><span class="op">(</span></span>
+<span>  user_name          <span class="op">=</span> <span class="st">"HSzemray"</span>,</span>
+<span>  project_directory  <span class="op">=</span> <span class="st">"/path/to/my_project"</span>,</span>
+<span>  mrm_template_list  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    v1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>      SIL_guide  <span class="op">=</span> <span class="st">"/path/to/LGW_lipid_mrm_template_v1.tsv"</span>,</span>
+<span>      conc_guide <span class="op">=</span> <span class="st">"/path/to/LGW_SIL_batch_103.tsv"</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  QC_sample_label    <span class="op">=</span> <span class="st">"LTR"</span>,</span>
+<span>  sample_tags        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sample"</span>, <span class="st">"control"</span>, <span class="st">"qc"</span><span class="op">)</span>,</span>
+<span>  mv_threshold       <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>  batch_method       <span class="op">=</span> <span class="st">"QCRLSC"</span>,</span>
+<span>  qcrlsc_method      <span class="op">=</span> <span class="st">"subtract"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
@@ -664,9 +1438,11 @@ plots, run-order plots, control charts, and summary statistics.</li>
 concentration data, filtering summaries, and a navigation guide on the
 first sheet.</li>
 <li>
-<strong>RDA file</strong> – A saved R data object containing the
+<strong>qs2 file</strong> – A saved R data object (qs2 package
+format, written with multi-threaded zstd compression) containing the
 full <code>master_list</code> for programmatic access to all
-intermediate results.</li>
+intermediate results. Load with
+<code>qs2::qs_read("path/to/file.qs2")</code>.</li>
 </ol>
 <hr>
 </div>
@@ -718,8 +1494,8 @@ metabolomics dataset.</p>
 <td align="left">Character</td>
 <td align="left"><code>"QCRFSC"</code></td>
 <td align="left">Correction method: <code>"QCRFSC"</code> (random
-forest, default) or <code>"ComBat"</code> (empirical Bayes,
-QC-free).</td>
+forest, default), <code>"ComBat"</code> (empirical Bayes, QC-free), or
+<code>"QCRLSC"</code> (robust LOESS, requires QC samples).</td>
 </tr>
 <tr class="even">
 <td align="left"><code>ntree</code></td>
@@ -731,9 +1507,10 @@ for other methods.</td>
 <tr class="odd">
 <td align="left"><code>coCV</code></td>
 <td align="left">Numeric</td>
-<td align="left"><code>10000</code></td>
-<td align="left">Coefficient of variation cutoff for feature filtering
-in statTarget.</td>
+<td align="left"><code>100</code></td>
+<td align="left">Coefficient of variation cutoff (%, 1–100) for feature
+filtering in statTarget. Features with QC CV above this threshold are
+removed.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>Frule</code></td>
@@ -771,10 +1548,51 @@ applies when <code>method = "ComBat"</code>.</td>
 when <code>method = "ComBat"</code>.</td>
 </tr>
 <tr class="odd">
+<td align="left"><code>qcrlsc_method</code></td>
+<td align="left">Character</td>
+<td align="left"><code>"subtract"</code></td>
+<td align="left">QC-RLSC scaling: <code>"subtract"</code> (Dunn et
+al. protocol) or <code>"divide"</code> (preserves non-negativity). Only
+applies when <code>method = "QCRLSC"</code>.</td>
+</tr>
+<tr class="even">
+<td align="left">
+<code>qcrlsc_intra</code> / <code>qcrlsc_opti</code> /
+<code>qcrlsc_log10</code> / <code>qcrlsc_outl</code> /
+<code>qcrlsc_shift</code>
+</td>
+<td align="left">Logical</td>
+<td align="left">
+<code>FALSE</code> / <code>TRUE</code> /
+<code>TRUE</code> / <code>TRUE</code> / <code>TRUE</code>
+</td>
+<td align="left">Intra-batch correction, LOESS span GCV optimisation,
+log10 transform, QC outlier detection, and <code>batch.shift</code>.
+Only apply when <code>method = "QCRLSC"</code>.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>sample_tags</code></td>
+<td align="left">Character vector or NULL</td>
+<td align="left"><code>NULL</code></td>
+<td align="left">Optional sample-type labels to include in correction
+(in addition to QC). Rows whose type does not match
+<code>qc_label</code> or any of <code>sample_tags</code> are dropped
+before correction. Useful for excluding blanks or other low-signal
+types.</td>
+</tr>
+<tr class="even">
 <td align="left"><code>output_dir</code></td>
 <td align="left">Character</td>
 <td align="left"><code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code></td>
 <td align="left">Directory for statTarget intermediate files.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>project_dir</code></td>
+<td align="left">Character or NULL</td>
+<td align="left"><code>NULL</code></td>
+<td align="left">If provided, the corrected data CSV and correction
+summary are saved into a <code>batch_correction</code> subfolder inside
+this directory.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>plot</code></td>
@@ -810,6 +1628,18 @@ where QC reference material is not available. ComBat can correct both
 location (mean) and scale (variance) batch effects, or mean-only if
 <code>combat_mean.only = TRUE</code>. Install <code>sva</code> via
 <code>BiocManager::install("sva")</code>.</li>
+<li>
+<strong>QC-RLSC</strong> (QC-based Robust LOESS Signal Correction;
+Dunn et al. 2011): Fits a robust LOESS trend through the QC injections
+(ordered by acquisition) for each feature and corrects samples against
+it, then optionally re-aligns batch means with <code>batch.shift</code>.
+Like QCRFSC it <strong>requires</strong> QC samples. The
+<code>qcrlsc_method</code> argument chooses additive
+(<code>"subtract"</code>, default) or multiplicative
+(<code>"divide"</code>) scaling; the latter preserves non-negativity,
+useful for concentration data. Implemented via
+<code><a href="https://rdrr.io/pkg/qcrlscR/man/qc.rlsc.wrap.html" class="external-link">qcrlscR::qc.rlsc.wrap()</a></code>; install <code>qcrlscR</code> via
+<code>install.packages("qcrlscR")</code>.</li>
 </ul>
 </div>
 <div class="section level3">
@@ -835,12 +1665,18 @@ failed QC injections (signal &lt; 10% of batch median).</li>
 <li>
 <code>plots</code> – A list of ggplot objects (only if
 <code>plot = TRUE</code>).</li>
+<li>
+<code>report</code> – Logical indicating whether an HTML report was
+requested.</li>
+<li>
+<code>report_path</code> – Path to the rendered HTML report (only if
+<code>report = TRUE</code> and rendering succeeds).</li>
 </ul>
 </div>
 <div class="section level3">
 <h3 id="example-3">Example<a class="anchor" aria-label="anchor" href="#example-3"></a>
 </h3>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MStargetR/MStargetR" class="external-link">MStargetR</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Prepare a synthetic input dataset</span></span>
@@ -862,7 +1698,7 @@ failed QC injections (signal &lt; 10% of batch median).</li>
 <span></span>
 <span><span class="co"># View the correction summary (RSD before vs. after)</span></span>
 <span><span class="va">result</span><span class="op">$</span><span class="va">correction_summary</span></span></code></pre></div>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># ComBat correction (does not require QC samples)</span></span>
 <span><span class="va">my_data_no_qc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  sample_name  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">20</span><span class="op">)</span>,</span>
@@ -884,6 +1720,13 @@ failed QC injections (signal &lt; 10% of batch median).</li>
 <span>  method            <span class="op">=</span> <span class="st">"ComBat"</span>,</span>
 <span>  combat_mean.only  <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># QC-RLSC correction (QC-based robust LOESS; requires QC samples)</span></span>
+<span><span class="va">result_qcrlsc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/batchCorrectR.html">batchCorrectR</a></span><span class="op">(</span></span>
+<span>  data          <span class="op">=</span> <span class="va">my_data</span>,</span>
+<span>  method        <span class="op">=</span> <span class="st">"QCRLSC"</span>,</span>
+<span>  qcrlsc_method <span class="op">=</span> <span class="st">"subtract"</span>   <span class="co"># or "divide" to preserve non-negativity</span></span>
+<span><span class="op">)</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -897,7 +1740,7 @@ explore results interactively.</p>
 <div class="section level3">
 <h3 id="launching-the-application">Launching the application<a class="anchor" aria-label="anchor" href="#launching-the-application"></a>
 </h3>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MStargetR/MStargetR" class="external-link">MStargetR</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/launchMStargetR.html">launchMStargetR</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -949,16 +1792,20 @@ dependencies: <code>shiny</code>, <code>bslib</code>, <code>DT</code>,
 <code>shinyWidgets</code>, and <code>htmltools</code>. If any are
 missing, <code><a href="../reference/launchMStargetR.html">launchMStargetR()</a></code> will display an informative
 error listing the packages to install.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"shiny"</span>, <span class="st">"bslib"</span>, <span class="st">"DT"</span>, <span class="st">"shinyWidgets"</span>, <span class="st">"htmltools"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Note:</strong> The Shiny GUI exposes batch correction method
 selection in both the <code>qcCheckR</code> and
-<code>batchCorrectR</code> tabs. Both methods (<code>QCRFSC</code> and
-<code>ComBat</code>) are available from the interface, including the
+<code>batchCorrectR</code> tabs. All three methods (<code>QCRFSC</code>,
+<code>ComBat</code>, and <code>QC-RLSC</code>) are available from the
+interface, with each method’s options shown in its own panel: the
 ComBat-specific parameters (<code>combat_par.prior</code>,
-<code>combat_mean.only</code>, and <code>combat_ref.batch</code>). When
-<code>ComBat</code> is selected, the QC-specific options are hidden
-automatically since ComBat does not require QC samples.</p>
+<code>combat_mean.only</code>, <code>combat_ref.batch</code>) and the
+QC-RLSC-specific parameters (scaling, intra-batch, span optimisation,
+log10, outlier detection, batch shift). When <code>ComBat</code> is
+selected, the QC-specific options are hidden automatically since ComBat
+does not require QC samples; <code>QCRFSC</code> and
+<code>QC-RLSC</code> both require QC samples.</p>
 <hr>
 </div>
 </div>
@@ -1001,7 +1848,7 @@ columns <code>Precursor Mz</code>, <code>Product Mz</code>, and
 <div class="section level4">
 <h4 id="example-4">Example<a class="anchor" aria-label="anchor" href="#example-4"></a>
 </h4>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load an example MRM template</span></span>
 <span><span class="va">mrm_template_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span></span>
 <span>  <span class="st">"extdata"</span>, <span class="st">"LGW_lipid_mrm_template_v1.tsv"</span>,</span>
@@ -1057,7 +1904,7 @@ quantification.</p>
 <div class="section level4">
 <h4 id="example-5">Example<a class="anchor" aria-label="anchor" href="#example-5"></a>
 </h4>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load the MRM template</span></span>
 <span><span class="va">mrm_template_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span></span>
 <span>  <span class="st">"extdata"</span>, <span class="st">"LGW_lipid_mrm_template_v1.tsv"</span>,</span>
@@ -1117,7 +1964,7 @@ multi-project batch processing examples.</td>
 <div class="section level3">
 <h3 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
 </h3>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># List available workflow templates</span></span>
 <span><span class="fu"><a href="../reference/use_workflow.html">use_workflow</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -1180,7 +2027,7 @@ all plates collectively.</li>
 </h3>
 <p>For <code>PeakForgeR</code>, provide a <strong>named list of file
 paths</strong>:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mrm_template_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  v1 <span class="op">=</span> <span class="st">"/path/to/LGW_lipid_mrm_template_v1.tsv"</span>,</span>
 <span>  v2 <span class="op">=</span> <span class="st">"/path/to/LGW_lipid_mrm_template_v2.tsv"</span></span>
@@ -1188,7 +2035,7 @@ paths</strong>:</p>
 <p>For <code>qcCheckR</code>, provide a <strong>named list of
 lists</strong>, each containing both the MRM template and its associated
 concentration guide:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mrm_template_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  v1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    SIL_guide  <span class="op">=</span> <span class="st">"/path/to/LGW_lipid_mrm_template_v1.tsv"</span>,</span>
@@ -1203,7 +2050,7 @@ concentration guide:</p>
 <div class="section level3">
 <h3 id="complete-multi-method-example">Complete multi-method example<a class="anchor" aria-label="anchor" href="#complete-multi-method-example"></a>
 </h3>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MStargetR/MStargetR" class="external-link">MStargetR</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">project_directory</span> <span class="op">&lt;-</span> <span class="st">"/path/to/my_multimethod_project"</span></span>
@@ -1246,7 +2093,8 @@ concentration guide:</p>
 <span>  <span class="op">)</span>,</span>
 <span>  QC_sample_label    <span class="op">=</span> <span class="st">"LTR"</span>,</span>
 <span>  sample_tags        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sample"</span>, <span class="st">"control"</span>, <span class="st">"qc"</span><span class="op">)</span>,</span>
-<span>  mv_threshold       <span class="op">=</span> <span class="fl">50</span></span>
+<span>  mv_threshold       <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>  batch_method       <span class="op">=</span> <span class="st">"QCRFSC"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <hr>
 </div>
@@ -1276,7 +2124,8 @@ following structure:</p>
 |-- all/                               # Combined outputs from qcCheckR
 |   |-- *_qcCheckR_report.html         # Interactive HTML QC report
 |   |-- *_qcCheckR_data.xlsx           # Excel workbook with concentration data
-|   |-- *_qcCheckR_master_list.rda     # R data object with all intermediate results
+|   |-- data/qs2/
+|   |   |-- *_qcCheckR.qs2             # R data object (qs2 format) with all intermediate results
 |
 |-- MStargetR_logs/                    # Per-plate processing logs
 |   |-- PLATE_ID_1_MStargetR_log.txt
@@ -1323,10 +2172,12 @@ navigation guide. Subsequent sheets contain filtered concentration data,
 QC summaries, and batch correction diagnostics.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>all/*_qcCheckR_master_list.rda</code></td>
-<td align="left">An R data object (<code>.rda</code>) containing the
-full <code>master_list</code>, enabling programmatic access to all
-intermediate processing results.</td>
+<td align="left"><code>all/data/qs2/*_qcCheckR.qs2</code></td>
+<td align="left">An R data object in the <code>qs2</code> package’s
+multi-threaded zstd format, containing the full <code>master_list</code>
+for programmatic access to all intermediate processing results. Load
+with <code>qs2::qs_read("path/to/file.qs2")</code> (not
+<code><a href="https://rdrr.io/r/base/load.html" class="external-link">base::load()</a></code>).</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>MStargetR_logs/</code></td>
@@ -1349,8 +2200,37 @@ errors for each plate.</td>
 <p><strong>Solution:</strong> Ensure Docker Desktop is installed and
 running. On Windows and macOS, open Docker Desktop and wait for the
 engine to start before calling these functions. On Linux, verify that
-the Docker daemon is active with
-<code>systemctl status docker</code>.</p>
+the Docker daemon is active with <code>systemctl status docker</code>.
+If you are on an HPC cluster that forbids Docker, set
+<code>enable_HPC = TRUE</code> (see “Running on HPC” above).</p>
+</div>
+<div class="section level3">
+<h3 id="apptainer-pull-fails-on-an-hpc-compute-node">Apptainer pull fails on an HPC compute node<a class="anchor" aria-label="anchor" href="#apptainer-pull-fails-on-an-hpc-compute-node"></a>
+</h3>
+<p><strong>Symptom:</strong> With <code>enable_HPC = TRUE</code>, the
+function errors during the first call with a message referencing
+<code>apptainer pull docker://...</code> and
+<code>MStargetR.sif_path</code>.</p>
+<p><strong>Solution:</strong> Most HPC compute nodes have no outbound
+network, so the auto-pull cannot reach Docker Hub. Pull the
+<code>.sif</code> once on a login node (which usually does have network
+access) and point MStargetR at it via
+<code>options(MStargetR.sif_path = "/path/to/mstargetr-pwiz.sif")</code>
+in your <code>.Rprofile</code> or job script. See the “Running on HPC”
+section above for the full pull command.</p>
+</div>
+<div class="section level3">
+<h3 id="apptainer-is-not-found-on-path">Apptainer is not found on PATH<a class="anchor" aria-label="anchor" href="#apptainer-is-not-found-on-path"></a>
+</h3>
+<p><strong>Symptom:</strong> With <code>enable_HPC = TRUE</code>, the
+function errors with “apptainer (or singularity) not found on PATH”.</p>
+<p><strong>Solution:</strong> On most HPC sites Apptainer is provided as
+an environment module that must be loaded explicitly. Add
+<code>module load apptainer</code> (or
+<code>module load singularity</code> on older installations) to your job
+script before invoking R. MStargetR accepts either name – the legacy
+<code>singularity</code> binary is recognised as a fallback when
+<code>apptainer</code> is absent.</p>
 </div>
 <div class="section level3">
 <h3 id="no-vendor-files-found">No vendor files found<a class="anchor" aria-label="anchor" href="#no-vendor-files-found"></a>
@@ -1403,11 +2283,25 @@ samples in each batch to estimate and correct signal drift.</p>
 package not being installed.</p>
 <p><strong>Solution:</strong> Install <code>sva</code> from
 Bioconductor:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://bioconductor.github.io/BiocManager/reference/install.html" class="external-link">install</a></span><span class="op">(</span><span class="st">"sva"</span><span class="op">)</span></span></code></pre></div>
 <p>ComBat is an optional dependency. It is only required when you select
 <code>method = "ComBat"</code> or
 <code>batch_method = "ComBat"</code>.</p>
+</div>
+<div class="section level3">
+<h3 id="qc-rlsc-method-requires-the-qcrlscr-package">QC-RLSC method requires the qcrlscR package<a class="anchor" aria-label="anchor" href="#qc-rlsc-method-requires-the-qcrlscr-package"></a>
+</h3>
+<p><strong>Symptom:</strong> <code><a href="../reference/batchCorrectR.html">batchCorrectR()</a></code> or
+<code><a href="../reference/qcCheckR.html">qcCheckR()</a></code> stops with an error about the
+<code>qcrlscR</code> package not being installed.</p>
+<p><strong>Solution:</strong> Install <code>qcrlscR</code> from
+CRAN:</p>
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"qcrlscR"</span><span class="op">)</span></span></code></pre></div>
+<p><code>qcrlscR</code> is an optional dependency. It is only required
+when you select <code>method = "QCRLSC"</code> or
+<code>batch_method = "QCRLSC"</code>.</p>
 </div>
 <div class="section level3">
 <h3 id="shiny-application-fails-to-launch">Shiny application fails to launch<a class="anchor" aria-label="anchor" href="#shiny-application-fails-to-launch"></a>
@@ -1415,7 +2309,7 @@ Bioconductor:</p>
 <p><strong>Symptom:</strong> <code><a href="../reference/launchMStargetR.html">launchMStargetR()</a></code> displays an
 error about missing packages.</p>
 <p><strong>Solution:</strong> Install the required GUI dependencies:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"shiny"</span>, <span class="st">"bslib"</span>, <span class="st">"DT"</span>, <span class="st">"shinyWidgets"</span>, <span class="st">"htmltools"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <hr>
 </div>
@@ -1423,9 +2317,9 @@ error about missing packages.</p>
 <div class="section level2">
 <h2 id="session-information">Session Information<a class="anchor" aria-label="anchor" href="#session-information"></a>
 </h2>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; R version 4.5.2 (2025-10-31 ucrt)</span></span>
+<span><span class="co">#&gt; R version 4.6.0 (2026-04-24 ucrt)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-w64-mingw32/x64</span></span>
 <span><span class="co">#&gt; Running under: Windows 11 x64 (build 26200)</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -1444,13 +2338,17 @@ error about missing packages.</p>
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
-<span><span class="co">#&gt;  [1] digest_0.6.39     desc_1.4.3        R6_2.6.1          fastmap_1.2.0    </span></span>
-<span><span class="co">#&gt;  [5] xfun_0.57         cachem_1.1.0      knitr_1.51        htmltools_0.5.9  </span></span>
-<span><span class="co">#&gt;  [9] rmarkdown_2.31    lifecycle_1.0.5   cli_3.6.5         sass_0.4.10      </span></span>
-<span><span class="co">#&gt; [13] pkgdown_2.2.0     textshaping_1.0.5 jquerylib_0.1.4   systemfonts_1.3.2</span></span>
-<span><span class="co">#&gt; [17] compiler_4.5.2    tools_4.5.2       ragg_1.5.2        bslib_0.10.0     </span></span>
-<span><span class="co">#&gt; [21] evaluate_1.0.5    yaml_2.3.12       otel_0.2.0        jsonlite_2.0.0   </span></span>
-<span><span class="co">#&gt; [25] rlang_1.1.7       fs_2.0.1          htmlwidgets_1.6.4</span></span></code></pre></div>
+<span><span class="co">#&gt;  [1] bit_4.6.0         jsonlite_2.0.0    compiler_4.6.0    crayon_1.5.3     </span></span>
+<span><span class="co">#&gt;  [5] tidyselect_1.2.1  parallel_4.6.0    jquerylib_0.1.4   systemfonts_1.3.2</span></span>
+<span><span class="co">#&gt;  [9] textshaping_1.0.5 yaml_2.3.12       fastmap_1.2.0     readr_2.2.0      </span></span>
+<span><span class="co">#&gt; [13] R6_2.6.1          knitr_1.51        htmlwidgets_1.6.4 tibble_3.3.1     </span></span>
+<span><span class="co">#&gt; [17] desc_1.4.3        bslib_0.11.0      pillar_1.11.1     tzdb_0.5.0       </span></span>
+<span><span class="co">#&gt; [21] rlang_1.2.0       utf8_1.2.6        cachem_1.1.0      xfun_0.57        </span></span>
+<span><span class="co">#&gt; [25] fs_2.1.0          sass_0.4.10       bit64_4.8.2       otel_0.2.0       </span></span>
+<span><span class="co">#&gt; [29] cli_3.6.6         pkgdown_2.2.0     magrittr_2.0.5    digest_0.6.39    </span></span>
+<span><span class="co">#&gt; [33] vroom_1.7.1       hms_1.1.4         lifecycle_1.0.5   vctrs_0.7.3      </span></span>
+<span><span class="co">#&gt; [37] evaluate_1.0.5    glue_1.8.1        ragg_1.5.2        rmarkdown_2.31   </span></span>
+<span><span class="co">#&gt; [41] tools_4.6.0       pkgconfig_2.0.3   htmltools_0.5.9</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

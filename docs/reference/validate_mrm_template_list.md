@@ -1,7 +1,9 @@
 # Validate MRM Template List
 
 This function checks if the `mrm_template_list` parameter is valid and
-contains required columns.
+contains required columns. For ANPC users who pass `NULL`, call
+[`default_mrm_templates()`](https://mstargetr.github.io/MStargetR/reference/default_mrm_templates.md)
+first to obtain the default list and then pass it here for validation.
 
 ## Usage
 
@@ -13,8 +15,8 @@ validate_mrm_template_list(mrm_template_list, user_name)
 
 - mrm_template_list:
 
-  A list of character strings or a named list of data frames
-  representing MRM templates.
+  A named list of file paths (character) or data frames representing MRM
+  templates.
 
 - user_name:
 
@@ -22,8 +24,9 @@ validate_mrm_template_list(mrm_template_list, user_name)
 
 ## Value
 
-NULL or an ANPC mrm_template_list if mrm_template_list is NULL and
-user_name is ANPC
+`invisible(TRUE)` on success; stops with an error on failure. For ANPC
+users with `NULL` templates the function returns the default template
+list (for backward compatibility with existing callers).
 
 ## Examples
 

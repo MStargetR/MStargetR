@@ -21,45 +21,43 @@ test_that("MS-001: original (raw) plateID is used for file matching, not sanitiz
   file.create(file.path(raw_dir, paste0(raw_id, ".wiff")))
   dir.create(file.path(output_dir, raw_id, "data", "mzml"), recursive = TRUE)
 
+  # Legacy character-vector call path (coerced to a groups table internally).
   result <- suppressMessages(
-    msConvertR_construct_command_for_terminal(input_dir, output_dir,
-                                             plateIDs = c(raw_id),
-                                             sanitized_plateIDs = c(raw_id))
+    msConvertR_construct_command_for_terminal(input_dir, output_dir, c(raw_id))
   )
   expect_length(result, 1)
   cmd_str <- paste(result[[1]]$docker_args, collapse = " ")
   expect_true(grepl(raw_id, cmd_str))
 })
 
-test_that("MS-001: msConvertR_mzml_conversion accepts sanitized_plateIDs argument", {
+test_that("MS-001: msConvertR_mzml_conversion lifts legacy plateIDs into a sanitized groups table", {
   call_args <- list()
   stub(msConvertR_mzml_conversion, "msConvertR_set_working_directory", function(...) NULL)
   stub(msConvertR_mzml_conversion, "msConvertR_setup_project_directories",
        function(out, ids) { call_args$dirs_ids <<- ids })
   stub(msConvertR_mzml_conversion, "msConvertR_construct_command_for_terminal",
-       function(inp, out, raw, san = raw, ...) {
-         call_args$raw_ids  <<- raw
-         call_args$sane_ids <<- san
+       function(inp, out, groups, ...) {
+         call_args$construct_groups <<- groups
          cmds <- list()
          attr(cmds, "active_plateIDs") <- character(0)
          cmds
        })
   stub(msConvertR_mzml_conversion, "msConvertR_restructure_directory",
-       function(out, ids, ...) { call_args$restruct_ids <<- ids })
+       function(out, groups, ...) { call_args$restruct_groups <<- groups })
 
   suppressMessages(
     msConvertR_mzml_conversion("in", "out",
-                               plateIDs = c("Plate_raw"),
+                               c("Plate_raw"),
                                vendor_extension_patterns = "\\.wiff$",
                                sanitized_plateIDs = c("Plate_safe"))
   )
 
-  # Directories and restructure use the sanitized IDs
+  # Directories use the sanitized IDs
   expect_equal(call_args$dirs_ids, "Plate_safe")
-  expect_equal(call_args$restruct_ids, "Plate_safe")
-  # Construct command receives both raw and sanitized
-  expect_equal(call_args$raw_ids, "Plate_raw")
-  expect_equal(call_args$sane_ids, "Plate_safe")
+  # The coerced groups table carries raw + sanitized IDs through to the helpers
+  expect_equal(call_args$construct_groups$raw_plateID, "Plate_raw")
+  expect_equal(unique(call_args$construct_groups$sanitized_plateID), "Plate_safe")
+  expect_equal(unique(call_args$restruct_groups$sanitized_plateID), "Plate_safe")
 })
 
 # ============================================================================

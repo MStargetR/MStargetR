@@ -1,4 +1,9 @@
-# MStargetR \<img src='man/figures/logo.png' style='float: right; height:100px;' /\>
+# MStargetR
+
+> **Note:** Code examples in this vignette use `eval=FALSE` because the
+> pipeline requires Docker containers for file conversion and peak
+> integration. To run the examples, ensure Docker Desktop is installed
+> and running, then copy the code into an interactive R session.
 
 ## Introduction
 
@@ -19,9 +24,11 @@ encapsulate vendor-dependent conversion and peak-picking tools.
 This vignette describes:
 
 - Installation and prerequisites
+- A one-time **Lab Setup Walkthrough** for adapting the pipeline to your
+  lab’s conventions
 - The three-step core pipeline (`msConvertR` -\> `PeakForgeR` -\>
   `qcCheckR`)
-- Batch correction methods (QC-based and QC-free ComBat)
+- Batch correction methods (QC-based QCRFSC and QC-RLSC, QC-free ComBat)
 - Standalone batch correction with `batchCorrectR`
 - The interactive Shiny application
 - Utility functions for template validation
@@ -36,6 +43,15 @@ This vignette describes:
   `msConvertR` and `PeakForgeR` steps, which use containerised
   ProteoWizard and Skyline tools.
 - An active internet connection for the initial Docker image pulls.
+
+> **HPC users:** Docker is typically forbidden on HPC clusters. Pass
+> `enable_HPC = TRUE` (or set `options(MStargetR.enable_HPC = TRUE)`) to
+> route
+> [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+> and
+> [`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+> through Apptainer / Singularity instead. See the “Running on HPC”
+> section of the README for SIF setup instructions.
 
 ------------------------------------------------------------------------
 
@@ -65,7 +81,8 @@ dependencies are installed and up to date before installing the package
 from GitHub.
 
 ``` r
-source("https://raw.githubusercontent.com/MStargetR/MStargetR/master/R/install.R")
+
+source("https://raw.githubusercontent.com/MStargetR/MStargetR/main/R/install.R")
 install_MStargetR()
 ```
 
@@ -76,6 +93,7 @@ If you prefer to install manually, use
 after ensuring that Bioconductor packages are available:
 
 ``` r
+
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
 
@@ -86,7 +104,130 @@ remotes::install_github("MStargetR/MStargetR")
 ### Loading the package
 
 ``` r
+
 library(MStargetR)
+```
+
+------------------------------------------------------------------------
+
+## Running on HPC (Apptainer / Singularity)
+
+Docker is forbidden on most HPC clusters.
+[`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+and
+[`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+accept an `enable_HPC` argument that swaps Docker for **Apptainer**
+(formerly Singularity) without changing anything else in the pipeline.
+The same pinned ProteoWizard image is used; Apptainer pulls it into a
+`.sif` file and runs it as the invoking user, no daemon required.
+
+If you are running on a workstation with Docker, you can skip this
+section – the default (`enable_HPC = FALSE`) keeps Docker behaviour
+unchanged.
+
+### One-time setup on the login node
+
+HPC compute nodes typically have no outbound network, so build the
+`.sif` once on a login node and stash the path. The image tag is pinned
+by your installed MStargetR version; print it with
+`MStargetR:::MSTARGETR_DOCKER_IMAGE_TAG`.
+
+``` bash
+# On a login node (shell), with Apptainer available:
+module load apptainer
+
+apptainer pull \
+  /scratch/$USER/mstargetr-pwiz.sif \
+  docker://proteowizard/pwiz-skyline-i-agree-to-the-vendor-licenses:skyline_26.1.0.057-c07debd
+```
+
+The pull is ~GB and only needs to be repeated when the MStargetR image
+tag changes (a major release).
+
+### Per-job R configuration
+
+Set the two MStargetR options once – either in your project script, your
+`~/.Rprofile`, or via `R_PROFILE_USER` in your job script. With these
+set, you call
+[`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+and
+[`PeakForgeR()`](https://mstargetr.github.io/MStargetR/reference/PeakForgeR.md)
+exactly as on a workstation.
+
+``` r
+
+options(
+  MStargetR.enable_HPC = TRUE,
+  MStargetR.sif_path   = "/scratch/your_user/mstargetr-pwiz.sif"
+)
+
+library(MStargetR)
+
+msConvertR(
+  input_directory  = "/scratch/your_user/MyProject/raw_data",
+  output_directory = "/scratch/your_user/MyProject"
+)
+
+PeakForgeR(
+  user_name         = "your_user",
+  project_directory = "/scratch/your_user/MyProject",
+  mrm_template_list = list("/scratch/your_user/templates/lipid_mrm_v1.tsv"),
+  QC_sample_label   = "LTR"
+)
+```
+
+You can also enable HPC mode for a single call without setting the
+option:
+
+``` r
+
+msConvertR(
+  input_directory  = "/scratch/your_user/MyProject/raw_data",
+  output_directory = "/scratch/your_user/MyProject",
+  enable_HPC       = TRUE
+)
+```
+
+### SIF resolution order
+
+`enable_HPC = TRUE` looks for a `.sif` in this order:
+
+1.  `getOption("MStargetR.sif_path")` – the explicit option (most
+    reliable on HPC because it bypasses any pull attempt).
+2.  `tools::R_user_dir("MStargetR", "cache")/mstargetr-pwiz-<tag>.sif` –
+    a tag-versioned cache populated by step 3.
+3.  `apptainer pull docker://...` into the cache – only succeeds if the
+    node has outbound network. The pull is one-time per tag; older
+    `.sif` files stay on disk so prior analyses remain reproducible.
+
+If you forget to set `MStargetR.sif_path` on a network-less compute
+node, the auto-pull fails with a clear error pointing you back at the
+login-node command above.
+
+### Sample SLURM script
+
+A minimal sketch – adapt module names and resource requests to your
+site:
+
+``` bash
+#!/bin/bash
+#SBATCH --job-name=mstargetr
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=32G
+#SBATCH --time=04:00:00
+
+module load apptainer
+module load r/4.4.0
+
+Rscript -e '
+  options(
+    MStargetR.enable_HPC = TRUE,
+    MStargetR.sif_path   = "/scratch/$USER/mstargetr-pwiz.sif"
+  )
+  library(MStargetR)
+  msConvertR("/scratch/$USER/MyProject/raw_data",
+             "/scratch/$USER/MyProject")
+'
 ```
 
 ------------------------------------------------------------------------
@@ -95,6 +236,9 @@ library(MStargetR)
 
 The MStargetR pipeline consists of three sequential steps. Each step
 produces outputs that feed into the next.
+
+First-time setup? Work through the **Lab Setup Walkthrough** below before
+running the steps.
 
     Raw vendor files
           |
@@ -112,13 +256,278 @@ produces outputs that feed into the next.
 
 ------------------------------------------------------------------------
 
+## Lab Setup Walkthrough
+
+Getting MStargetR running for your lab is a one-time exercise: you make a
+handful of decisions about how your data is named and how it should be
+corrected, encode them in a workflow template, validate them on a quick
+dry run, and from then on every new study is a parameter swap rather than
+a fresh setup. This section is **decision-oriented** – it walks through
+each choice in order and points to the reference sections below for the
+full parameter tables. Work through it once with a representative batch of
+files in front of you.
+
+### Before you start: a decision map
+
+Everything you need to decide before your first production run, in one
+place:
+
+| Decision | Options | Default | Driven by | See |
+|:--|:--|:--|:--|:--|
+| Container runtime | Docker / Apptainer | Docker | Workstation vs HPC | *Choose your container runtime* + *Running on HPC* |
+| Plate grouping | auto-discovery / subfolders / manifest | auto-discovery | Your filename convention | *Decide how plates are grouped* + *Project Setup* |
+| Filename convention | lab-defined tokens | – | QC + sample-type detection | *Adopt a filename convention* |
+| MRM template | 10-column CSV/TSV | – | Your assay | *Prepare and validate your MRM template* + *Step 2* |
+| Concentration guide | CSV/TSV (`SIL_name` to factor) | – | Your SIL mix | *Prepare and validate your MRM template* + *Step 3* |
+| Batch-correction method | QCRFSC / QCRLSC / ComBat | QCRFSC | QC availability per batch | *Choose a batch-correction method* |
+| `mv_threshold` | 0–100 | 50 | Expected missingness | *Step 3* + *Troubleshooting* |
+
+### Choose your container runtime
+
+MStargetR runs the vendor conversion (`msConvertR`) and peak-picking
+(`PeakForgeR`) tools inside a container, so you need exactly one runtime
+available:
+
+- **Workstation -\> Docker** (the default). Install Docker Desktop, make
+  sure it is running, and you are done – nothing to configure in R.
+- **Shared HPC cluster -\> Apptainer / Singularity.** Set this once and
+  every call uses it:
+
+``` r
+options(MStargetR.enable_HPC = TRUE)   # use Apptainer instead of Docker
+```
+
+> The one-time SIF build, the `MStargetR.sif_path` option, and a sample
+> SLURM script are covered in **Running on HPC (Apptainer / Singularity)**
+> above; Docker installation is covered in **Prerequisites**. Choose your
+> runtime here, then follow that section for the mechanics.
+
+### Adopt a filename convention
+
+This is the most consequential lab-wide decision, because the **raw file
+name drives three separate things**:
+
+1.  **Plate grouping** – auto-discovery reads a plate token from the name
+    (see *Decide how plates are grouped*).
+2.  **QC detection** – the `QC_sample_label` (default `"LTR"`) marks which
+    injections are pooled QC.
+3.  **Sample-type assignment** – `sample_tags` label each injection’s type
+    (sample, blank, conditioning, …).
+
+MStargetR splits each file name into tokens on any non-letter boundary
+(`_`, `-`, `.`, space), then matches your labels as whole tokens: longest
+label first, case-insensitive, first match wins; anything untagged becomes
+`"sample"`. A label only needs to appear as its own token somewhere in the
+name – `LTR` matches `..._LTR_19.raw` but not `VLTR`.
+
+Annotated example (placeholder convention):
+
+    STUDY_PlateA_PLASMA_LTR_19.raw
+      |     |      |     |   |
+      |     |      |     |   +- injection index
+      |     |      |     +----- QC token   -> QC_sample_label = "LTR"
+      |     |      +----------- matrix      -> sample_tags
+      |     +------------------ plate token -> plate grouping
+      +------------------------ study/project prefix (shared, ignored)
+
+| Token role | Parameter | Default | Used in |
+|:--|:--|:--|:--|
+| Plate token | (auto-discovery) | – | `msConvertR` |
+| QC token | `QC_sample_label` | `"LTR"` | `PeakForgeR`, `qcCheckR` |
+| Sample-type tokens | `sample_tags` | – | `qcCheckR` |
+
+> **Worked example – ANPC lipidomics:** in
+> `covid19_mauritiusC2_PLA_MS-LIPIDS-2@fEPP_COVr57_COVp298`, `covid19` is
+> the project, `PLA` the matrix, `MS-LIPIDS-2@fEPP` the method, `COVr57`
+> the run/batch, and `COVp298` the plate. Pooled-QC injections carry the
+> `LTR` token, so `QC_sample_label = "LTR"`.
+
+Full `QC_sample_label` and `sample_tags` semantics are in **Step 3:
+qcCheckR**.
+
+### Decide how plates are grouped
+
+A “plate” is the unit of per-plate QC and batch correction. Pick the
+strategy that matches how your files arrive:
+
+| Strategy | Choose when | How |
+|:--|:--|:--|
+| Filename auto-discovery (default) | Files share a consistent plate token in their names | Do nothing; review the reported grouping and the generated `plate_grouping.csv` |
+| Per-plate subfolders | You organise by folder, or names are inconsistent | Put each plate’s files in `raw_data/<plateID>/` |
+| Explicit manifest | Grouping comes from a worklist / LIMS, or to lock a correction | Provide a `raw_file,plateID` CSV via `manifest =` |
+
+> **Avoid these plate IDs** – they collide with reserved project folders
+> and would be skipped by downstream plate discovery: `raw_data`,
+> `msConvert_mzml_output`, `all`, `archive`, `MStargetR_logs`, `logs`,
+> `user_files`, `error_log.txt`. `msConvertR()` warns and skips any plate
+> whose name collides with these.
+
+> **Worked example – ANPC lipidomics:** ANPC acquires SCIEX `.wiff`, which
+> is plate-level (one file = one plate), so no grouping decision is needed
+> – each `.wiff` becomes its own plate automatically (here `COVp298`,
+> `COVp299`, …).
+
+The directory layouts, `.wiff` handling, and a manifest example are in
+**Project Setup** below.
+
+### Prepare and validate your MRM template
+
+`PeakForgeR` and `qcCheckR` both need your assay’s MRM transition template
+– a CSV or TSV with these ten columns:
+
+| Column | Meaning |
+|:--|:--|
+| `Molecule List Name` | Metabolite class (e.g. `CE`, `TAG`) |
+| `Precursor Name` | Unique metabolite / transition identifier |
+| `Precursor Mz` | Q1 m/z |
+| `Precursor Charge` | Q1 charge |
+| `Product Mz` | Q3 m/z |
+| `Product Charge` | Q3 charge |
+| `Explicit Retention Time` | Expected RT (min) |
+| `Explicit Retention Time Window` | RT window (min) |
+| `Note` | SIL internal-standard name for this transition |
+| `control_chart` | `TRUE` / `FALSE` – include in control charts |
+
+For absolute quantitation, `qcCheckR` also needs a **concentration guide**
+whose `SIL_name` values match the template’s `Note` column (each
+`SIL_name` carries a `concentration_factor`). The cross-file rule is
+simple: **every `Note` in the template must have a matching `SIL_name` in
+the guide.**
+
+> **Worked example – ANPC lipidomics:** SIL standards are named like
+> `SIL_CE(16:0)_d7_Lipidyzer`; that exact string appears in the template
+> `Note` and again as a `SIL_name` row in the concentration guide.
+
+You can load and inspect the bundled example templates with
+`system.file()` – see the inspect chunks in **Step 2: PeakForgeR** and
+**Step 3: qcCheckR**.
+
+### Dry-run before burning compute
+
+Conversion and peak-picking are the slow, container-bound steps. Validate
+everything cheaply first, in this order:
+
+``` r
+# 1. Project directory exists and is well-formed
+validate_project_directory(project_dir)
+
+# 2. raw_data/ holds supported vendor files
+validate_file_types(file.path(project_dir, "raw_data"))
+
+# 3. Plate grouping resolves as you expect -- review the printed grouping and
+#    the generated plate_grouping.csv. If you use an explicit manifest, check it
+#    against the files:
+# read_plate_manifest(
+#   "plate_grouping.csv",
+#   known_files = list.files(file.path(project_dir, "raw_data"))
+# )
+
+# 4. MRM template has unique Q1/Q3 transitions
+transition_checkR(mrm_template)
+
+# 5. Every template Note has a matching concentration-guide SIL_name
+compare_mrm_template_with_guide(mrm_template, conc_guide)
+```
+
+| Check | Helper | Passes when | If it fails |
+|:--|:--|:--|:--|
+| Project dir | `validate_project_directory()` | Directory exists | Create it / fix the path |
+| Vendor files | `validate_file_types()` | Supported files found in `raw_data/` | Check formats / placement |
+| Plate grouping | reported grouping + `plate_grouping.csv` | Plates match expectation | Edit `plate_grouping.csv`, add a subfolder, or pass `manifest=` |
+| Transitions | `transition_checkR()` | No duplicate Q1/Q3 | Resolve clashing transitions in the template |
+| Template -\> guide | `compare_mrm_template_with_guide()` | All `Note`s matched | Add the missing `SIL_name`s to the guide |
+
+Full parameter docs for `transition_checkR()` and
+`compare_mrm_template_with_guide()` are in **Utility Functions**.
+
+### Choose a batch-correction method
+
+Pick the method that matches your QC design (a “batch” is one run /
+plate):
+
+| Method | QC required? | Extra package | Choose when |
+|:--|:--|:--|:--|
+| `QCRFSC` (default) | Yes (\>= 2 QC/batch) | – | You inject pooled QC every batch |
+| `QCRLSC` | Yes (\>= 2 QC/batch) | `qcrlscR` | You want Dunn-protocol LOESS drift correction |
+| `ComBat` | No | `sva` | No / insufficient QC per batch |
+
+QC-required methods need at least two valid QC injections per batch
+(low-signal QCs are reclassified as samples first). Install the optional
+package only if you choose that method, e.g.
+`BiocManager::install("sva")`.
+
+Per-method tuning parameters (`batch_ntree`, `qcrlsc_*`, `combat_*`) and
+full `qcCheckR()` call examples are in **Step 3: qcCheckR**; QC-count
+errors are covered in **Troubleshooting -\> batchCorrectR returns errors
+about QC samples**.
+
+### Encode your decisions in a workflow template
+
+Capture every choice above in a reusable script so the next study is a
+copy-edit, not a setup:
+
+``` r
+use_workflow("generic")   # copies a starter .Rmd into your working directory
+```
+
+Edit the user-parameter block at the top (project path, `QC_sample_label`,
+`sample_tags`, `mrm_template_list`, `batch_method`, `mv_threshold`) with
+your decided values, then commit it as your lab’s standard. The template
+catalog and options are in **Workflow Templates**.
+
+> **Worked example – ANPC lipidomics:** `use_workflow("CCSM")` ships a
+> template pre-filled with the ANPC lipidomics conventions (built-in
+> templates, `LTR` QC label) as a ready starting point.
+
+### Walkthrough checklist
+
+Before your first production run, confirm:
+
+- Container runtime chosen and working (Docker running, or
+  `MStargetR.enable_HPC = TRUE` + a resolvable SIF) – *Choose your
+  container runtime*
+- Filename convention adopted, with clear plate / QC / sample-type tokens
+  – *Adopt a filename convention*
+- Plate-grouping strategy decided – *Decide how plates are grouped*
+- MRM template prepared (10 columns), `transition_checkR()` passes –
+  *Prepare and validate your MRM template*
+- Concentration guide matches the template
+  (`compare_mrm_template_with_guide()` passes) – *Prepare and validate
+  your MRM template*
+- `QC_sample_label` and `sample_tags` set to your tokens – *Adopt a
+  filename convention*
+- Batch-correction method chosen (and its package installed if needed) –
+  *Choose a batch-correction method*
+- Decisions saved in a workflow template – *Encode your decisions in a
+  workflow template*
+
+With these settled, proceed to **Project Setup** and **Step 1:
+msConvertR** below.
+
+------------------------------------------------------------------------
+
 ### Project Setup
 
 Before running the pipeline, create a project directory and place your
 vendor raw files (e.g., `.wiff`, `.wiff.scan`, `.raw`, `.d`) inside a
 subdirectory named `raw_data`.
 
+Your filename convention and plate-grouping strategy are decided in
+**Adopt a filename convention** and **Decide how plates are grouped** in
+the Lab Setup Walkthrough above; this section covers the resulting
+directory layout.
+
+The pipeline organises everything by **plate** – one folder per plate,
+which is the unit used for QC and batch correction. How you arrange
+`raw_data/` tells
+[`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+which samples belong to which plate.
+
+**SCIEX `.wiff` (one multi-sample file per plate).** Place the files
+flat in `raw_data/`; each `.wiff` is its own plate automatically.
+
 ``` r
+
 # Define the project directory
 project_dir <- "/path/to/my_project"
 
@@ -126,16 +535,71 @@ project_dir <- "/path/to/my_project"
 raw_data_dir <- file.path(project_dir, "raw_data")
 dir.create(raw_data_dir, recursive = TRUE)
 
-# Copy or move your vendor files into raw_data_dir.
-# Example structure:
+# Flat .wiff layout (each file = one plate):
 #   my_project/
 #     raw_data/
-#       STUDY_PLATE_1-sample_01.wiff
-#       STUDY_PLATE_1-sample_01.wiff.scan
-#       STUDY_PLATE_1-sample_02.wiff
-#       STUDY_PLATE_1-sample_02.wiff.scan
-#       ...
+#       STUDY_PLATE_1.wiff
+#       STUDY_PLATE_1.wiff.scan
+#       STUDY_PLATE_2.wiff
+#       STUDY_PLATE_2.wiff.scan
 ```
+
+**One-file-per-sample formats (`.d`, `.raw`, …).** These vendors write
+one file per sample. In most cases you can place the files flat in
+`raw_data/` and let
+[`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+group them automatically: it infers plate membership in priority order –
+a remembered `plate_grouping.csv` (or an explicit `manifest`), then
+per-plate subfolders, then **filename auto-discovery**, then the bare
+filename.
+
+Auto-discovery detects which part of the filename identifies the plate
+(no lab-specific pattern needed), **reports** the grouping it inferred,
+and saves it to an editable `plate_grouping.csv` at the project root so
+the decision is stable across runs and you can correct it once if it
+guessed wrong.
+
+``` r
+
+# Default -- flat files, grouped automatically from the filename.
+#   my_project/
+#     raw_data/
+#       study_PlateA_001.raw   # -> plate PlateA
+#       study_PlateA_002.raw
+#       study_PlateB_001.raw   # -> plate PlateB
+#       study_PlateB_002.raw
+# msConvertR() reports: "inferred plate grouping from filenames ... PlateA (2 files), PlateB (2 files)"
+# and writes my_project/plate_grouping.csv (edit it to correct any mistake).
+
+# Explicit override A -- per-plate subfolders (subfolder name = plate ID):
+#   my_project/
+#     raw_data/
+#       PlateA/
+#         sample01.raw
+#         sample02.raw
+#       PlateB/
+#         sample01.raw
+#         sample02.raw
+
+# Explicit override B -- a manifest CSV mapping each file to a plate
+#   (use when grouping comes from an instrument worklist or LIMS export,
+#    or to lock in a correction; an explicit manifest always wins):
+manifest <- data.frame(
+  raw_file = c("sample01.raw", "sample02.raw", "sample03.raw"),
+  plateID  = c("PlateA",       "PlateA",       "PlateB")
+)
+write.csv(manifest, file.path(project_dir, "manifest.csv"), row.names = FALSE)
+```
+
+> **Why grouping matters.** Plate is the unit of per-plate QC and batch
+> correction, so files must be grouped correctly.
+> [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
+> always *reports* the grouping it chose, so a wrong guess is visible
+> before conversion. If several single-sample files share no filename
+> structure it can use, each is converted as its own plate with a
+> **warning** – group them with a subfolder, a `manifest`, or by editing
+> the generated `plate_grouping.csv`. Multi-sample `.wiff` files are
+> exempt; each is its own plate.
 
 ------------------------------------------------------------------------
 
@@ -153,8 +617,9 @@ a Windows-only ProteoWizard installation.
 
 | Parameter | Type | Description |
 |:---|:---|:---|
-| `input_directory` | Character | Path to the directory containing vendor raw files. |
+| `input_directory` | Character | Path to the directory containing a `raw_data/` folder of vendor raw files. |
 | `output_directory` | Character | Path where converted mzML files and the project structure will be created. May be the same as `input_directory`. |
+| `manifest` | Character / data.frame / NULL | Optional `raw_file,plateID` mapping (CSV path or data frame) – a last-resort override for grouping one-file-per-sample formats. When `NULL` (default), plate membership is resolved automatically: a remembered `plate_grouping.csv` at the project root, then per-plate subfolders under `raw_data/`, then filename auto-discovery (which reports its inference and saves an editable `plate_grouping.csv`), then the bare filename. |
 
 #### Supported vendor formats
 
@@ -165,16 +630,27 @@ Waters (`.raw` directory), and others.
 #### Example
 
 ``` r
+
+# Flat .wiff or per-plate subfolders -- no manifest needed:
 msConvertR(
   input_directory  = "/path/to/my_project",
   output_directory = "/path/to/my_project"
+)
+
+# One-file-per-sample formats grouped by a manifest:
+msConvertR(
+  input_directory  = "/path/to/my_project",
+  output_directory = "/path/to/my_project",
+  manifest         = "/path/to/my_project/manifest.csv"
 )
 ```
 
 After conversion, `msConvertR` creates a structured project directory
 with one subfolder per plate. Each plate folder contains `data/mzml/`
 holding the converted files and `data/raw_data/` holding the original
-vendor files.
+vendor files. All samples belonging to a plate – whether they came from
+one multi-sample `.wiff` or many single-sample `.d`/`.raw` files – land
+together in that plate’s `data/mzml/`.
 
 **Note:** Docker Desktop must be running before calling
 [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md).
@@ -210,33 +686,26 @@ that defines the transitions to be monitored. The package includes
 several example templates. The required columns are:
 
 ``` r
+
 mrm_template_path <- system.file(
   "extdata", "LGW_lipid_mrm_template_v1.tsv",
   package = "MStargetR"
 )
-mrm_template <- read.delim(mrm_template_path, check.names = FALSE)
+mrm_template <- readr::read_tsv(mrm_template_path, show_col_types = FALSE,
+                                name_repair = "minimal")
 head(mrm_template)
-#>   Molecule List Name Precursor Name Precursor Mz Precursor Charge Product Mz
-#> 1                 CE       CE(14:0)        614.6                1      369.4
-#> 2                 CE       CE(16:0)        642.6                1      369.4
-#> 3                 CE       CE(16:1)        640.6                1      369.4
-#> 4                 CE       CE(18:0)        670.6                1      369.4
-#> 5                 CE       CE(18:1)        668.6                1      369.4
-#> 6                 CE       CE(18:2)        666.6                1      369.4
-#>   Product Charge Explicit Retention Time Explicit Retention Time Window
-#> 1              1                  11.600                            0.5
-#> 2              1                  12.295                            0.5
-#> 3              1                  11.615                            0.5
-#> 4              1                  12.845                            0.5
-#> 5              1                  12.310                            0.5
-#> 6              1                  11.685                            0.5
-#>                        Note control_chart
-#> 1 SIL_CE(16:0)_d7_Lipidyzer         FALSE
-#> 2 SIL_CE(16:0)_d7_Lipidyzer          TRUE
-#> 3 SIL_CE(16:1)_d7_Lipidyzer          TRUE
-#> 4 SIL_CE(18:1)_d7_Lipidyzer         FALSE
-#> 5 SIL_CE(18:1)_d7_Lipidyzer          TRUE
-#> 6 SIL_CE(18:2)_d7_Lipidyzer          TRUE
+#> # A tibble: 6 × 10
+#>   `Molecule List Name` `Precursor Name` `Precursor Mz` `Precursor Charge`
+#>   <chr>                <chr>                     <dbl>              <dbl>
+#> 1 CE                   CE(14:0)                   615.                  1
+#> 2 CE                   CE(16:0)                   643.                  1
+#> 3 CE                   CE(16:1)                   641.                  1
+#> 4 CE                   CE(18:0)                   671.                  1
+#> 5 CE                   CE(18:1)                   669.                  1
+#> 6 CE                   CE(18:2)                   667.                  1
+#> # ℹ 6 more variables: `Product Mz` <dbl>, `Product Charge` <dbl>,
+#> #   `Explicit Retention Time` <dbl>, `Explicit Retention Time Window` <dbl>,
+#> #   Note <chr>, control_chart <lgl>
 ```
 
 Key columns include `Precursor Name`, `Precursor Mz`, `Product Mz`,
@@ -246,6 +715,7 @@ corresponding stable isotope-labelled internal standard).
 #### Example
 
 ``` r
+
 PeakForgeR(
   user_name         = "HSzemray",
   project_directory = "/path/to/my_project",
@@ -263,6 +733,7 @@ PeakForgeR(
 areas. An example of this output is bundled with the package:
 
 ``` r
+
 report_path <- system.file(
   "extdata", "Example_PeakForgeR_report.csv",
   package = "MStargetR"
@@ -312,14 +783,17 @@ is the final step in the core pipeline. It performs:
 | `QC_sample_label` | Character | Tag to identify QC samples in file names (e.g., `"LTR"`, `"qc"`). Default is `"LTR"`. |
 | `sample_tags` | Character vector | Tags that identify sample types in file names (e.g., `c("sample", "control", "qc")`). |
 | `mv_threshold` | Numeric | Percentage threshold for missing value filtering (0–100). Features with a higher percentage of missing values than this threshold are removed. Default is `50`. |
-| `batch_method` | Character | Batch correction method: `"QCRFSC"` (random forest, default) or `"ComBat"` (empirical Bayes, QC-free). |
+| `batch_method` | Character | Batch correction method: `"QCRFSC"` (random forest, default), `"ComBat"` (empirical Bayes, QC-free), or `"QCRLSC"` (robust LOESS, requires QC samples). |
 | `batch_ntree` | Integer | Number of trees for random forest correction. Ignored for other methods. Default is `500`. |
-| `batch_coCV` | Numeric | Coefficient of variation cutoff for feature filtering inside statTarget. Default is `10000`. |
+| `batch_coCV` | Numeric | Coefficient of variation cutoff (%, 1–100) for feature filtering inside statTarget. Features with QC CV above this threshold are removed. Default is `100` (no filtering). |
 | `batch_Frule` | Numeric | Filtering rule (0–1) for missing values inside statTarget. Default is `0`. |
 | `batch_imputeM` | Character | Imputation method: `"minHalf"`, `"median"`, `"mean"`, or `"knn"`. Default is `"minHalf"`. |
 | `combat_par.prior` | Logical | Use parametric priors in ComBat. Only used when `batch_method = "ComBat"`. Default is `TRUE`. |
 | `combat_mean.only` | Logical | Correct only batch mean (not variance). Only used when `batch_method = "ComBat"`. Default is `FALSE`. |
 | `combat_ref.batch` | Character or NULL | Reference batch for ComBat. Only used when `batch_method = "ComBat"`. Default is `NULL`. |
+| `qcrlsc_method` | Character | QC-RLSC scaling: `"subtract"` (default, Dunn et al. protocol) or `"divide"` (preserves non-negativity). Only used when `batch_method = "QCRLSC"`. |
+| `qcrlsc_intra` | Logical | Intra-batch (`TRUE`) vs inter-batch (`FALSE`, default) QC-RLSC. Only used when `batch_method = "QCRLSC"`. |
+| `qcrlsc_opti` / `qcrlsc_log10` / `qcrlsc_outl` / `qcrlsc_shift` | Logical | Optimise LOESS span by GCV, log10-transform before fitting, QC outlier detection, and apply `batch.shift` after correction. All default `TRUE`. Only used when `batch_method = "QCRLSC"`. |
 
 #### The mrm_template_list structure
 
@@ -333,6 +807,7 @@ contains two named paths:
   standard names to their known concentrations.
 
 ``` r
+
 mrm_template_list <- list(
   v1 = list(
     SIL_guide  = "/path/to/LGW_lipid_mrm_template_v1.tsv",
@@ -347,6 +822,7 @@ The concentration guide is a TSV file mapping each internal standard to
 its known concentration. An example is included in the package:
 
 ``` r
+
 conc_guide_path <- system.file(
   "extdata", "LGW_SIL_batch_103.tsv",
   package = "MStargetR"
@@ -382,7 +858,8 @@ MRM transition template.
 #### Example
 
 ``` r
-# Default batch correction (QC-based Random Forest)
+
+# Using QCRFSC (default, requires QC samples)
 qcCheckR(
   user_name          = "HSzemray",
   project_directory  = "/path/to/my_project",
@@ -394,7 +871,8 @@ qcCheckR(
   ),
   QC_sample_label    = "LTR",
   sample_tags        = c("sample", "control", "qc"),
-  mv_threshold       = 50
+  mv_threshold       = 50,
+  batch_method       = "QCRFSC"
 )
 
 # Using ComBat (does not require QC samples)
@@ -414,6 +892,23 @@ qcCheckR(
   combat_par.prior   = TRUE,
   combat_mean.only   = FALSE
 )
+
+# Using QC-RLSC (QC-based robust LOESS signal correction; requires QC samples)
+qcCheckR(
+  user_name          = "HSzemray",
+  project_directory  = "/path/to/my_project",
+  mrm_template_list  = list(
+    v1 = list(
+      SIL_guide  = "/path/to/LGW_lipid_mrm_template_v1.tsv",
+      conc_guide = "/path/to/LGW_SIL_batch_103.tsv"
+    )
+  ),
+  QC_sample_label    = "LTR",
+  sample_tags        = c("sample", "control", "qc"),
+  mv_threshold       = 50,
+  batch_method       = "QCRLSC",
+  qcrlsc_method      = "subtract"
+)
 ```
 
 #### Outputs
@@ -425,8 +920,10 @@ qcCheckR(
 2.  **Excel workbook** – A multi-sheet workbook with final concentration
     data, filtering summaries, and a navigation guide on the first
     sheet.
-3.  **RDA file** – A saved R data object containing the full
+3.  **qs2 file** – A saved R data object (qs2 package format, written
+    with multi-threaded zstd compression) containing the full
     `master_list` for programmatic access to all intermediate results.
+    Load with `qs2::qs_read("path/to/file.qs2")`.
 
 ------------------------------------------------------------------------
 
@@ -446,15 +943,19 @@ correction to any tabular metabolomics dataset.
 |:---|:---|:---|:---|
 | `data` | data.frame | (required) | Input data with samples as rows. Must contain columns: `sample_name`, `batch`, `sample_type`, `run_order`, plus numeric metabolite columns. |
 | `qc_label` | Character | `"qc"` | String identifying QC samples in the `sample_type` column. |
-| `method` | Character | `"QCRFSC"` | Correction method: `"QCRFSC"` (random forest, default) or `"ComBat"` (empirical Bayes, QC-free). |
+| `method` | Character | `"QCRFSC"` | Correction method: `"QCRFSC"` (random forest, default), `"ComBat"` (empirical Bayes, QC-free), or `"QCRLSC"` (robust LOESS, requires QC samples). |
 | `ntree` | Integer | `500` | Number of trees for the random forest method. Ignored for other methods. |
-| `coCV` | Numeric | `10000` | Coefficient of variation cutoff for feature filtering in statTarget. |
+| `coCV` | Numeric | `100` | Coefficient of variation cutoff (%, 1–100) for feature filtering in statTarget. Features with QC CV above this threshold are removed. |
 | `Frule` | Numeric | `0` | Filtering rule percentage for missing values in statTarget. |
 | `imputeM` | Character | `"minHalf"` | Imputation method: `"minHalf"`, `"median"`, `"mean"`, or `"knn"`. |
 | `combat_par.prior` | Logical | `TRUE` | Use parametric empirical Bayes priors. Only applies when `method = "ComBat"`. |
 | `combat_mean.only` | Logical | `FALSE` | If TRUE, correct only batch mean (not variance). Only applies when `method = "ComBat"`. |
 | `combat_ref.batch` | Character or NULL | `NULL` | Reference batch for ComBat adjustment. Only applies when `method = "ComBat"`. |
+| `qcrlsc_method` | Character | `"subtract"` | QC-RLSC scaling: `"subtract"` (Dunn et al. protocol) or `"divide"` (preserves non-negativity). Only applies when `method = "QCRLSC"`. |
+| `qcrlsc_intra` / `qcrlsc_opti` / `qcrlsc_log10` / `qcrlsc_outl` / `qcrlsc_shift` | Logical | `FALSE` / `TRUE` / `TRUE` / `TRUE` / `TRUE` | Intra-batch correction, LOESS span GCV optimisation, log10 transform, QC outlier detection, and `batch.shift`. Only apply when `method = "QCRLSC"`. |
+| `sample_tags` | Character vector or NULL | `NULL` | Optional sample-type labels to include in correction (in addition to QC). Rows whose type does not match `qc_label` or any of `sample_tags` are dropped before correction. Useful for excluding blanks or other low-signal types. |
 | `output_dir` | Character | [`tempdir()`](https://rdrr.io/r/base/tempfile.html) | Directory for statTarget intermediate files. |
+| `project_dir` | Character or NULL | `NULL` | If provided, the corrected data CSV and correction summary are saved into a `batch_correction` subfolder inside this directory. |
 | `plot` | Logical | `TRUE` | Whether to generate before/after correction plots. |
 | `report` | Logical | `TRUE` | Whether to generate an HTML summary report. |
 
@@ -472,6 +973,16 @@ correction to any tabular metabolomics dataset.
   available. ComBat can correct both location (mean) and scale
   (variance) batch effects, or mean-only if `combat_mean.only = TRUE`.
   Install `sva` via `BiocManager::install("sva")`.
+- **QC-RLSC** (QC-based Robust LOESS Signal Correction; Dunn et al.
+  2011): Fits a robust LOESS trend through the QC injections (ordered by
+  acquisition) for each feature and corrects samples against it, then
+  optionally re-aligns batch means with `batch.shift`. Like QCRFSC it
+  **requires** QC samples. The `qcrlsc_method` argument chooses additive
+  (`"subtract"`, default) or multiplicative (`"divide"`) scaling; the
+  latter preserves non-negativity, useful for concentration data.
+  Implemented via
+  [`qcrlscR::qc.rlsc.wrap()`](https://rdrr.io/pkg/qcrlscR/man/qc.rlsc.wrap.html);
+  install `qcrlscR` via `install.packages("qcrlscR")`.
 
 ### Return value
 
@@ -488,10 +999,14 @@ correction to any tabular metabolomics dataset.
 - `failed_qc` – Character vector of sample names flagged as failed QC
   injections (signal \< 10% of batch median).
 - `plots` – A list of ggplot objects (only if `plot = TRUE`).
+- `report` – Logical indicating whether an HTML report was requested.
+- `report_path` – Path to the rendered HTML report (only if
+  `report = TRUE` and rendering succeeds).
 
 ### Example
 
 ``` r
+
 library(MStargetR)
 
 # Prepare a synthetic input dataset
@@ -516,6 +1031,7 @@ result$correction_summary
 ```
 
 ``` r
+
 # ComBat correction (does not require QC samples)
 my_data_no_qc <- data.frame(
   sample_name  = paste0("S", 1:20),
@@ -539,6 +1055,16 @@ result_combat_mean <- batchCorrectR(
 )
 ```
 
+``` r
+
+# QC-RLSC correction (QC-based robust LOESS; requires QC samples)
+result_qcrlsc <- batchCorrectR(
+  data          = my_data,
+  method        = "QCRLSC",
+  qcrlsc_method = "subtract"   # or "divide" to preserve non-negativity
+)
+```
+
 ------------------------------------------------------------------------
 
 ## Interactive Application (launchMStargetR)
@@ -551,6 +1077,7 @@ results interactively.
 ### Launching the application
 
 ``` r
+
 library(MStargetR)
 launchMStargetR()
 ```
@@ -572,15 +1099,20 @@ If any are missing,
 will display an informative error listing the packages to install.
 
 ``` r
+
 install.packages(c("shiny", "bslib", "DT", "shinyWidgets", "htmltools"))
 ```
 
 **Note:** The Shiny GUI exposes batch correction method selection in
-both the `qcCheckR` and `batchCorrectR` tabs. Both methods (`QCRFSC` and
-`ComBat`) are available from the interface, including the
-ComBat-specific parameters (`combat_par.prior`, `combat_mean.only`, and
-`combat_ref.batch`). When `ComBat` is selected, the QC-specific options
-are hidden automatically since ComBat does not require QC samples.
+both the `qcCheckR` and `batchCorrectR` tabs. All three methods
+(`QCRFSC`, `ComBat`, and `QC-RLSC`) are available from the interface,
+with each method’s options shown in its own panel: the ComBat-specific
+parameters (`combat_par.prior`, `combat_mean.only`, `combat_ref.batch`)
+and the QC-RLSC-specific parameters (scaling, intra-batch, span
+optimisation, log10, outlier detection, batch shift). When `ComBat` is
+selected, the QC-specific options are hidden automatically since ComBat
+does not require QC samples; `QCRFSC` and `QC-RLSC` both require QC
+samples.
 
 ------------------------------------------------------------------------
 
@@ -607,6 +1139,7 @@ resolved before processing.
 #### Example
 
 ``` r
+
 # Load an example MRM template
 mrm_template_path <- system.file(
   "extdata", "LGW_lipid_mrm_template_v1.tsv",
@@ -638,6 +1171,7 @@ concentration information that would prevent accurate quantification.
 #### Example
 
 ``` r
+
 # Load the MRM template
 mrm_template_path <- system.file(
   "extdata", "LGW_lipid_mrm_template_v1.tsv",
@@ -677,6 +1211,7 @@ to list and copy templates to your working directory.
 ### Usage
 
 ``` r
+
 # List available workflow templates
 use_workflow()
 
@@ -734,6 +1269,7 @@ correction.
 For `PeakForgeR`, provide a **named list of file paths**:
 
 ``` r
+
 mrm_template_list <- list(
   v1 = "/path/to/LGW_lipid_mrm_template_v1.tsv",
   v2 = "/path/to/LGW_lipid_mrm_template_v2.tsv"
@@ -744,6 +1280,7 @@ For `qcCheckR`, provide a **named list of lists**, each containing both
 the MRM template and its associated concentration guide:
 
 ``` r
+
 mrm_template_list <- list(
   v1 = list(
     SIL_guide  = "/path/to/LGW_lipid_mrm_template_v1.tsv",
@@ -759,6 +1296,7 @@ mrm_template_list <- list(
 ### Complete multi-method example
 
 ``` r
+
 library(MStargetR)
 
 project_directory <- "/path/to/my_multimethod_project"
@@ -801,7 +1339,8 @@ qcCheckR(
   ),
   QC_sample_label    = "LTR",
   sample_tags        = c("sample", "control", "qc"),
-  mv_threshold       = 50
+  mv_threshold       = 50,
+  batch_method       = "QCRFSC"
 )
 ```
 
@@ -832,7 +1371,8 @@ following structure:
     |-- all/                               # Combined outputs from qcCheckR
     |   |-- *_qcCheckR_report.html         # Interactive HTML QC report
     |   |-- *_qcCheckR_data.xlsx           # Excel workbook with concentration data
-    |   |-- *_qcCheckR_master_list.rda     # R data object with all intermediate results
+    |   |-- data/qs2/
+    |   |   |-- *_qcCheckR.qs2             # R data object (qs2 format) with all intermediate results
     |
     |-- MStargetR_logs/                    # Per-plate processing logs
     |   |-- PLATE_ID_1_MStargetR_log.txt
@@ -849,7 +1389,7 @@ following structure:
 | `PLATE_ID/chromatograms/` | Chromatogram images for visual inspection of peak quality. |
 | `all/*_qcCheckR_report.html` | Interactive HTML report with PCA, run-order plots, control charts, and summary statistics. |
 | `all/*_qcCheckR_data.xlsx` | Multi-sheet Excel workbook. The first sheet provides a navigation guide. Subsequent sheets contain filtered concentration data, QC summaries, and batch correction diagnostics. |
-| `all/*_qcCheckR_master_list.rda` | An R data object (`.rda`) containing the full `master_list`, enabling programmatic access to all intermediate processing results. |
+| `all/data/qs2/*_qcCheckR.qs2` | An R data object in the `qs2` package’s multi-threaded zstd format, containing the full `master_list` for programmatic access to all intermediate processing results. Load with `qs2::qs_read("path/to/file.qs2")` (not [`base::load()`](https://rdrr.io/r/base/load.html)). |
 | `MStargetR_logs/` | Text log files recording the processing status and any errors for each plate. |
 
 ------------------------------------------------------------------------
@@ -867,7 +1407,33 @@ stops with a Docker-related error.
 **Solution:** Ensure Docker Desktop is installed and running. On Windows
 and macOS, open Docker Desktop and wait for the engine to start before
 calling these functions. On Linux, verify that the Docker daemon is
-active with `systemctl status docker`.
+active with `systemctl status docker`. If you are on an HPC cluster that
+forbids Docker, set `enable_HPC = TRUE` (see “Running on HPC” above).
+
+### Apptainer pull fails on an HPC compute node
+
+**Symptom:** With `enable_HPC = TRUE`, the function errors during the
+first call with a message referencing `apptainer pull docker://...` and
+`MStargetR.sif_path`.
+
+**Solution:** Most HPC compute nodes have no outbound network, so the
+auto-pull cannot reach Docker Hub. Pull the `.sif` once on a login node
+(which usually does have network access) and point MStargetR at it via
+`options(MStargetR.sif_path = "/path/to/mstargetr-pwiz.sif")` in your
+`.Rprofile` or job script. See the “Running on HPC” section above for
+the full pull command.
+
+### Apptainer is not found on PATH
+
+**Symptom:** With `enable_HPC = TRUE`, the function errors with
+“apptainer (or singularity) not found on PATH”.
+
+**Solution:** On most HPC sites Apptainer is provided as an environment
+module that must be loaded explicitly. Add `module load apptainer` (or
+`module load singularity` on older installations) to your job script
+before invoking R. MStargetR accepts either name – the legacy
+`singularity` binary is recognised as a fallback when `apptainer` is
+absent.
 
 ### No vendor files found
 
@@ -927,11 +1493,30 @@ stops with an error about the `sva` package not being installed.
 **Solution:** Install `sva` from Bioconductor:
 
 ``` r
+
 BiocManager::install("sva")
 ```
 
 ComBat is an optional dependency. It is only required when you select
 `method = "ComBat"` or `batch_method = "ComBat"`.
+
+### QC-RLSC method requires the qcrlscR package
+
+**Symptom:**
+[`batchCorrectR()`](https://mstargetr.github.io/MStargetR/reference/batchCorrectR.md)
+or
+[`qcCheckR()`](https://mstargetr.github.io/MStargetR/reference/qcCheckR.md)
+stops with an error about the `qcrlscR` package not being installed.
+
+**Solution:** Install `qcrlscR` from CRAN:
+
+``` r
+
+install.packages("qcrlscR")
+```
+
+`qcrlscR` is an optional dependency. It is only required when you select
+`method = "QCRLSC"` or `batch_method = "QCRLSC"`.
 
 ### Shiny application fails to launch
 
@@ -942,6 +1527,7 @@ displays an error about missing packages.
 **Solution:** Install the required GUI dependencies:
 
 ``` r
+
 install.packages(c("shiny", "bslib", "DT", "shinyWidgets", "htmltools"))
 ```
 
@@ -950,8 +1536,9 @@ install.packages(c("shiny", "bslib", "DT", "shinyWidgets", "htmltools"))
 ## Session Information
 
 ``` r
+
 sessionInfo()
-#> R version 4.5.2 (2025-10-31 ucrt)
+#> R version 4.6.0 (2026-04-24 ucrt)
 #> Platform: x86_64-w64-mingw32/x64
 #> Running under: Windows 11 x64 (build 26200)
 #> 
@@ -970,11 +1557,15 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] digest_0.6.39     desc_1.4.3        R6_2.6.1          fastmap_1.2.0    
-#>  [5] xfun_0.57         cachem_1.1.0      knitr_1.51        htmltools_0.5.9  
-#>  [9] rmarkdown_2.31    lifecycle_1.0.5   cli_3.6.5         sass_0.4.10      
-#> [13] pkgdown_2.2.0     textshaping_1.0.5 jquerylib_0.1.4   systemfonts_1.3.2
-#> [17] compiler_4.5.2    tools_4.5.2       ragg_1.5.2        bslib_0.10.0     
-#> [21] evaluate_1.0.5    yaml_2.3.12       otel_0.2.0        jsonlite_2.0.0   
-#> [25] rlang_1.1.7       fs_2.0.1          htmlwidgets_1.6.4
+#>  [1] bit_4.6.0         jsonlite_2.0.0    compiler_4.6.0    crayon_1.5.3     
+#>  [5] tidyselect_1.2.1  parallel_4.6.0    jquerylib_0.1.4   systemfonts_1.3.2
+#>  [9] textshaping_1.0.5 yaml_2.3.12       fastmap_1.2.0     readr_2.2.0      
+#> [13] R6_2.6.1          knitr_1.51        htmlwidgets_1.6.4 tibble_3.3.1     
+#> [17] desc_1.4.3        bslib_0.11.0      pillar_1.11.1     tzdb_0.5.0       
+#> [21] rlang_1.2.0       utf8_1.2.6        cachem_1.1.0      xfun_0.57        
+#> [25] fs_2.1.0          sass_0.4.10       bit64_4.8.2       otel_0.2.0       
+#> [29] cli_3.6.6         pkgdown_2.2.0     magrittr_2.0.5    digest_0.6.39    
+#> [33] vroom_1.7.1       hms_1.1.4         lifecycle_1.0.5   vctrs_0.7.3      
+#> [37] evaluate_1.0.5    glue_1.8.1        ragg_1.5.2        rmarkdown_2.31   
+#> [41] tools_4.6.0       pkgconfig_2.0.3   htmltools_0.5.9
 ```

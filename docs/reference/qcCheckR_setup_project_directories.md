@@ -16,12 +16,12 @@ qcCheckR_setup_project_directories(master_list)
 
 ## Value
 
-The updated master list object with project directories set up.
+`invisible(NULL)`; called for its side-effects (directory creation).
 
 ## Examples
 
 ``` r
 if (FALSE) { # \dontrun{
-master_list <- qcCheckR_setup_project_directories(master_list)
+qcCheckR_setup_project_directories(master_list)
 } # }
 ```

@@ -37,6 +37,17 @@ MSTARGETR_EXCLUDE_DIRS <- c(
 #' @keywords internal
 DEFAULT_RSD_THRESHOLD <- 30L
 
+#' Default instrumental limit-of-detection (LOD) threshold
+#'
+#' Peak-area values below this threshold are counted as "below LOD" (missing)
+#' when flagging samples and features in \code{qcCheckR()}. The LOD is
+#' instrument- and lab-specific; override it via the \code{lod_threshold}
+#' argument of \code{qcCheckR()} (stored in
+#' \code{master_list$project_details$lod_threshold}). The filter functions in
+#' \code{qcCheckR_filter.R} fall back to this constant when no value is set.
+#' @keywords internal
+DEFAULT_LOD_THRESHOLD <- 5000
+
 #' Regex pattern matching all supported vendor-file extensions
 #'
 #' Used by \code{msConvertR()} to strip extensions when deriving plate IDs from
@@ -840,59 +851,79 @@ check_docker <- function(auto_pull = interactive()) {
 #' all_file_paths <- validate_file_types(input_directory)
 #' }
 validate_file_types <- function(input_directory) {
-  file_path <- file.path(input_directory, "raw_data")
-  files <- list.files(path = file_path, full.names = TRUE)
+  raw_root <- file.path(input_directory, "raw_data")
 
-  # Supported extensions (data-driven lookup)
+  # Supported single-file extensions (data-driven lookup)
   supported_exts <- c("raw", "baf", "fid", "yep", "tsf", "tdf", "mbi",
                        "qgd", "qgb", "qgm", "lcd", "lcdproj", "uep",
                        "sdf", "dat", "wcf", "wproj", "wdata")
 
-  validated <- vector("list", length(files))
-  invalid <- vector("list", length(files))
-  v_idx <- 0L
-  i_idx <- 0L
-
-  for (file in files) {
-    # Skip .wiff.scan companion files — they are validated alongside .wiff
-    if (grepl("\\.wiff\\.scan$", file)) next
-    ext <- tolower(tools::file_ext(file))
-    if (ext == "wiff") {
-      scan_file <- paste0(file, ".scan")
-      if (file.exists(scan_file)) {
-        v_idx <- v_idx + 1L
-        validated[[v_idx]] <- file
+  # Validate the vendor files within a single directory, scoping the
+  # .wiff/.wiff.scan companion pairing (and orphan-scan detection) to that
+  # directory so that per-plate subfolders are each validated independently.
+  # Plain sub-directories (plate containers) are left for the caller to recurse
+  # into; only .d directories are accepted as vendor data here.
+  validate_one_dir <- function(dir) {
+    entries <- list.files(path = dir, full.names = TRUE)
+    valid <- character(0)
+    invalid <- character(0)
+    for (file in entries) {
+      # Skip .wiff.scan companion files — validated alongside their .wiff
+      if (grepl("\\.wiff\\.scan$", file)) next
+      ext <- tolower(tools::file_ext(file))
+      if (ext == "wiff") {
+        if (file.exists(paste0(file, ".scan"))) {
+          valid <- c(valid, file)
+        } else {
+          message("Missing .wiff.scan for: ", basename(file))
+          invalid <- c(invalid, file)
+        }
+      } else if (ext == "d" && dir.exists(file)) {
+        valid <- c(valid, file)
+      } else if (!dir.exists(file) && ext %in% supported_exts) {
+        valid <- c(valid, file)
+      } else if (dir.exists(file)) {
+        # Plate-container subdirectory: recursed into by the caller, not here.
+        next
       } else {
-        message("Missing .wiff.scan for: ", basename(file))
-        i_idx <- i_idx + 1L
-        invalid[[i_idx]] <- file
+        message("Unsupported file type found: ", basename(file))
+        invalid <- c(invalid, file)
       }
-    } else if (ext == "d" && dir.exists(file)) {
-      v_idx <- v_idx + 1L
-      validated[[v_idx]] <- file
-    } else if (ext %in% supported_exts) {
-      v_idx <- v_idx + 1L
-      validated[[v_idx]] <- file
-    } else {
-      message("Unsupported file type found: ", basename(file))
-      i_idx <- i_idx + 1L
-      invalid[[i_idx]] <- file
     }
+
+    # Detect orphan .wiff.scan files (within this dir) whose .wiff is absent
+    for (ws in entries[grepl("\\.wiff\\.scan$", entries)]) {
+      base_wiff <- sub("\\.scan$", "", ws)
+      if (!base_wiff %in% valid) {
+        message("Orphan .wiff.scan (no matching valid .wiff): ", basename(ws))
+        invalid <- c(invalid, ws)
+      }
+    }
+    list(valid = valid, invalid = invalid)
   }
 
-  # Detect orphan .wiff.scan files whose matching .wiff is absent or invalid
-  wiff_scan_files <- files[grepl("\\.wiff\\.scan$", files)]
-  for (ws in wiff_scan_files) {
-    base_wiff <- sub("\\.scan$", "", ws)
-    if (!base_wiff %in% unlist(validated[seq_len(v_idx)])) {
-      message("Orphan .wiff.scan (no matching valid .wiff): ", basename(ws))
-      i_idx <- i_idx + 1L
-      invalid[[i_idx]] <- ws
+  top_entries <- list.files(path = raw_root, full.names = TRUE)
+  # A directory is a plate container (recurse into it) unless its name matches a
+  # vendor extension (e.g. "Sample.d" is vendor data, not a plate folder).
+  is_plate_subdir <- vapply(top_entries, function(p) {
+    dir.exists(p) &&
+      !grepl(MSTARGETR_VENDOR_EXT_PATTERN, basename(p), ignore.case = TRUE)
+  }, logical(1))
+
+  # Validate top-level files (+ .d dirs), then one level into each plate folder.
+  res <- validate_one_dir(raw_root)
+  validated_files <- res$valid
+  invalid_files <- res$invalid
+  for (sub in top_entries[is_plate_subdir]) {
+    sub_res <- validate_one_dir(sub)
+    if (length(sub_res$valid) == 0) {
+      message("No valid vendor files in plate folder: ", basename(sub))
     }
+    validated_files <- c(validated_files, sub_res$valid)
+    invalid_files <- c(invalid_files, sub_res$invalid)
   }
 
-  validated_files <- unlist(validated[seq_len(v_idx)])
-  invalid_files <- unlist(invalid[seq_len(i_idx)])
+  file_path <- raw_root  # preserve variable name used in messages below
 
   if (length(validated_files) == 0) {
     stop("validate_file_types: No supported vendor files found in '",
@@ -912,6 +943,69 @@ validate_file_types <- function(input_directory) {
   message("Returning validated files for processing:\n",
           paste(basename(validated_files), collapse = "\n"))
   return(validated_files)
+}
+
+# == Plate manifest ==========================================================
+#' Read and validate a plate-grouping manifest
+#'
+#' Parses an optional user-supplied manifest that maps each raw vendor file to a
+#' plate. This lets labs whose plate membership lives in an instrument worklist,
+#' LIMS export, or filename convention express that mapping explicitly rather
+#' than relying on subfolder layout. Accepts a CSV path or a pre-read
+#' \code{data.frame} with (case-insensitive) columns \code{raw_file} and
+#' \code{plateID} (a \code{sample_name} column, if present, is currently
+#' ignored and reserved for future renaming support).
+#'
+#' @keywords internal
+#' @param manifest Path to a CSV file, or a \code{data.frame}.
+#' @param known_files Character vector of validated vendor file basenames; every
+#'   \code{raw_file} in the manifest must be present here.
+#' @return \code{data.frame} with columns \code{raw_file} (basename) and
+#'   \code{plateID}.
+read_plate_manifest <- function(manifest, known_files) {
+  if (is.data.frame(manifest)) {
+    df <- manifest
+  } else if (is.character(manifest) && length(manifest) == 1L &&
+             file.exists(manifest)) {
+    # fileEncoding = "UTF-8-BOM" strips an Excel-written BOM if present and is a
+    # no-op otherwise, avoiding a mangled first column name on Windows.
+    df <- utils::read.csv(manifest, stringsAsFactors = FALSE,
+                          check.names = FALSE, fileEncoding = "UTF-8-BOM")
+  } else {
+    stop("msConvertR: 'manifest' must be a path to an existing CSV file or a ",
+         "data.frame. Got: '",
+         if (is.character(manifest)) manifest else class(manifest)[1], "'.",
+         call. = FALSE)
+  }
+
+  orig_names <- names(df)
+  names(df) <- tolower(trimws(orig_names))
+  if ("plate_id" %in% names(df) && !"plateid" %in% names(df)) {
+    names(df)[names(df) == "plate_id"] <- "plateid"
+  }
+  if (!all(c("raw_file", "plateid") %in% names(df))) {
+    stop("msConvertR: manifest must contain columns 'raw_file' and 'plateID'. ",
+         "Found: ", paste(orig_names, collapse = ", "), ".", call. = FALSE)
+  }
+
+  raw_file <- basename(trimws(as.character(df$raw_file)))
+  plateID  <- trimws(as.character(df$plateid))
+  if (any(!nzchar(raw_file)) || any(!nzchar(plateID))) {
+    stop("msConvertR: manifest contains empty 'raw_file' or 'plateID' values.",
+         call. = FALSE)
+  }
+  if (anyDuplicated(raw_file)) {
+    dup <- unique(raw_file[duplicated(raw_file)])
+    stop("msConvertR: manifest lists duplicate 'raw_file' entries: ",
+         paste(dup, collapse = ", "), ".", call. = FALSE)
+  }
+  missing_files <- setdiff(raw_file, known_files)
+  if (length(missing_files) > 0) {
+    stop("msConvertR: manifest references files not found in raw_data/: ",
+         paste(missing_files, collapse = ", "), ".", call. = FALSE)
+  }
+
+  data.frame(raw_file = raw_file, plateID = plateID, stringsAsFactors = FALSE)
 }
 
 # == Symbol replacement for MRM templates ====================================

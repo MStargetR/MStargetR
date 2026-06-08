@@ -13,14 +13,14 @@ test_that("initialise_sil_summary returns a zero-row data.frame with expected co
   expect_equal(nrow(result), 0)
   expect_equal(
     colnames(result),
-    c("lipid", "template_version", "plateID", "peakArea_5000_LOD",
+    c("lipid", "template_version", "plateID", "peakArea_below_LOD",
       "naValues", "nanValues", "infValues", "totalMissingValues",
       "flag_SIL_intStd_Plate")
   )
   expect_type(result$lipid, "character")
   expect_type(result$template_version, "character")
   expect_type(result$plateID, "character")
-  expect_type(result$peakArea_5000_LOD, "double")
+  expect_type(result$peakArea_below_LOD, "double")
   expect_type(result$naValues, "double")
   expect_type(result$nanValues, "double")
   expect_type(result$infValues, "double")
@@ -65,7 +65,7 @@ test_that("calculate_sil_flags_per_plate: happy path counts LOD, NA, inf correct
 
   expect_s3_class(flags, "tbl_df")
   expect_equal(flags$lipid, c("SIL_A", "SIL_B"))
-  expect_equal(unname(flags$peakArea_5000_LOD), c(3, 0))
+  expect_equal(unname(flags$peakArea_below_LOD), c(3, 0))
   expect_equal(unname(flags$naValues),          c(0, 1))
   expect_equal(unname(flags$infValues),         c(0, 1))
   expect_equal(unname(flags$totalMissingValues), c(3, 2))
@@ -74,7 +74,7 @@ test_that("calculate_sil_flags_per_plate: happy path counts LOD, NA, inf correct
 })
 
 test_that("calculate_sil_flags_per_plate: NA values are not counted as below-LOD (QC-C2)", {
-  # An all-NA column must NOT contribute to peakArea_5000_LOD.
+  # An all-NA column must NOT contribute to peakArea_below_LOD.
   sil_df <- tibble::tibble(
     sample_name = c("S1", "S2", "S3"),
     sample_plate_id = rep("batch1", 3),
@@ -90,10 +90,10 @@ test_that("calculate_sil_flags_per_plate: NA values are not counted as below-LOD
   flags <- calculate_sil_flags_per_plate(ml, "batch1")
 
   # all-NA column: below-LOD = 0, NAs bucket holds them
-  expect_equal(unname(flags$peakArea_5000_LOD[flags$lipid == "SIL_allNA"]), 0)
+  expect_equal(unname(flags$peakArea_below_LOD[flags$lipid == "SIL_allNA"]), 0)
   expect_equal(unname(flags$naValues[flags$lipid == "SIL_allNA"]), 3)
   # low column: below-LOD = 3, NAs = 0
-  expect_equal(unname(flags$peakArea_5000_LOD[flags$lipid == "SIL_low"]), 3)
+  expect_equal(unname(flags$peakArea_below_LOD[flags$lipid == "SIL_low"]), 3)
   expect_equal(unname(flags$naValues[flags$lipid == "SIL_low"]), 0)
 })
 
@@ -112,7 +112,7 @@ test_that("calculate_sil_flags_per_plate: filters out samples that failed sample
   flags <- calculate_sil_flags_per_plate(ml, "batch1")
 
   # Only S_keep should be used, so only 1 below-LOD, not 2.
-  expect_equal(unname(flags$peakArea_5000_LOD), 1)
+  expect_equal(unname(flags$peakArea_below_LOD), 1)
 })
 
 test_that("calculate_sil_flags_per_plate: empty SIL matrix yields zero rows", {
@@ -132,13 +132,58 @@ test_that("calculate_sil_flags_per_plate: empty SIL matrix yields zero rows", {
   expect_equal(nrow(flags), 0)
 })
 
+test_that("calculate_sil_flags_per_plate: configurable LOD changes below-LOD counts", {
+  sil_df <- tibble::tibble(
+    sample_name = c("S1", "S2", "S3", "S4"),
+    sample_plate_id = rep("batch1", 4),
+    SIL_A = c(6000, 4000, 3000, 2000)  # below 5000 default: 3
+  )
+  sample_flags <- tibble::tibble(
+    sample_name = c("S1", "S2", "S3", "S4"),
+    sample.flag = c(0, 0, 0, 0)
+  )
+
+  # Default (no lod_threshold set) -> falls back to DEFAULT_LOD_THRESHOLD (5000)
+  ml_default <- make_sil_master_list(sil_df, sample_flags)
+  flags_default <- calculate_sil_flags_per_plate(ml_default, "batch1")
+  expect_equal(unname(flags_default$peakArea_below_LOD), 3)
+
+  # Lower LOD (3500) -> only 3000 and 2000 fall below
+  ml_low <- make_sil_master_list(sil_df, sample_flags)
+  ml_low$project_details$lod_threshold <- 3500
+  flags_low <- calculate_sil_flags_per_plate(ml_low, "batch1")
+  expect_equal(unname(flags_low$peakArea_below_LOD), 2)
+
+  # Higher LOD (10000) -> all four fall below
+  ml_high <- make_sil_master_list(sil_df, sample_flags)
+  ml_high$project_details$lod_threshold <- 10000
+  flags_high <- calculate_sil_flags_per_plate(ml_high, "batch1")
+  expect_equal(unname(flags_high$peakArea_below_LOD), 4)
+})
+
+test_that("resolve_lod_threshold falls back to default on missing/invalid values", {
+  expect_equal(resolve_lod_threshold(list()), DEFAULT_LOD_THRESHOLD)
+  expect_equal(
+    resolve_lod_threshold(list(project_details = list(lod_threshold = NULL))),
+    DEFAULT_LOD_THRESHOLD
+  )
+  expect_equal(
+    resolve_lod_threshold(list(project_details = list(lod_threshold = "bad"))),
+    DEFAULT_LOD_THRESHOLD
+  )
+  expect_equal(
+    resolve_lod_threshold(list(project_details = list(lod_threshold = 1234))),
+    1234
+  )
+})
+
 # 3. calculate_sil_flags_per_version -------------------------------------
 test_that("calculate_sil_flags_per_version aggregates multiple versions and flags", {
   sil_summary <- tibble::tibble(
     lipid = c("SIL_A", "SIL_A", "SIL_B"),
     template_version = c("v1", "v2", "v1"),
     plateID = c("p1", "p2", "p1"),
-    peakArea_5000_LOD = c(0, 0, 0),
+    peakArea_below_LOD = c(0, 0, 0),
     naValues = c(0, 0, 0),
     nanValues = c(0, 0, 0),
     infValues = c(0, 0, 0),
@@ -189,7 +234,7 @@ test_that("calculate_sil_flags_per_version: empty version list is a no-op", {
     lipid = character(),
     template_version = character(),
     plateID = character(),
-    peakArea_5000_LOD = numeric(),
+    peakArea_below_LOD = numeric(),
     naValues = numeric(), nanValues = numeric(), infValues = numeric(),
     totalMissingValues = numeric(), flag_SIL_intStd_Plate = numeric()
   )
@@ -215,7 +260,7 @@ test_that("calculate_sil_flags_per_version: NA is not counted as below-LOD (QC-C
     lipid = "SIL_A",
     template_version = "v1",
     plateID = "p1",
-    peakArea_5000_LOD = 0, naValues = 0, nanValues = 0, infValues = 0,
+    peakArea_below_LOD = 0, naValues = 0, nanValues = 0, infValues = 0,
     totalMissingValues = 0, flag_SIL_intStd_Plate = 0
   )
   # SIL_A all NA -- must not be counted as below-LOD.
@@ -239,14 +284,14 @@ test_that("calculate_sil_flags_per_version: NA is not counted as below-LOD (QC-C
   result <- calculate_sil_flags_per_version(ml)
 
   # SIL_A is dropped from sil_matrix by where(~ !all(is.na(.))) so it is not
-  # counted as below-LOD (peakArea_5000_LOD must stay 0). It is re-inserted
+  # counted as below-LOD (peakArea_below_LOD must stay 0). It is re-inserted
   # into version_flags as a 100%-missing row so it is flagged as failed --
   # an all-NA SIL is a real measurement failure, not a silent pass.
   v1_tbl <- result$filters$sil.intStd.missingValues$allPlates$v1
   expect_true("SIL_A" %in% v1_tbl$lipid)
   expect_true("SIL_keep" %in% v1_tbl$lipid)
-  expect_equal(unname(v1_tbl$peakArea_5000_LOD[v1_tbl$lipid == "SIL_A"]), 0)
-  expect_equal(unname(v1_tbl$peakArea_5000_LOD[v1_tbl$lipid == "SIL_keep"]), 0)
+  expect_equal(unname(v1_tbl$peakArea_below_LOD[v1_tbl$lipid == "SIL_A"]), 0)
+  expect_equal(unname(v1_tbl$peakArea_below_LOD[v1_tbl$lipid == "SIL_keep"]), 0)
   expect_equal(v1_tbl$totalMissingValues[v1_tbl$lipid == "SIL_A"], 2)
   expect_true("SIL_A" %in% result$filters$failed_sil.intStds$v1)
 })
@@ -254,7 +299,7 @@ test_that("calculate_sil_flags_per_version: NA is not counted as below-LOD (QC-C
 test_that("calculate_sil_flags_per_version: skips version with zero valid samples", {
   sil_summary <- tibble::tibble(
     lipid = "SIL_A", template_version = "v1", plateID = "p1",
-    peakArea_5000_LOD = 0, naValues = 0, nanValues = 0, infValues = 0,
+    peakArea_below_LOD = 0, naValues = 0, nanValues = 0, infValues = 0,
     totalMissingValues = 0, flag_SIL_intStd_Plate = 0
   )
   peak_p1 <- tibble::tibble(
@@ -287,7 +332,7 @@ test_that("calculate_sil_flags_per_version: re-inserts entirely-NA SILs without 
     lipid = c("SIL_A", "SIL_B"),
     template_version = c("v1", "v1"),
     plateID = c("p1", "p1"),
-    peakArea_5000_LOD = c(0, 0),
+    peakArea_below_LOD = c(0, 0),
     naValues = c(0, 0), nanValues = c(0, 0), infValues = c(0, 0),
     totalMissingValues = c(0, 0), flag_SIL_intStd_Plate = c(0, 0)
   )
@@ -331,7 +376,7 @@ test_that("initialise_lipid_filter creates expected empty scaffolding", {
   expect_equal(nrow(result$filters$lipid.missingValues$summary), 0)
   expect_equal(
     colnames(result$filters$lipid.missingValues$summary),
-    c("lipid", "silFilter.flag.Lipid", "peakArea_5000_LOD",
+    c("lipid", "silFilter.flag.Lipid", "peakArea_below_LOD",
       "naValues", "nanValues", "infValues", "totalMissingValues",
       "flag.Lipid.Plate", "template_version", "plateID")
   )
@@ -410,7 +455,7 @@ test_that("calculate_lipid_flags: happy path with SIL guide and LOD counts", {
   expect_equal(flags$lipid, c("lipid1", "lipid2", "lipid3"))
   # SIL filter: lipid1 -> SIL_A failed -> flagged; lipid3 -> SIL_B not failed
   expect_equal(flags$silFilter.flag.Lipid, c(1, 0, 0))
-  expect_equal(unname(flags$peakArea_5000_LOD), c(1, 0, 0))
+  expect_equal(unname(flags$peakArea_below_LOD), c(1, 0, 0))
   expect_equal(unname(flags$naValues),          c(0, 1, 0))
   expect_equal(flags$template_version, rep("v1", 3))
   expect_equal(flags$plateID,          rep("p1", 3))
@@ -432,7 +477,7 @@ test_that("calculate_lipid_flags: NA values are not counted as below-LOD (QC-C2)
     filters = list(failed_sil.intStds = character())
   )
   flags <- calculate_lipid_flags(ml, "p1", lipid_matrix)
-  expect_equal(unname(flags$peakArea_5000_LOD[flags$lipid == "lipid_NA"]), 0)
+  expect_equal(unname(flags$peakArea_below_LOD[flags$lipid == "lipid_NA"]), 0)
   expect_equal(unname(flags$naValues[flags$lipid == "lipid_NA"]), 3)
   # SIL_guide NULL -> silFilter.flag.Lipid must be zero across the board
   expect_true(all(flags$silFilter.flag.Lipid == 0))
@@ -448,7 +493,7 @@ test_that("calculate_lipid_flags: zero-column input returns zero-row tibble", {
   flags <- calculate_lipid_flags(ml, "p1", lipid_matrix)
   expect_s3_class(flags, "tbl_df")
   expect_equal(nrow(flags), 0)
-  expect_true(all(c("lipid", "silFilter.flag.Lipid", "peakArea_5000_LOD",
+  expect_true(all(c("lipid", "silFilter.flag.Lipid", "peakArea_below_LOD",
                     "template_version", "plateID") %in% colnames(flags)))
 })
 
@@ -468,7 +513,7 @@ test_that("process_lipid_versions aggregates lipids across plates and versions",
   lipid_summary <- tibble::tibble(
     lipid = c("lipid1", "lipid2", "lipid1"),
     silFilter.flag.Lipid = c(0, 0, 0),
-    peakArea_5000_LOD = c(0, 0, 0),
+    peakArea_below_LOD = c(0, 0, 0),
     naValues = c(0, 0, 0), nanValues = c(0, 0, 0), infValues = c(0, 0, 0),
     totalMissingValues = c(0, 0, 0), flag.Lipid.Plate = c(0, 0, 0),
     template_version = c("v1", "v1", "v2"),
@@ -511,7 +556,7 @@ test_that("process_lipid_versions aggregates lipids across plates and versions",
 
 test_that("process_lipid_versions: single version, no failures", {
   lipid_summary <- tibble::tibble(
-    lipid = "lipid1", silFilter.flag.Lipid = 0, peakArea_5000_LOD = 0,
+    lipid = "lipid1", silFilter.flag.Lipid = 0, peakArea_below_LOD = 0,
     naValues = 0, nanValues = 0, infValues = 0,
     totalMissingValues = 0, flag.Lipid.Plate = 0,
     template_version = "v1", plateID = "p1"
@@ -534,13 +579,13 @@ test_that("process_lipid_versions: single version, no failures", {
   )
   result <- process_lipid_versions(ml)
   expect_equal(length(result$filters$failed_lipids$v1), 0)
-  expect_equal(unname(result$filters$lipid.missingValues$allPlates$v1$peakArea_5000_LOD), 0)
+  expect_equal(unname(result$filters$lipid.missingValues$allPlates$v1$peakArea_below_LOD), 0)
 })
 
 test_that("process_lipid_versions: NA is not counted as below-LOD (QC-C2)", {
   lipid_summary <- tibble::tibble(
     lipid = c("lipid_NA", "lipid_ok"),
-    silFilter.flag.Lipid = c(0, 0), peakArea_5000_LOD = c(0, 0),
+    silFilter.flag.Lipid = c(0, 0), peakArea_below_LOD = c(0, 0),
     naValues = c(0, 0), nanValues = c(0, 0), infValues = c(0, 0),
     totalMissingValues = c(0, 0), flag.Lipid.Plate = c(0, 0),
     template_version = c("v1", "v1"),
@@ -568,12 +613,12 @@ test_that("process_lipid_versions: NA is not counted as below-LOD (QC-C2)", {
   # all-NA column dropped; only lipid_ok remains
   expect_false("lipid_NA" %in% v1_tbl$lipid)
   expect_true("lipid_ok" %in% v1_tbl$lipid)
-  expect_equal(unname(v1_tbl$peakArea_5000_LOD[v1_tbl$lipid == "lipid_ok"]), 0)
+  expect_equal(unname(v1_tbl$peakArea_below_LOD[v1_tbl$lipid == "lipid_ok"]), 0)
 })
 
 test_that("process_lipid_versions: skips version with no valid samples", {
   lipid_summary <- tibble::tibble(
-    lipid = "lipid1", silFilter.flag.Lipid = 0, peakArea_5000_LOD = 0,
+    lipid = "lipid1", silFilter.flag.Lipid = 0, peakArea_below_LOD = 0,
     naValues = 0, nanValues = 0, infValues = 0,
     totalMissingValues = 0, flag.Lipid.Plate = 0,
     template_version = "v1", plateID = "p1"

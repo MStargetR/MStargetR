@@ -10,7 +10,8 @@ Markdown files that demonstrate common MStargetR pipelines.
 use_workflow(
   workflow = NULL,
   output_dir = getwd(),
-  open = interactive() && requireNamespace("rstudioapi", quietly = TRUE)
+  open = interactive() && requireNamespace("rstudioapi", quietly = TRUE),
+  overwrite = FALSE
 )
 ```
 
@@ -29,7 +30,13 @@ use_workflow(
 - open:
 
   Logical indicating whether to open the file after copying. Defaults to
-  `TRUE` if running in RStudio, `FALSE` otherwise.
+  `TRUE` in interactive RStudio sessions, `FALSE` otherwise.
+
+- overwrite:
+
+  Logical indicating whether to overwrite an existing destination file.
+  Defaults to `FALSE` so a repeat call does not silently replace user
+  edits. Set to `TRUE` to force replacement.
 
 ## Value
 

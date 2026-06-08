@@ -41,7 +41,9 @@ used on its own or combined into a single script.
 - **Quality control and reporting** – `qcCheckR()` performs missing
   value imputation, batch and signal drift correction, sample and
   feature filtering, and generates HTML and Excel reports with
-  interactive PCA and control chart visualisations.
+  interactive PCA and control chart visualisations. The instrumental
+  limit of detection used for below-LOD flagging is configurable via
+  `lod_threshold` (default `5000`) to match each lab's instrument.
 - **Standalone batch correction** – `batchCorrectR()` provides
   independent QC-based signal drift and interbatch correction using
   random forest (QCRFSC) or empirical Bayes (ComBat) methods. It accepts
@@ -165,14 +167,55 @@ remotes::install_github("MStargetR/MStargetR")
 ### 1. Set up the project directory
 
 Create a project folder with a `raw_data` subfolder containing your
-vendor files:
+vendor files. Each output mzML is grouped under a **plate** folder, which
+is the unit used for QC and batch correction downstream.
+
+**SCIEX `.wiff` (one multi-sample file per plate)** — place the files flat
+in `raw_data/`; each `.wiff` is treated as its own plate automatically:
 
     MyProject/
       raw_data/
-        plate1_sample1.wiff
-        plate1_sample1.wiff.scan
-        plate1_sample2.wiff
-        ...
+        plate1.wiff
+        plate1.wiff.scan
+        plate2.wiff
+        plate2.wiff.scan
+
+**One-file-per-sample formats (`.d`, `.raw`, …)** — in most cases just place
+the files flat in `raw_data/` and let MStargetR group them. It infers plate
+membership in this priority order:
+
+1. **A remembered `plate_grouping.csv`** at the project root, or an explicit
+   `manifest =` argument (both are `raw_file,plateID` CSVs) — the override.
+2. **Per-plate subfolders** of `raw_data/` named after the plate:
+
+       MyProject/
+         raw_data/
+           PlateA/
+             sample1.raw
+             sample2.raw
+           PlateB/
+             sample1.raw
+             sample2.raw
+
+3. **Filename auto-discovery** — for files left flat, MStargetR detects which
+   part of the filename identifies the plate (no lab-specific pattern needed),
+   **reports** the grouping it inferred, and saves it to an editable
+   `plate_grouping.csv` so the decision is stable across runs and you can
+   correct it once if it guessed wrong:
+
+       MyProject/
+         raw_data/
+           ..._COVp298_001.raw   # plate COVp298
+           ..._COVp298_002.raw
+           ..._COVp299_001.raw   # plate COVp299
+           ..._COVp299_002.raw
+
+> Auto-discovery proceeds rather than blocking: it always reports what it
+> grouped, so a wrong guess is visible before conversion. If the filenames
+> share no structure it can use, each file is converted as its own plate with
+> a **warning** — group them by adding a subfolder, a `manifest =`, or by
+> editing the generated `plate_grouping.csv`. Multi-sample `.wiff` files are
+> exempt: each is always its own plate.
 
 ### 2. Convert vendor files to mzML
 
@@ -182,6 +225,13 @@ library(MStargetR)
 msConvertR(
   input_directory  = "C:/Users/me/Desktop/MyProject/raw_data",
   output_directory = "C:/Users/me/Desktop/MyProject"
+)
+
+# With a manifest (one-file-per-sample formats grouped by an external sheet):
+msConvertR(
+  input_directory  = "C:/Users/me/Desktop/MyProject/raw_data",
+  output_directory = "C:/Users/me/Desktop/MyProject",
+  manifest         = "C:/Users/me/Desktop/MyProject/manifest.csv"
 )
 ```
 

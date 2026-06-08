@@ -13,12 +13,14 @@
 #' @param QC_sample_label Key for filtering QC samples from sample list.
 #' @param sample_tags Vector of character strings to pull sample types for names
 #' @param mv_threshold threshold for missing value filter. default is 50%.
+#' @param lod_threshold Numeric instrumental limit of detection (peak area)
+#'   below which values are counted as missing. default is 5000.
 #' @return The updated `master_list` object with the project setup details.
 #' @examples
 #' \dontrun{
 #' qcCheckR_setup_project(
 #'   user_name, project_directory, mrm_template_list,
-#'   QC_sample_label, sample_tags, mv_threshold
+#'   QC_sample_label, sample_tags, mv_threshold, lod_threshold
 #' )
 #' }
 qcCheckR_setup_project <- function(user_name,
@@ -26,7 +28,8 @@ qcCheckR_setup_project <- function(user_name,
                                    mrm_template_list,
                                    QC_sample_label,
                                    sample_tags,
-                                   mv_threshold) {
+                                   mv_threshold,
+                                   lod_threshold = 5000) {
   project_directory <- validate_project_directory(project_directory)
   master_list <- initialise_master_list()
   master_list <- store_environment_details(master_list)
@@ -36,7 +39,8 @@ qcCheckR_setup_project <- function(user_name,
     project_directory,
     QC_sample_label,
     sample_tags,
-    mv_threshold
+    mv_threshold,
+    lod_threshold
   )
   master_list <- qcCheckR_read_mrm_guides(master_list, mrm_template_list)
   qcCheckR_setup_project_directories(master_list)
@@ -60,6 +64,8 @@ qcCheckR_setup_project <- function(user_name,
 #' @param QC_sample_label Key for filtering QC samples from sample list.
 #' @param sample_tags Character vector of sample tags to filter sample types from file_names.
 #' @param mv_threshold Numeric value for the missing value sample threshold.
+#' @param lod_threshold Numeric instrumental limit of detection (peak area)
+#'   below which values are counted as missing. Default is 5000.
 #' @return The updated master list object with project details.
 #' @examples
 #' \dontrun{
@@ -68,14 +74,16 @@ qcCheckR_setup_project <- function(user_name,
 #'                                             project_directory,
 #'                                             QC_sample_label,
 #'                                             sample_tags,
-#'                                             mv_threshold)
+#'                                             mv_threshold,
+#'                                             lod_threshold)
 #' }
 qcCheckR_set_project_details <- function(master_list,
                                          user_name,
                                          project_directory,
                                          QC_sample_label,
                                          sample_tags,
-                                         mv_threshold) {
+                                         mv_threshold,
+                                         lod_threshold = 5000) {
   master_list$project_details$project_dir <- project_directory
   master_list$project_details$user_name <- user_name
   master_list$project_details$project_name <- basename(master_list$project_details$project_dir)
@@ -84,6 +92,7 @@ qcCheckR_set_project_details <- function(master_list,
   master_list$project_details$qc_type <- QC_sample_label
   master_list$project_details$script_log$timestamps$start_time <- Sys.time()
   master_list$project_details$mv_sample_threshold <- mv_threshold
+  master_list$project_details$lod_threshold <- lod_threshold
   #Set sample tags: use user-supplied tags if provided, otherwise ANPC defaults
   if (!is.null(sample_tags)) {
     master_list$project_details$sample_tags <- sample_tags

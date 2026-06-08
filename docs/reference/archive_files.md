@@ -21,7 +21,7 @@ archive_files(project_directory, folder_name)
 
 ## Value
 
-Moves the specified folder to the archive directory.
+invisible(NULL)
 
 ## Examples
 

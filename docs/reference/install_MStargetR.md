@@ -1,8 +1,8 @@
-# Install or Update MStargetR and Its Dependencies
+# Install MStargetR and Its Dependencies
 
-Helper function to install MStargetR from GitHub via Bioconductor,
-ensuring all CRAN and Bioconductor dependencies are installed and up to
-date.
+Helper function to install MStargetR from GitHub via BiocManager,
+ensuring all CRAN and Bioconductor dependencies are installed. Existing
+packages are not upgraded automatically.
 
 ## Usage
 
