@@ -1,3 +1,38 @@
+## MStargetR 1.1.0
+
+Released 2026-06-11 ([compare](https://github.com/MStargetR/MStargetR/compare/v1.0.0...v1.1.0)).
+
+### Bug Fixes
+
+- **ci:** resolve R CMD check WARNINGs blocking build on release/oldrel ([3b5c778](https://github.com/MStargetR/MStargetR/commit/3b5c778427957714c56e018d4a88fd68134f12d9))
+- **deps:** promote GUI runtime packages to Imports so they install by default ([9e6cd99](https://github.com/MStargetR/MStargetR/commit/9e6cd992c6b1bc9a926293f8ba400c1e1b0a71e6))
+- **docker:** allow Wine syscalls via seccomp=unconfined (DOCK-C6) ([4d0ba57](https://github.com/MStargetR/MStargetR/commit/4d0ba57f1842ab730df4f9014eeddf097ddf9ce2))
+- **docs:** correct vignette URL in README to articles/ pkgdown path ([f81990c](https://github.com/MStargetR/MStargetR/commit/f81990c20ae84127268031dc5c88bca807c97c22))
+- **docs:** repair Rd cross-reference and vignette logo path for clean check + pkgdown ([f6e1c63](https://github.com/MStargetR/MStargetR/commit/f6e1c6372da7b125cf1a521bb661431b5e16ea03))
+- **plots:** avoid cairo_pdf on macOS in save_figure to prevent R segfault ([e560257](https://github.com/MStargetR/MStargetR/commit/e5602576598007b32756d8f36ff393f918c5dd6f))
+- **plots:** use exact-match indexing for pca$scores guard; clean up test warnings ([8af6362](https://github.com/MStargetR/MStargetR/commit/8af6362f02540ea9bf42c386b223c968a8bbf33c))
+- **qcCheckR:** use mzML startTimeStamp for sample timestamps; resolve dmy/mdy at cohort level ([2746c81](https://github.com/MStargetR/MStargetR/commit/2746c814d5ea13c696b4b6aa021c09392b9ed82b))
+- **reports:** stream-embed resources to avoid pandoc OOM on large cohorts ([a082cb8](https://github.com/MStargetR/MStargetR/commit/a082cb8e8c79a234a1c7bcfbe4ed2ba32dc53705))
+- **reports:** unblock 54-plate cohort report+RDA exports on Windows ([db9ce2d](https://github.com/MStargetR/MStargetR/commit/db9ce2d849271e2624db2af551563cf0ea050cec))
+- **shiny:** drop forced grayscale font-smoothing that blurs UI on Windows ([7ff1e4a](https://github.com/MStargetR/MStargetR/commit/7ff1e4a9a7398e1568013bb2ff10cea94a9d07a4))
+- **shiny:** unbreak SH-013 audit by rewording comment ([5886552](https://github.com/MStargetR/MStargetR/commit/5886552737ecbe5e3ae2bac405045e781491907f))
+
+### Features
+
+- **batch-correction:** make combat_ref.batch usable in the GUI ([ebfa586](https://github.com/MStargetR/MStargetR/commit/ebfa5867dd9c65632b741a013ce421c02ea6f887))
+- **batch:** add QC-RLSC robust LOESS signal correction method ([62c7120](https://github.com/MStargetR/MStargetR/commit/62c7120266609f54780e607114729e328a763971))
+- **container:** add Apptainer/HPC support via enable_HPC dispatcher ([6bb0675](https://github.com/MStargetR/MStargetR/commit/6bb06750ac793d12d942df199e154516f09a998c))
+- **msConvertR:** auto-discover plate grouping from filenames ([e061d75](https://github.com/MStargetR/MStargetR/commit/e061d754ce7cfa0d9272b165205b2931013f9846))
+- **msConvertR:** group one-file-per-sample vendors into per-plate mzML ([561ef5d](https://github.com/MStargetR/MStargetR/commit/561ef5debfb5a5042570b6e3f0380b31ba523d3a))
+- **plots:** expose every GUI plot to R users via advanced_plots = TRUE ([838e34e](https://github.com/MStargetR/MStargetR/commit/838e34e2dada817709a41b4282001c9e5f9b984e))
+- QC-RLSC batch correction, HPC/Apptainer support, and R-side plot parity ([005cc1f](https://github.com/MStargetR/MStargetR/commit/005cc1f2e7fa4ba6a89adad26b44ea8257535d1d))
+- **qcCheckR:** expose batch_column to mirror batchCorrectR + GUI ([7c2278a](https://github.com/MStargetR/MStargetR/commit/7c2278ab5d31fc64f81084ca700a9a8d52b84924))
+- **qcCheckR:** make instrumental LOD threshold configurable ([4257c2b](https://github.com/MStargetR/MStargetR/commit/4257c2b30a21e1764ef12c2e183e930f0ba7509f))
+
+### Reverts
+
+- Revert "chore(benchmark): add MStargetR vs MetaboAnalyst 6.0 benchmark suite" ([af1e142](https://github.com/MStargetR/MStargetR/commit/af1e14242c45315b7402767eef9abc6beeed0e25))
+
 ## MStargetR 1.3.0
 
 Released 2026-05-28 ([compare](https://github.com/MStargetR/MStargetR/compare/v1.2.0...v1.3.0)).
