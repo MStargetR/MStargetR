@@ -148,7 +148,7 @@ test_that("qcCheckR_setup_project uses user-supplied sample_tags for non-ANPC us
     list(project_details = list(user_name = "TestUser"))
   })
   stub(qcCheckR_setup_project, "store_environment_details", function(ml) ml)
-  stub(qcCheckR_setup_project, "qcCheckR_set_project_details", function(ml, un, pd, qcl, st, mvt) {
+  stub(qcCheckR_setup_project, "qcCheckR_set_project_details", function(ml, un, pd, qcl, st, mvt, ldt) {
     ml$project_details$user_name <- un
     ml$project_details$sample_tags <- st
     ml

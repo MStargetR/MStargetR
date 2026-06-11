@@ -308,14 +308,15 @@ test_that("qcCheckR passes all parameters to qcCheckR_setup_project", {
   captured_args <- NULL
 
   stub(qcCheckR, "validate_project_directory", function(x, ...) x)
-  stub(qcCheckR, "qcCheckR_setup_project", function(user_name, project_directory, mrm_template_list, QC_sample_label, sample_tags, mv_threshold) {
+  stub(qcCheckR, "qcCheckR_setup_project", function(user_name, project_directory, mrm_template_list, QC_sample_label, sample_tags, mv_threshold, lod_threshold) {
     captured_args <<- list(
       user_name = user_name,
       project_directory = project_directory,
       mrm_template_list = mrm_template_list,
       QC_sample_label = QC_sample_label,
       sample_tags = sample_tags,
-      mv_threshold = mv_threshold
+      mv_threshold = mv_threshold,
+      lod_threshold = lod_threshold
     )
     list(dummy = TRUE)
   })
@@ -350,6 +351,7 @@ test_that("qcCheckR passes all parameters to qcCheckR_setup_project", {
   expect_equal(captured_args$QC_sample_label, "LTR")
   expect_equal(captured_args$sample_tags, c("sample", "qc"))
   expect_equal(captured_args$mv_threshold, 30)
+  expect_equal(captured_args$lod_threshold, 5000)
 })
 
 test_that("qcCheckR returns result of qcCheckR_export_all", {
