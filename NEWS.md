@@ -1,3 +1,18 @@
+## MStargetR 1.4.0
+
+Released 2026-06-12 ([compare](https://github.com/MStargetR/MStargetR/compare/v1.3.0...v1.4.0)).
+
+### Bug Fixes
+
+- **msConvertR:** auto-rename raw_data files with spaces before msconvert ([91f8a46](https://github.com/MStargetR/MStargetR/commit/91f8a469521dd986090d0907b8c8213c88c958de))
+- **qcCheckR:** honour AM/PM seconds and ISO date-prefix hints in date detection ([f7c185a](https://github.com/MStargetR/MStargetR/commit/f7c185a2ba1b1ddfc2cce703a964034605a74f78))
+
+### Features
+
+- **msConvertR:** auto-discover plate grouping from filenames ([e061d75](https://github.com/MStargetR/MStargetR/commit/e061d754ce7cfa0d9272b165205b2931013f9846))
+- **msConvertR:** group one-file-per-sample vendors into per-plate mzML ([561ef5d](https://github.com/MStargetR/MStargetR/commit/561ef5debfb5a5042570b6e3f0380b31ba523d3a))
+- **qcCheckR:** make instrumental LOD threshold configurable ([4257c2b](https://github.com/MStargetR/MStargetR/commit/4257c2b30a21e1764ef12c2e183e930f0ba7509f))
+
 ## MStargetR 1.1.0
 
 Released 2026-06-11 ([compare](https://github.com/MStargetR/MStargetR/compare/v1.0.0...v1.1.0)).
