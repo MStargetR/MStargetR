@@ -14,14 +14,15 @@ A length-1 POSIXct (UTC) or \code{NA} if no usable hint is
 present.
 }
 \description{
-Many ANPC plate IDs end with an \code{_YYYYMMDD} suffix (e.g.
-\code{..._BHASp06_20211004}) that names the acquisition date in an
-unambiguous, locale-independent form. When the dmy/mdy heuristics tie
-across an otherwise-ambiguous cohort, this hint is used to tip the
-decision toward whichever calendar convention places the parsed dates
-closest to the embedded date. The looser 6-digit \code{_DDMMYY} or
-\code{_YYMMDD} suffixes are intentionally not matched, because in
-practice they have been observed to be project codes rather than
-acquisition dates.
+Many ANPC plate IDs carry the acquisition date in an unambiguous,
+locale-independent form -- either as a trailing \code{_YYYYMMDD} suffix
+(e.g. \code{..._BHASp06_20211004}) or, in newer naming, as a leading ISO
+date prefix such as \code{2026-06-12_ABA1HA_...} or \code{20260612_...}.
+When the dmy/mdy heuristics tie across an otherwise-ambiguous cohort, this
+hint is used to tip the decision toward whichever calendar convention
+places the parsed dates closest to the embedded date. The looser 6-digit
+\code{_DDMMYY} or \code{_YYMMDD} forms are intentionally not matched,
+because in practice they have been observed to be project codes rather
+than acquisition dates.
 }
 \keyword{internal}

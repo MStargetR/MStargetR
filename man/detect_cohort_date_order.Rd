@@ -30,8 +30,9 @@ single value with day part \eqn{>12} locks DMY, any with
 month part \eqn{>12} locks MDY. The format with the higher
 parse count wins.
 \item If the counts are tied (every value is digit-ambiguous), use
-per-plate \code{_YYYYMMDD$} hints to vote between formats by
-computing which interpretation places the median parsed
+per-plate date hints (a \code{_YYYYMMDD} suffix or a leading
+\code{YYYY-MM-DD}/\code{YYYYMMDD} prefix) to vote between formats
+by computing which interpretation places the median parsed
 timestamp closer to the plate-name date.
 \item If still ambiguous and no hints exist, \code{stop()} so the
 caller is forced to supply \code{date_order} explicitly rather

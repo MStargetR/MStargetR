@@ -81,13 +81,22 @@ parse_sample_timestamp <- function(x, date_order = c("auto", "dmy", "mdy", "ymd"
     "%Y/%m/%d %H:%M:%S",            # 2021/03/13 18:12:31
     "%Y-%m-%d %I:%M %p"             # 2021-03-13 6:12 PM
   )
+  # 12-hour AM/PM formats that *include* seconds must be tried before the
+  # 24-hour "%H:%M[:%S]" formats. R's strptime ignores trailing characters,
+  # so "%d/%m/%Y %H:%M" would greedily match "9/02/2022 6:12:31 PM" as 06:12
+  # (dropping the seconds *and* the PM) before the correct 18:12:31 parser
+  # ever runs. Keeping the AM/PM-with-seconds entry first makes the meridiem
+  # win. It is a safe no-op for genuine 24-hour strings because %I rejects
+  # hours > 12 and %p requires an AM/PM token to be present.
   dmy_full <- c(
+    "%d/%m/%Y %I:%M:%S %p",         # 9/02/2022 6:12:31 PM
     "%d/%m/%Y %H:%M",               # 9/02/2022 16:00
     "%d/%m/%Y %H:%M:%S",            # 13/03/2021 18:12:31
     "%d-%m-%Y %H:%M:%S",            # 13-03-2021 18:12:31
     "%d/%m/%Y %I:%M %p"             # 13/03/2021 6:12 PM
   )
   mdy_full <- c(
+    "%m/%d/%Y %I:%M:%S %p",         # 09/27/2024 6:12:31 PM
     "%m/%d/%Y %H:%M:%S",            # 09/27/2024 10:41:28
     "%m/%d/%Y %H:%M",               # 9/27/2024 16:00
     "%m-%d-%Y %H:%M:%S",            # 09-27-2024 10:41:28
@@ -110,8 +119,13 @@ parse_sample_timestamp <- function(x, date_order = c("auto", "dmy", "mdy", "ymd"
   # conflicting slash family entirely so the parser cannot silently pick
   # the wrong interpretation.
   tryFormats <- switch(date_order,
-    "auto" = c(iso_full, dmy_full[1], mdy_full[1], dmy_full[2], dmy_full[3],
-               dmy_full[4], long_full, iso_date, dmy_date, long_date),
+    # AM/PM-with-seconds entries (dmy_full[1]/mdy_full[1]) go first so the
+    # meridiem is honoured before the 24-hour formats. The remaining indices
+    # reproduce the historical auto order: dmy "%H:%M", mdy "%H:%M:%S",
+    # dmy "%H:%M:%S", dmy "%d-%m %H:%M:%S", dmy "%I:%M %p".
+    "auto" = c(iso_full, dmy_full[1], mdy_full[1], dmy_full[2], mdy_full[2],
+               dmy_full[3], dmy_full[4], dmy_full[5],
+               long_full, iso_date, dmy_date, long_date),
     "dmy"  = c(iso_full, dmy_full, long_full, iso_date, dmy_date, long_date),
     "mdy"  = c(iso_full, mdy_full, long_full, iso_date, mdy_date, long_date),
     "ymd"  = c(iso_full, iso_date)

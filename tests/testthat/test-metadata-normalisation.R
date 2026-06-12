@@ -16,6 +16,52 @@ test_that("parse_sample_timestamp returns POSIXct for character input", {
   expect_true(all(diff(as.numeric(parsed)) == 60))
 })
 
+test_that("parse_sample_timestamp honours 12-hour AM/PM clocks with seconds", {
+  # Skyline exports on a US-locale machine produce 12-hour AcquiredTime
+  # strings *with* seconds (e.g. "6/09/2026  12:38:56 AM"). The AM/PM
+  # format must be tried before the 24-hour formats so the meridiem is not
+  # silently dropped (which would read 12:38:56 AM as 12:38:56 instead of
+  # 00:38:56, and any PM time 12 hours early). Regression for the cohort
+  # date-detection crash on AM/PM-with-seconds cohorts.
+  withr::with_envvar(c(TZ = "UTC"), {
+    # Midnight hour: 12:38:56 AM == 00:38:56.
+    mdy_am <- parse_sample_timestamp("6/09/2026  12:38:56 AM", "mdy")
+    expect_equal(as.numeric(mdy_am),
+                 as.numeric(as.POSIXct("2026-06-09 00:38:56", tz = "UTC")))
+
+    # Afternoon: 6:12:31 PM == 18:12:31.
+    mdy_pm <- parse_sample_timestamp("09/27/2024 6:12:31 PM", "mdy")
+    expect_equal(as.numeric(mdy_pm),
+                 as.numeric(as.POSIXct("2024-09-27 18:12:31", tz = "UTC")))
+
+    # Day-first interpretation of the same ambiguous string.
+    dmy_am <- parse_sample_timestamp("6/09/2026  12:38:56 AM", "dmy")
+    expect_equal(as.numeric(dmy_am),
+                 as.numeric(as.POSIXct("2026-09-06 00:38:56", tz = "UTC")))
+
+    # auto mode also now honours the meridiem instead of mis-reading it.
+    auto_am <- parse_sample_timestamp("6/09/2026  12:38:56 AM", "auto")
+    expect_false(is.na(auto_am))
+    expect_equal(as.integer(format(auto_am, "%H", tz = "UTC")), 0L)
+  })
+})
+
+test_that("parse_sample_timestamp leaves existing 24-hour formats unchanged", {
+  withr::with_envvar(c(TZ = "UTC"), {
+    expect_equal(
+      as.numeric(parse_sample_timestamp("09/27/2024 10:41:28", "mdy")),
+      as.numeric(as.POSIXct("2024-09-27 10:41:28", tz = "UTC")))
+    expect_equal(
+      as.numeric(parse_sample_timestamp("13/03/2021 18:12:31", "dmy")),
+      # dmy family historically matches "%H:%M" before "%H:%M:%S", so the
+      # trailing seconds are dropped -- preserved here intentionally.
+      as.numeric(as.POSIXct("2021-03-13 18:12:00", tz = "UTC")))
+    expect_equal(
+      as.numeric(parse_sample_timestamp("2021-03-13T18:12:31Z", "auto")),
+      as.numeric(as.POSIXct("2021-03-13 18:12:31", tz = "UTC")))
+  })
+})
+
 test_that("parse_sample_timestamp returns POSIXct unchanged when already POSIXct", {
   ts <- as.POSIXct(c("2026-01-15 09:00:00", "2026-01-15 09:01:00"), tz = "UTC")
   expect_identical(parse_sample_timestamp(ts), ts)

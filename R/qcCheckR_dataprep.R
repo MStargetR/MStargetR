@@ -308,15 +308,16 @@ extract_run_order <- function(report, plate_id, mzR_entries = NULL,
 
 #' Extract a YYYYMMDD Date Hint From a Plate ID
 #'
-#' Many ANPC plate IDs end with an \code{_YYYYMMDD} suffix (e.g.
-#' \code{..._BHASp06_20211004}) that names the acquisition date in an
-#' unambiguous, locale-independent form. When the dmy/mdy heuristics tie
-#' across an otherwise-ambiguous cohort, this hint is used to tip the
-#' decision toward whichever calendar convention places the parsed dates
-#' closest to the embedded date. The looser 6-digit \code{_DDMMYY} or
-#' \code{_YYMMDD} suffixes are intentionally not matched, because in
-#' practice they have been observed to be project codes rather than
-#' acquisition dates.
+#' Many ANPC plate IDs carry the acquisition date in an unambiguous,
+#' locale-independent form -- either as a trailing \code{_YYYYMMDD} suffix
+#' (e.g. \code{..._BHASp06_20211004}) or, in newer naming, as a leading ISO
+#' date prefix such as \code{2026-06-12_ABA1HA_...} or \code{20260612_...}.
+#' When the dmy/mdy heuristics tie across an otherwise-ambiguous cohort, this
+#' hint is used to tip the decision toward whichever calendar convention
+#' places the parsed dates closest to the embedded date. The looser 6-digit
+#' \code{_DDMMYY} or \code{_YYMMDD} forms are intentionally not matched,
+#' because in practice they have been observed to be project codes rather
+#' than acquisition dates.
 #'
 #' @keywords internal
 #' @param plate_id A character scalar plate identifier.
@@ -327,12 +328,36 @@ extract_plate_date_hint <- function(plate_id) {
       is.na(plate_id)) {
     return(as.POSIXct(NA_character_, tz = "UTC"))
   }
+
+  year <- month <- day <- NA_integer_
+
+  # Preferred: a trailing _YYYYMMDD suffix (the historical convention).
   m <- regmatches(plate_id, regexpr("_\\d{8}$", plate_id))
-  if (length(m) == 0) return(as.POSIXct(NA_character_, tz = "UTC"))
-  ts <- sub("^_", "", m)
-  year  <- suppressWarnings(as.integer(substr(ts, 1, 4)))
-  month <- suppressWarnings(as.integer(substr(ts, 5, 6)))
-  day   <- suppressWarnings(as.integer(substr(ts, 7, 8)))
+  if (length(m) == 1) {
+    ts <- sub("^_", "", m)
+    year  <- suppressWarnings(as.integer(substr(ts, 1, 4)))
+    month <- suppressWarnings(as.integer(substr(ts, 5, 6)))
+    day   <- suppressWarnings(as.integer(substr(ts, 7, 8)))
+  } else {
+    # Fallback: a leading ISO date prefix, dashed (YYYY-MM-DD) or compact
+    # (YYYYMMDD), delimited by a non-digit or the end of the string.
+    dashed <- regmatches(
+      plate_id, regexpr("^\\d{4}-\\d{2}-\\d{2}(?=\\D|$)", plate_id, perl = TRUE))
+    compact <- regmatches(
+      plate_id, regexpr("^\\d{8}(?=\\D|$)", plate_id, perl = TRUE))
+    if (length(dashed) == 1) {
+      year  <- suppressWarnings(as.integer(substr(dashed, 1, 4)))
+      month <- suppressWarnings(as.integer(substr(dashed, 6, 7)))
+      day   <- suppressWarnings(as.integer(substr(dashed, 9, 10)))
+    } else if (length(compact) == 1) {
+      year  <- suppressWarnings(as.integer(substr(compact, 1, 4)))
+      month <- suppressWarnings(as.integer(substr(compact, 5, 6)))
+      day   <- suppressWarnings(as.integer(substr(compact, 7, 8)))
+    } else {
+      return(as.POSIXct(NA_character_, tz = "UTC"))
+    }
+  }
+
   if (anyNA(c(year, month, day))) {
     return(as.POSIXct(NA_character_, tz = "UTC"))
   }
@@ -344,6 +369,40 @@ extract_plate_date_hint <- function(plate_id) {
     sprintf("%04d-%02d-%02dT12:00:00", year, month, day),
     format = "%Y-%m-%dT%H:%M:%S", tz = "UTC"
   ))
+}
+
+#' Parse Slash/Dash Timestamps Under an Explicit DMY/MDY Order
+#'
+#' Element-wise parser used by \code{detect_cohort_date_order}. For each
+#' value it tries the AM/PM (12-hour) formats \emph{before} the 24-hour
+#' formats, because R's \code{strptime} ignores trailing characters and
+#' would otherwise let \code{"%H:%M"} swallow \code{"6:12:31 PM"} as 06:12 --
+#' dropping both the seconds and the meridiem. Getting the time-of-day right
+#' matters for the per-plate median-vs-hint voting; getting the date part
+#' right (the only thing that distinguishes DMY from MDY) is unchanged.
+#'
+#' @keywords internal
+#' @param x Character vector of timestamps.
+#' @param order Either \code{"dmy"} or \code{"mdy"}.
+#' @return A POSIXct (UTC) vector the same length as \code{x}; values that
+#'   match no format are \code{NA}.
+parse_detection_timestamp <- function(x, order = c("dmy", "mdy")) {
+  order <- match.arg(order)
+  date_part <- if (order == "dmy") "%d/%m/%Y" else "%m/%d/%Y"
+  fmts <- paste(date_part, c("%I:%M:%S %p", "%I:%M %p", "%H:%M:%S", "%H:%M"))
+  out <- as.POSIXct(rep(NA_real_, length(x)), origin = "1970-01-01", tz = "UTC")
+  remaining <- !is.na(x) & nzchar(x)
+  for (fmt in fmts) {
+    if (!any(remaining)) break
+    idx <- which(remaining)
+    attempt <- suppressWarnings(as.POSIXct(x[idx], format = fmt, tz = "UTC"))
+    hits <- !is.na(attempt)
+    if (any(hits)) {
+      out[idx[hits]] <- attempt[hits]
+      remaining[idx[hits]] <- FALSE
+    }
+  }
+  out
 }
 
 #' Detect Cohort-Wide Date Format for AcquiredTime Strings
@@ -362,8 +421,9 @@ extract_plate_date_hint <- function(plate_id) {
 #'         month part \eqn{>12} locks MDY. The format with the higher
 #'         parse count wins.
 #'   \item If the counts are tied (every value is digit-ambiguous), use
-#'         per-plate \code{_YYYYMMDD$} hints to vote between formats by
-#'         computing which interpretation places the median parsed
+#'         per-plate date hints (a \code{_YYYYMMDD} suffix or a leading
+#'         \code{YYYY-MM-DD}/\code{YYYYMMDD} prefix) to vote between formats
+#'         by computing which interpretation places the median parsed
 #'         timestamp closer to the plate-name date.
 #'   \item If still ambiguous and no hints exist, \code{stop()} so the
 #'         caller is forced to supply \code{date_order} explicitly rather
@@ -410,18 +470,8 @@ detect_cohort_date_order <- function(master_list) {
     return("ymd")
   }
 
-  parsed_dmy <- suppressWarnings(as.POSIXct(all_ts, format = "%d/%m/%Y %H:%M:%S", tz = "UTC"))
-  needs <- is.na(parsed_dmy)
-  if (any(needs)) {
-    parsed_dmy[needs] <- suppressWarnings(as.POSIXct(
-      all_ts[needs], format = "%d/%m/%Y %H:%M", tz = "UTC"))
-  }
-  parsed_mdy <- suppressWarnings(as.POSIXct(all_ts, format = "%m/%d/%Y %H:%M:%S", tz = "UTC"))
-  needs <- is.na(parsed_mdy)
-  if (any(needs)) {
-    parsed_mdy[needs] <- suppressWarnings(as.POSIXct(
-      all_ts[needs], format = "%m/%d/%Y %H:%M", tz = "UTC"))
-  }
+  parsed_dmy <- parse_detection_timestamp(all_ts, "dmy")
+  parsed_mdy <- parse_detection_timestamp(all_ts, "mdy")
 
   n_dmy <- sum(!is.na(parsed_dmy))
   n_mdy <- sum(!is.na(parsed_mdy))
@@ -456,18 +506,8 @@ detect_cohort_date_order <- function(master_list) {
     hint <- extract_plate_date_hint(pid)
     if (is.na(hint)) next
     ts_pid <- per_plate_ts[[pid]]
-    p_dmy <- suppressWarnings(as.POSIXct(ts_pid, format = "%d/%m/%Y %H:%M:%S", tz = "UTC"))
-    needs <- is.na(p_dmy)
-    if (any(needs)) {
-      p_dmy[needs] <- suppressWarnings(as.POSIXct(
-        ts_pid[needs], format = "%d/%m/%Y %H:%M", tz = "UTC"))
-    }
-    p_mdy <- suppressWarnings(as.POSIXct(ts_pid, format = "%m/%d/%Y %H:%M:%S", tz = "UTC"))
-    needs <- is.na(p_mdy)
-    if (any(needs)) {
-      p_mdy[needs] <- suppressWarnings(as.POSIXct(
-        ts_pid[needs], format = "%m/%d/%Y %H:%M", tz = "UTC"))
-    }
+    p_dmy <- parse_detection_timestamp(ts_pid, "dmy")
+    p_mdy <- parse_detection_timestamp(ts_pid, "mdy")
     med_dmy <- if (any(!is.na(p_dmy))) stats::median(as.numeric(p_dmy), na.rm = TRUE) else NA_real_
     med_mdy <- if (any(!is.na(p_mdy))) stats::median(as.numeric(p_mdy), na.rm = TRUE) else NA_real_
     hint_sec <- as.numeric(hint)
