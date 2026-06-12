@@ -109,6 +109,30 @@ test_that("msConvertR gives correct message when input and output directories ar
   })
 })
 
+test_that("msConvertR auto-sanitises spaced raw_data filenames before discovery", {
+  suppressMessages({
+  input_dir  <- withr::local_tempdir()
+  output_dir <- withr::local_tempdir()
+  raw <- file.path(input_dir, "raw_data")
+  dir.create(raw, recursive = TRUE, showWarnings = FALSE)
+  # A .wiff + .wiff.scan pair whose names contain a space: would break msconvert.
+  file.create(file.path(raw, "my sample.wiff"))
+  file.create(file.path(raw, "my sample.wiff.scan"))
+
+  # Stub the container work so the test exercises the real pre-flight rename and
+  # real derive_plate_groups discovery without invoking Docker.
+  stub(msConvertR, "check_docker", function() TRUE)
+  stub(msConvertR, "msConvertR_mzml_conversion", function(...) TRUE)
+
+  msConvertR(input_dir, output_dir)
+
+  # Files renamed on disk before discovery; companion pair kept together.
+  expect_true(file.exists(file.path(raw, "my_sample.wiff")))
+  expect_true(file.exists(file.path(raw, "my_sample.wiff.scan")))
+  expect_false(file.exists(file.path(raw, "my sample.wiff")))
+  })
+})
+
 test_that("msConvertR_setup_project_directories creates correct structure", {
   suppressMessages({
   output_dir <- file.path(tempdir(), "test_project")

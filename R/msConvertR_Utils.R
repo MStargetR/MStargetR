@@ -44,6 +44,125 @@ validate_input_directory <- function(input_directory) {
   message(paste("Accessing project directory ", input_directory))
 }
 
+#' Normalise whitespace in a file or directory name
+#'
+#' Replaces every run of whitespace in a single name with one underscore. Used
+#' to make vendor filenames safe to pass as msconvert arguments inside the
+#' container (a space in the basename is mis-parsed as an argument separator)
+#' and to keep manifest \code{raw_file} entries matching the on-disk names.
+#'
+#' @keywords internal
+#' @param name Character vector of file/directory \emph{base}names.
+#' @return \code{name} with whitespace runs collapsed to single underscores.
+mst_sanitize_filename <- function(name) {
+  gsub("[[:space:]]+", "_", name)
+}
+
+#' Auto-rename vendor files/folders whose names contain whitespace
+#'
+#' ProteoWizard's \code{msconvert} is run inside a container against
+#' bind-mounted vendor data; the file basename is passed as a command argument
+#' (\code{/data/<name>}), so a blank space in the name is mis-parsed and the
+#' file cannot be located. This pre-flight pass renames any offending entry in
+#' \code{raw_data/} on disk, replacing whitespace with underscores, so the
+#' physical name matches the sanitised command argument.
+#'
+#' Traversal mirrors \code{validate_file_types()}: the top level of
+#' \code{raw_data/} plus one level into plate-container subfolders (a directory
+#' whose name does \emph{not} match a vendor extension). Vendor directories
+#' (e.g. \code{.d}) are renamed as whole units but never descended into - their
+#' internal filenames are meaningful to the vendor format and never reach the
+#' command. \code{.wiff}/\code{.wiff.scan} companion pairs are renamed
+#' consistently because the whole basename is transformed.
+#'
+#' Renames are computed per directory and validated before any are applied: if a
+#' sanitised target already exists, or two distinct entries would collapse to the
+#' same name, the function stops without touching the (irreplaceable) raw files.
+#'
+#' @keywords internal
+#' @param input_directory Project directory containing a \code{raw_data/} folder.
+#' @return Invisibly, a data.frame of performed renames (columns \code{from},
+#'   \code{to}, full paths); empty when nothing needed renaming. A no-op (empty
+#'   result, no message) when \code{raw_data/} is absent.
+mst_sanitize_raw_data_filenames <- function(input_directory) {
+  raw_root <- file.path(input_directory, "raw_data")
+  if (!dir.exists(raw_root)) {
+    return(invisible(data.frame(from = character(0), to = character(0),
+                                stringsAsFactors = FALSE)))
+  }
+
+  performed <- data.frame(from = character(0), to = character(0),
+                          stringsAsFactors = FALSE)
+
+  # Rename every whitespace-containing entry directly inside `dir`, validating
+  # the whole plan first so the directory is never left half-sanitised.
+  sanitize_one_dir <- function(dir) {
+    entries <- list.files(dir, full.names = FALSE)
+    if (length(entries) == 0) return(invisible(NULL))
+
+    new_names <- mst_sanitize_filename(entries)
+    changed   <- new_names != entries
+    if (!any(changed)) return(invisible(NULL))
+
+    # Collision guard 1: a sanitised target already exists on disk (and is not
+    # itself one of the sources being renamed away).
+    for (i in which(changed)) {
+      target <- file.path(dir, new_names[i])
+      if (file.exists(target) && !(new_names[i] %in% entries[changed])) {
+        stop("msConvertR: cannot auto-rename '", entries[i], "' to '",
+             new_names[i], "' because a file with that name already exists in '",
+             dir, "'. Rename one of them manually so they do not collide.",
+             call. = FALSE)
+      }
+    }
+    # Collision guard 2: two distinct entries collapse to the same sanitised name.
+    if (anyDuplicated(new_names[changed])) {
+      dup <- unique(new_names[changed][duplicated(new_names[changed])])
+      offenders <- entries[changed][new_names[changed] %in% dup]
+      stop("msConvertR: the following raw_data entries collapse to the same name ",
+           "after replacing spaces, which would overwrite data. Rename them ",
+           "manually so they are unique: ",
+           paste(offenders, collapse = ", "), ".", call. = FALSE)
+    }
+
+    for (i in which(changed)) {
+      from <- file.path(dir, entries[i])
+      to   <- file.path(dir, new_names[i])
+      if (!file.rename(from, to)) {
+        stop("msConvertR: failed to rename '", from, "' to '", to,
+             "' (file locked, in use, or permission denied?).", call. = FALSE)
+      }
+      performed <<- rbind(performed,
+                          data.frame(from = from, to = to,
+                                     stringsAsFactors = FALSE))
+    }
+    invisible(NULL)
+  }
+
+  # Top level first (files, .wiff(.scan) pairs, plate subfolders, .d dirs).
+  sanitize_one_dir(raw_root)
+
+  # Re-list so plate-container subfolders are seen under their (now-sanitised)
+  # names, then descend one level into them - but never into vendor-ext dirs.
+  for (sub in list.files(raw_root, full.names = TRUE)) {
+    is_plate_subdir <- dir.exists(sub) &&
+      !grepl(MSTARGETR_VENDOR_EXT_PATTERN, basename(sub), ignore.case = TRUE)
+    if (is_plate_subdir) sanitize_one_dir(sub)
+  }
+
+  if (nrow(performed) > 0) {
+    message("msConvertR: renamed raw_data entr",
+            if (nrow(performed) == 1L) "y" else "ies",
+            " containing spaces so msconvert can locate them:")
+    for (i in seq_len(nrow(performed))) {
+      message(sprintf("    '%s' -> '%s'",
+                      basename(performed$from[i]), basename(performed$to[i])))
+    }
+  }
+
+  invisible(performed)
+}
+
 #' discover_plate_grouping
 #'
 #' Infers plate membership for a set of one-file-per-sample vendor files by

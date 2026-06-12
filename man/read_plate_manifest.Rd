@@ -13,8 +13,9 @@ read_plate_manifest(manifest, known_files)
 \code{raw_file} in the manifest must be present here.}
 }
 \value{
-\code{data.frame} with columns \code{raw_file} (basename) and
-\code{plateID}.
+\code{data.frame} with columns \code{raw_file} (basename, with
+whitespace normalised to underscores to match the auto-sanitised on-disk
+filenames) and \code{plateID}.
 }
 \description{
 Parses an optional user-supplied manifest that maps each raw vendor file to a

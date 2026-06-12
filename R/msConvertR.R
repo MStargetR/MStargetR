@@ -139,6 +139,13 @@ msConvertR <- function (input_directory, output_directory,
          output_directory, "'.", call. = FALSE)
   }
 
+  # Auto-fix vendor files/folders whose names contain blank spaces before any
+  # discovery or matching: msconvert runs against bind-mounted data and a space
+  # in the basename is mis-parsed as an argument separator. Renaming on disk now
+  # means file discovery, manifest matching and the mzML output all use the
+  # sanitised names consistently. No-op when raw_data/ is absent.
+  mst_sanitize_raw_data_filenames(input_directory)
+
   # Resolve plate membership from (priority order) the manifest / remembered
   # plate_grouping.csv, per-plate subfolders under raw_data/, filename-based
   # auto-discovery, or the flat filename. validate_file_types() is called

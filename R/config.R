@@ -960,8 +960,9 @@ validate_file_types <- function(input_directory) {
 #' @param manifest Path to a CSV file, or a \code{data.frame}.
 #' @param known_files Character vector of validated vendor file basenames; every
 #'   \code{raw_file} in the manifest must be present here.
-#' @return \code{data.frame} with columns \code{raw_file} (basename) and
-#'   \code{plateID}.
+#' @return \code{data.frame} with columns \code{raw_file} (basename, with
+#'   whitespace normalised to underscores to match the auto-sanitised on-disk
+#'   filenames) and \code{plateID}.
 read_plate_manifest <- function(manifest, known_files) {
   if (is.data.frame(manifest)) {
     df <- manifest
@@ -988,7 +989,11 @@ read_plate_manifest <- function(manifest, known_files) {
          "Found: ", paste(orig_names, collapse = ", "), ".", call. = FALSE)
   }
 
-  raw_file <- basename(trimws(as.character(df$raw_file)))
+  # Space-normalise raw_file to match the on-disk names, which msConvertR
+  # auto-sanitises (whitespace -> underscore) before discovery so msconvert can
+  # locate bind-mounted vendor files. Keeps a manifest written with the original
+  # spaced names matching after the files have been renamed.
+  raw_file <- mst_sanitize_filename(basename(trimws(as.character(df$raw_file))))
   plateID  <- trimws(as.character(df$plateid))
   if (any(!nzchar(raw_file)) || any(!nzchar(plateID))) {
     stop("msConvertR: manifest contains empty 'raw_file' or 'plateID' values.",
