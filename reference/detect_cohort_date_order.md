@@ -34,7 +34,8 @@ Decision order:
     locks MDY. The format with the higher parse count wins.
 
 3.  If the counts are tied (every value is digit-ambiguous), use
-    per-plate `_YYYYMMDD$` hints to vote between formats by computing
+    per-plate date hints (a `_YYYYMMDD` suffix or a leading
+    `YYYY-MM-DD`/`YYYYMMDD` prefix) to vote between formats by computing
     which interpretation places the median parsed timestamp closer to
     the plate-name date.
 

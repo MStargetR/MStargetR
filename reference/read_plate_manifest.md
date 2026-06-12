@@ -27,4 +27,6 @@ read_plate_manifest(manifest, known_files)
 
 ## Value
 
-`data.frame` with columns `raw_file` (basename) and `plateID`.
+`data.frame` with columns `raw_file` (basename, with whitespace
+normalised to underscores to match the auto-sanitised on-disk filenames)
+and `plateID`.

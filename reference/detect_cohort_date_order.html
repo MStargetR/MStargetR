@@ -13,7 +13,7 @@ format once per cohort so every plate gets a consistent interpretation."><meta p
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,8 +79,9 @@ single value with day part \(&gt;12\) locks DMY, any with
 month part \(&gt;12\) locks MDY. The format with the higher
 parse count wins.</p></li>
 <li><p>If the counts are tied (every value is digit-ambiguous), use
-per-plate <code>_YYYYMMDD$</code> hints to vote between formats by
-computing which interpretation places the median parsed
+per-plate date hints (a <code>_YYYYMMDD</code> suffix or a leading
+<code>YYYY-MM-DD</code>/<code>YYYYMMDD</code> prefix) to vote between formats
+by computing which interpretation places the median parsed
 timestamp closer to the plate-name date.</p></li>
 <li><p>If still ambiguous and no hints exist, <code><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop()</a></code> so the
 caller is forced to supply <code>date_order</code> explicitly rather

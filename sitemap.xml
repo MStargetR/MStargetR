@@ -147,6 +147,8 @@
 <url><loc>https://mstargetr.github.io/MStargetR/reference/mst_groups_from_plateIDs.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/mst_make_safe_mount_path.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/mst_remembered_manifest_path.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/mst_sanitize_filename.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/mst_sanitize_raw_data_filenames.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/mst_write_remembered_manifest.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/mstargetr_bind_args.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/mstargetr_find_apptainer.html</loc></url>
@@ -156,6 +158,7 @@
 <url><loc>https://mstargetr.github.io/MStargetR/reference/normalise_plot_pair.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/notify_qc_type.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/optimise_retention_times.html</loc></url>
+<url><loc>https://mstargetr.github.io/MStargetR/reference/parse_detection_timestamp.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/parse_sample_timestamp.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/peak_picking.html</loc></url>
 <url><loc>https://mstargetr.github.io/MStargetR/reference/pick_first_valid_timestamp.html</loc></url>
