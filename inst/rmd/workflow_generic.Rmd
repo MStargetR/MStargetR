@@ -30,8 +30,16 @@ sample_tags  <- c("sample", "control", "blank", "qc")
 # Missing value threshold (% per metabolite)
 mv_threshold <- 50
 
-# MRM template for PeakForgeR (path to .tsv file)
-mrm_template_peakforger <- "path/to/mrm_guide_v1.tsv"
+# Limit of detection (peak area). Values below this count as below-LOD.
+# Instrument-/lab-specific -- set to your instrument's detection floor.
+lod_threshold <- 5000
+
+# MRM template for PeakForgeR (named list of .tsv/.csv paths, one per version)
+mrm_template_peakforger <- list(
+  v1 = "path/to/mrm_guide_v1.tsv"
+  # Add more versions if needed:
+  # v2 = "path/to/mrm_guide_v2.tsv"
+)
 
 # MRM template list for qcCheckR (named list of SIL + concentration guides per version)
 mrm_template_qccheckr <- list(
@@ -44,11 +52,11 @@ mrm_template_qccheckr <- list(
 )
 
 # Batch correction parameters (used inside qcCheckR)
-batch_method  <- "QCRFSC"   # Options: "QCRFSC", "ComBat"
+batch_method  <- "QCRFSC"   # Options: "QCRFSC", "ComBat", "QCRLSC"
 batch_ntree   <- 500         # Number of trees (QCRFSC only)
 batch_coCV    <- 100         # CoCV threshold (%, 1-100)
 batch_Frule   <- 0           # Filtering rule (0 = no filter)
-batch_imputeM <- "minHalf"   # Imputation method: "minHalf", "minQ", or "zero"
+batch_imputeM <- "minHalf"   # Imputation: "minHalf", "median", "mean", or "knn"
 ```
 
 # Optional: Validate Templates
@@ -57,7 +65,7 @@ Run these checks before the pipeline to catch template errors early.
 
 ```{r validate-templates}
 # Check for duplicate Q1/Q3 transitions
-mrm_df <- read.delim(mrm_template_peakforger, check.names = FALSE)
+mrm_df <- read.delim(mrm_template_peakforger[["v1"]], check.names = FALSE)
 transition_checkR(mrm_df)
 
 # Check that MRM template and concentration guide entries match
@@ -110,6 +118,7 @@ qcCheckR(
   QC_sample_label   = qc_label,
   sample_tags       = sample_tags,
   mv_threshold      = mv_threshold,
+  lod_threshold     = lod_threshold,
   batch_method      = batch_method,
   batch_ntree       = batch_ntree,
   batch_coCV        = batch_coCV,
@@ -127,14 +136,14 @@ Use `batchCorrectR()` independently on any dataset with `sample_name`,
 # result <- batchCorrectR(
 #   data       = my_data,       # data.frame or list of plate data.frames
 #   qc_label   = "qc",
-#   method     = "QCRFSC",      # "QCRFSC" or "ComBat"
+#   method     = "QCRFSC",      # "QCRFSC", "ComBat", or "QCRLSC"
 #   ntree      = 500,
 #   coCV       = 100,
 #   Frule      = 0,
-#   imputeM    = "minHalf",
-#   output_dir = file.path(project_path, "batch_correction"),
-#   plot       = TRUE,
-#   report     = TRUE
+#   imputeM        = "minHalf",
+#   output_dir     = file.path(project_path, "batch_correction"),
+#   advanced_plots = TRUE,       # full GUI plot set (replaces deprecated 'plot')
+#   report         = TRUE
 # )
 #
 # corrected <- result$corrected_data

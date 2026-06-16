@@ -24,9 +24,10 @@ ANPC CCSM lipidomics pipeline using built-in MRM templates and sample tags.
 project_path <- "USER/PATH/TO/PROJECT"   # Path to project folder
 qc_label     <- "LTR"                    # Options: LTR, PQC, VLTR, etc.
 mv_threshold <- 50                        # Missing value threshold (%)
+lod_threshold <- 5000                     # Limit of detection (peak area)
 
 # Batch correction parameters
-batch_method  <- "QCRFSC"   # Options: "QCRFSC", "ComBat"
+batch_method  <- "QCRFSC"   # Options: "QCRFSC", "ComBat", "QCRLSC"
 batch_ntree   <- 500
 batch_coCV    <- 100
 batch_Frule   <- 0
@@ -59,6 +60,7 @@ qcCheckR(
   QC_sample_label   = qc_label,
   sample_tags       = NULL,           # Uses ANPC default tags
   mv_threshold      = mv_threshold,
+  lod_threshold     = lod_threshold,
   batch_method      = batch_method,
   batch_ntree       = batch_ntree,
   batch_coCV        = batch_coCV,
@@ -80,22 +82,25 @@ Process multiple projects sequentially with per-project configuration.
 ```{r multi-configs}
 project_configs <- list(
   list(
-    path         = "USER/PATH/TO/PROJECT1",
-    qc_label     = "PQC",
-    mv_threshold = 50,
-    batch_method = "QCRFSC"
+    path          = "USER/PATH/TO/PROJECT1",
+    qc_label      = "PQC",
+    mv_threshold  = 50,
+    lod_threshold = 5000,
+    batch_method  = "QCRFSC"
   ),
   list(
-    path         = "USER/PATH/TO/PROJECT2",
-    qc_label     = "LTR",
-    mv_threshold = 40,
-    batch_method = "QCRFSC"
+    path          = "USER/PATH/TO/PROJECT2",
+    qc_label      = "LTR",
+    mv_threshold  = 40,
+    lod_threshold = 5000,
+    batch_method  = "QCRFSC"
   ),
   list(
-    path         = "USER/PATH/TO/PROJECT3",
-    qc_label     = "VLTR",
-    mv_threshold = 60,
-    batch_method = "QCRFSC"
+    path          = "USER/PATH/TO/PROJECT3",
+    qc_label      = "VLTR",
+    mv_threshold  = 60,
+    lod_threshold = 5000,
+    batch_method  = "QCRFSC"
   )
 )
 ```
@@ -131,6 +136,7 @@ for (config in project_configs) {
     QC_sample_label   = config$qc_label,
     sample_tags       = NULL,
     mv_threshold      = config$mv_threshold,
+    lod_threshold     = config$lod_threshold,
     batch_method      = config$batch_method
   )
 }
@@ -152,10 +158,10 @@ Use `batchCorrectR()` on any dataset independently of the main pipeline.
 #   ntree      = 500,
 #   coCV       = 100,
 #   Frule      = 0,
-#   imputeM    = "minHalf",
-#   output_dir = tempdir(),
-#   plot       = TRUE,
-#   report     = TRUE
+#   imputeM        = "minHalf",
+#   output_dir     = tempdir(),
+#   advanced_plots = TRUE,       # full GUI plot set (replaces deprecated 'plot')
+#   report         = TRUE
 # )
 #
 # corrected <- result$corrected_data
@@ -173,7 +179,7 @@ ComBat does not require QC samples and uses empirical Bayes methods.
 #   combat_par.prior = TRUE,
 #   combat_mean.only = FALSE,
 #   combat_ref.batch = NULL,   # Reference batch (optional)
-#   plot             = TRUE,
+#   advanced_plots   = TRUE,   # full GUI plot set (replaces deprecated 'plot')
 #   report           = TRUE
 # )
 ```
