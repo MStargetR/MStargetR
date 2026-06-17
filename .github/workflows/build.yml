@@ -54,11 +54,25 @@ jobs:
             install.packages("BiocManager", lib = lib)
           bioc_ver <- BiocManager::version()
           message("R ", getRversion(), " -> Bioconductor ", bioc_ver)
+          # Route Bioconductor through the Posit Public Package Manager mirror.
+          # Once a Bioconductor release is archived (e.g. when oldrel-1 trails the
+          # current release), bioconductor.org 302-redirects to an http-only S3
+          # archive endpoint that R's available.packages() refuses to follow
+          # (https->http downgrade), so mzR/ropls/statTarget silently fail to
+          # install. PPM serves every Bioc release (current and archived) as
+          # binaries over clean HTTPS, avoiding the redirect.
+          options(BioC_mirror = "https://packagemanager.posit.co/bioconductor")
           # Include Bioconductor in repo list so remotes::install_deps() can
           # resolve mzR/ropls/statTarget/sva alongside CRAN deps in one pass.
           options(repos = BiocManager::repositories())
           install.packages("remotes", lib = lib)
           remotes::install_deps(dependencies = TRUE, lib = lib, upgrade = "never")
+          # Fail fast if a hard Bioconductor dependency did not install, instead
+          # of letting R CMD check report "dependencies not available" later.
+          hard_deps <- c("mzR", "ropls", "statTarget")
+          missing <- hard_deps[!vapply(hard_deps, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(missing))
+            stop("Failed to install Bioconductor dependencies: ", paste(missing, collapse = ", "))
           install.packages(c("rcmdcheck", "covr"), lib = lib)
         shell: Rscript {0}
 
