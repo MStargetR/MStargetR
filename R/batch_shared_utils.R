@@ -195,7 +195,7 @@ bc_assess_qc_distribution <- function(pheno) {
     boundaries <- c(0, qc_idx, n_total + 1)
     gaps <- diff(boundaries) - 1
     max_gap <- max(gaps)
-    ideal_gap <- n_total / (n_qc + 1)
+    ideal_gap <- round(n_total / (n_qc + 1))
     if (length(gaps) > 1 && mean(gaps) > 0) {
       gap_cv <- stats::sd(gaps) / mean(gaps)
     } else {
@@ -212,8 +212,8 @@ bc_assess_qc_distribution <- function(pheno) {
       message("  Note: Batch '", b, "' QC distribution is uneven ",
               "(", n_qc, " QCs across ", n_total, " samples, ",
               "max gap: ", max_gap, " samples, ",
-              "ideal gap: ", round(ideal_gap, 1), " samples). ",
-              "Consider spacing QCs more evenly in future runs.")
+              "ideal gap: ", ideal_gap, " samples). ",
+              "Consider running a QC at the start then after every 10th sample in future runs.")
     } else {
       message("  Batch '", b, "': ", n_qc, " QCs across ", n_total,
               " samples (max gap: ", max_gap, ", distribution: OK)")

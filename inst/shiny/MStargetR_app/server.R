@@ -42,6 +42,45 @@ function(input, output, session) {
     qs_status          = NULL  # NULL | "running" | "ok" | "error"
   )
 
+  # -- Shared project directory (Task 3) -----------------------------------------
+  # Holds the most-recently-entered non-empty project dir across tabs.
+  # Seeded by: convert_input_dir, convert_output_dir, peak_project_dir,
+  # qc_project_dir, batch_project_dir.
+  # Auto-filled into (empty) targets: peak_project_dir, qc_project_dir,
+  # batch_project_dir, convert_output_dir.
+  # convert_input_dir seeds but is NOT a fill target (it is the raw source dir).
+  shared_project_dir <- shiny::reactiveVal(NULL)
+
+  # -- Reactive vals for plot widgets (Task 4) ------------------------------------
+  # Store the most-recent plotly widget or ggplot object so download handlers
+  # can snapshot it without re-running the render logic.
+  qc_pca_plot_val         <- shiny::reactiveVal(NULL)
+  qc_runorder_plot_val    <- shiny::reactiveVal(NULL)
+  qc_controlchart_plot_val <- shiny::reactiveVal(NULL)
+  qc_rsd_histogram_val    <- shiny::reactiveVal(NULL)
+  qc_missing_plot_val     <- shiny::reactiveVal(NULL)
+  qc_sample_type_pie_val  <- shiny::reactiveVal(NULL)
+  qc_plate_bar_val        <- shiny::reactiveVal(NULL)
+  batch_pca_before_val    <- shiny::reactiveVal(NULL)
+  batch_pca_after_val     <- shiny::reactiveVal(NULL)
+  batch_rsd_class_plot_val <- shiny::reactiveVal(NULL)
+  batch_rsd_plot_val      <- shiny::reactiveVal(NULL)
+  batch_plot_before_val   <- shiny::reactiveVal(NULL)
+  batch_plot_after_val    <- shiny::reactiveVal(NULL)
+
+  # Results Explorer plot cache (Gap A)
+  results_rsd_histogram_val  <- shiny::reactiveVal(NULL)
+  results_passfail_donut_val <- shiny::reactiveVal(NULL)
+  results_class_summary_val  <- shiny::reactiveVal(NULL)
+  results_rsd_scatter_val    <- shiny::reactiveVal(NULL)
+  results_rsd_bar_val        <- shiny::reactiveVal(NULL)
+  results_conc_vs_rsd_val    <- shiny::reactiveVal(NULL)
+  results_boxplot_val        <- shiny::reactiveVal(NULL)
+  results_runorder_val       <- shiny::reactiveVal(NULL)
+  results_deep_before_val    <- shiny::reactiveVal(NULL)
+  results_deep_after_val     <- shiny::reactiveVal(NULL)
+  results_heatmap_val        <- shiny::reactiveVal(NULL)
+
   # -- Session cleanup ---------------------------------------------------------
   session$onSessionEnded(function() {
     # Stop the Docker polling observer
@@ -217,6 +256,13 @@ function(input, output, session) {
         rv$qc_result <- result$value
         rv$qc_log    <- paste0(rv$qc_log %||% "",
                                 "\nqcCheckR completed successfully.\n")
+        # Task 5: persist the full console log to <project_dir>/MStargetR_logs/
+        tryCatch({
+          proj_dir <- extra$project_dir
+          if (!is.null(proj_dir) && nzchar(proj_dir)) {
+            mst_persist_log(proj_dir, "qcCheckR", rv$qc_log %||% "")
+          }
+        }, error = function(e) NULL)
         if (!is.null(extra$project_dir)) {
           rv$prefs <- add_recent_project(rv$prefs, extra$project_dir)
           save_user_preferences(rv$prefs)
@@ -321,6 +367,19 @@ function(input, output, session) {
           src <- batch_source_desc_r()
           if (!is.null(src) && nzchar(src)) paste0(" (Source: ", src, ")") else ""
         }, error = function(e) "")
+        # Task 5: persist batch log to <project_dir>/MStargetR_logs/
+        tryCatch({
+          proj_dir <- if (!is.null(extra$project_dir) && nzchar(extra$project_dir %||% "")) {
+            extra$project_dir
+          } else if (!is.null(rv$qc_result$project_details$project_dir)) {
+            rv$qc_result$project_details$project_dir
+          } else {
+            NULL
+          }
+          if (!is.null(proj_dir) && nzchar(proj_dir)) {
+            mst_persist_log(proj_dir, "batchCorrectR", rv$batch_log %||% "")
+          }
+        }, error = function(e) NULL)
         log_audit("Batch Correction", status = "SUCCESS")
         session$sendCustomMessage("mst-notify", list(
           message = paste0("Batch correction complete!", src_msg),
@@ -566,6 +625,54 @@ function(input, output, session) {
   shiny::observeEvent(input$qc_project_dir_browse, {
     path <- choose_directory("Select project directory")
     if (!is.null(path)) shiny::updateTextInput(session, "qc_project_dir", value = path)
+  })
+
+  # -- Shared project directory seeders (Task 3) --------------------------------
+  # Each seeder fires when its input gains a non-empty value and updates the
+  # shared reactive (last-write wins). convert_input_dir seeds the shared value
+  # but is not a fill target (raw source dir, conceptually different).
+  shiny::observeEvent(input$convert_input_dir, ignoreInit = TRUE, ignoreNULL = TRUE, {
+    v <- trimws(input$convert_input_dir %||% "")
+    if (nzchar(v)) shared_project_dir(v)
+  })
+  shiny::observeEvent(input$convert_output_dir, ignoreInit = TRUE, ignoreNULL = TRUE, {
+    v <- trimws(input$convert_output_dir %||% "")
+    if (nzchar(v)) shared_project_dir(v)
+  })
+  shiny::observeEvent(input$peak_project_dir, ignoreInit = TRUE, ignoreNULL = TRUE, {
+    v <- trimws(input$peak_project_dir %||% "")
+    if (nzchar(v)) shared_project_dir(v)
+  })
+  shiny::observeEvent(input$qc_project_dir, ignoreInit = TRUE, ignoreNULL = TRUE, {
+    v <- trimws(input$qc_project_dir %||% "")
+    if (nzchar(v)) shared_project_dir(v)
+  })
+  shiny::observeEvent(input$batch_project_dir, ignoreInit = TRUE, ignoreNULL = TRUE, {
+    v <- trimws(input$batch_project_dir %||% "")
+    if (nzchar(v)) shared_project_dir(v)
+  })
+
+  # Auto-fill empty project-dir fields whenever the shared value changes.
+  # Guard: only update a target when its current value is "" (or NULL).
+  # Use isolate() to read current input values so we do not create reactive
+  # dependencies that would re-trigger this observer on every keystroke.
+  shiny::observeEvent(shared_project_dir(), ignoreNULL = TRUE, ignoreInit = TRUE, {
+    shared <- shared_project_dir()
+    if (is.null(shared) || !nzchar(shared)) return()
+
+    # Fill targets: peak, qc, batch project dirs + convert output dir.
+    targets <- list(
+      peak_project_dir    = shiny::isolate(input$peak_project_dir),
+      qc_project_dir      = shiny::isolate(input$qc_project_dir),
+      batch_project_dir   = shiny::isolate(input$batch_project_dir),
+      convert_output_dir  = shiny::isolate(input$convert_output_dir)
+    )
+    for (id in names(targets)) {
+      cur <- trimws(targets[[id]] %||% "")
+      if (!nzchar(cur)) {
+        shiny::updateTextInput(session, id, value = shared)
+      }
+    }
   })
 
   # -- Path validation feedback ------------------------------------------------
@@ -873,7 +980,7 @@ function(input, output, session) {
       paste0("[", ts(), "] Running msConvertR..."),
       "  (This may take several minutes per file)", "")
 
-    # Phase 2: Run conversion and capture all messages
+    # Phase 2: Run conversion and capture all messages + warnings (Task 5)
     shiny::withProgress(message = "Converting vendor files...", value = 0.2, {
       captured_messages <- character(0)
       result <- safe_call({
@@ -899,6 +1006,11 @@ function(input, output, session) {
           message = function(m) {
             captured_messages <<- c(captured_messages, conditionMessage(m))
             invokeRestart("muffleMessage")
+          },
+          warning = function(w) {
+            captured_messages <<- c(captured_messages,
+                                    paste0("[warning] ", conditionMessage(w)))
+            invokeRestart("muffleWarning")
           }
         )
       }, error_prefix = "msConvertR")
@@ -969,7 +1081,9 @@ function(input, output, session) {
       Path = mzml_files,
       Size = format_file_size(file.size(file.path(dir_path, mzml_files)))
     )
-  }, options = list(pageLength = 10, scrollX = TRUE))
+  }, options = list(pageLength = 10, scrollX = TRUE, dom = "Bfrtip",
+                    buttons = c("copy", "csv", "excel")),
+     extensions = "Buttons")
   # Suspend disk I/O when the tab is hidden (default TRUE, but made explicit)
   shiny::outputOptions(output, "convert_output_table", suspendWhenHidden = TRUE)
 
@@ -992,7 +1106,9 @@ function(input, output, session) {
     shiny::req(df)
     DT::datatable(df,
                   options = list(pageLength = 5, scrollX = TRUE, scrollY = "220px",
-                                 dom = "tip", paging = TRUE),
+                                 dom = "Bfrtip", paging = TRUE,
+                                 buttons = c("copy", "csv", "excel")),
+                  extensions = "Buttons",
                   filter = "none",
                   class = "compact stripe",
                   style = "bootstrap4")
@@ -1060,7 +1176,8 @@ function(input, output, session) {
     shiny::req(peak_transition_dupes())
     DT::datatable(peak_transition_dupes(),
       options = list(pageLength = 5, scrollX = TRUE, scrollY = "180px",
-                     dom = "tip"),
+                     dom = "Bfrtip", buttons = c("copy", "csv", "excel")),
+      extensions = "Buttons",
       class = "compact stripe",
       style = "bootstrap4"
     )
@@ -1096,27 +1213,50 @@ function(input, output, session) {
     }, add = TRUE)
 
     shiny::withProgress(message = "Running PeakForgeR...", value = 0, {
+      # Task 5: capture R message() and warning() so the GUI console shows them
+      peak_captured_msgs <- character(0)
       result <- safe_call({
-        shiny::incProgress(0.1, detail = "Starting peak integration...")
-        # Build template list from uploaded files, preserving original names
-        template_paths <- preserve_upload_names(
-          input$peak_mrm_templates$datapath,
-          input$peak_mrm_templates$name
-        )
-        mrm_list <- as.list(template_paths)
-        names(mrm_list) <- paste0("v", seq_along(mrm_list))
+        withCallingHandlers(
+          {
+            shiny::incProgress(0.1, detail = "Starting peak integration...")
+            # Build template list from uploaded files, preserving original names
+            template_paths <- preserve_upload_names(
+              input$peak_mrm_templates$datapath,
+              input$peak_mrm_templates$name
+            )
+            mrm_list <- as.list(template_paths)
+            names(mrm_list) <- paste0("v", seq_along(mrm_list))
 
-        MStargetR::PeakForgeR(
-          user_name = input$peak_user_name,
-          project_directory = input$peak_project_dir,
-          mrm_template_list = mrm_list,
-          QC_sample_label = input$peak_qc_label
+            MStargetR::PeakForgeR(
+              user_name = input$peak_user_name,
+              project_directory = input$peak_project_dir,
+              mrm_template_list = mrm_list,
+              QC_sample_label = input$peak_qc_label
+            )
+          },
+          message = function(m) {
+            peak_captured_msgs <<- c(peak_captured_msgs, conditionMessage(m))
+            invokeRestart("muffleMessage")
+          },
+          warning = function(w) {
+            peak_captured_msgs <<- c(peak_captured_msgs,
+                                      paste0("[warning] ", conditionMessage(w)))
+            invokeRestart("muffleWarning")
+          }
         )
       }, error_prefix = "PeakForgeR")
 
       rv$peak_success <- FALSE
+      # Build base log prefix from captured R output
+      peak_r_output <- if (length(peak_captured_msgs) > 0) {
+        paste0("--- R Output ---\n",
+               paste(peak_captured_msgs, collapse = ""),
+               "\n--- End R Output ---\n")
+      } else {
+        ""
+      }
       if (result$success) {
-        rv$peak_log <- "PeakForgeR completed successfully."
+        rv$peak_log <- paste0(peak_r_output, "PeakForgeR completed successfully.")
         rv$peak_success <- TRUE
         rv$prefs <- add_recent_project(rv$prefs, input$peak_project_dir)
         save_user_preferences(rv$prefs)
@@ -1125,7 +1265,7 @@ function(input, output, session) {
           message = "Peak integration complete!", type = "success"
         ))
       } else {
-        rv$peak_log <- result$message
+        rv$peak_log <- paste0(peak_r_output, result$message)
         log_audit("Peak Integration", result$message, "ERROR")
         session$sendCustomMessage("mst-notify", list(
           message = result$message, type = "danger", duration = 6000
@@ -1215,7 +1355,8 @@ function(input, output, session) {
         )
         DT::datatable(df,
           options = list(pageLength = 10, scrollX = TRUE, scrollY = "300px",
-                         dom = "tip"),
+                         dom = "Bfrtip", buttons = c("copy", "csv", "excel")),
+          extensions = "Buttons",
           class = "compact stripe",
           style = "bootstrap4"
         )
@@ -1581,6 +1722,8 @@ function(input, output, session) {
         if (length(plots) > 0) pca_plot <- plots[[1]]
       }
       shiny::req(pca_plot)
+      # Task 4: store ggplot for PNG/PDF download
+      qc_pca_plot_val(pca_plot)
       plotly::ggplotly(pca_plot)
     }, error = function(e) {
       plotly::plot_ly() |>
@@ -1611,6 +1754,8 @@ function(input, output, session) {
       pc <- input$qc_runorder_pc
       p <- rv$qc_result$pca$scoresRunOrder[[pc]]
       if (is.null(p)) return(empty_plotly("No run order data available"))
+      # Task 4: cache ggplot for download
+      qc_runorder_plot_val(p)
       plotly::ggplotly(p)
     })
   })
@@ -1622,6 +1767,8 @@ function(input, output, session) {
       met <- input$qc_controlchart_metabolite
       p <- rv$qc_result$control_charts[[met]]
       if (is.null(p)) return(empty_plotly("No control chart data available"))
+      # Task 4: cache ggplot for download
+      qc_controlchart_plot_val(p)
       plotly::ggplotly(p)
     })
   })
@@ -1702,7 +1849,7 @@ function(input, output, session) {
       # separate layer so slider drag doesn't re-run the RSD computation.
       fail_thr <- rsd_fail_threshold()
 
-      plotly::plot_ly(
+      w <- plotly::plot_ly(
         data = rsd_df, x = ~rsd, type = "histogram",
         nbinsx = 30,
         marker = list(color = "#377EB8", line = list(color = "white", width = 0.5)),
@@ -1723,6 +1870,9 @@ function(input, output, session) {
                  font = list(color = "red", size = 11))
           )
         )
+      # Task 4: cache widget for HTML download
+      qc_rsd_histogram_val(w)
+      w
     })
   })
 
@@ -1772,7 +1922,7 @@ function(input, output, session) {
       colours <- ifelse(mv_df$pct > 50, "#E41A1C",
                  ifelse(mv_df$pct > 20, "#FF7F00", "#377EB8"))
 
-      plotly::plot_ly(
+      w <- plotly::plot_ly(
         data = mv_df, y = ~metabolite, x = ~pct,
         type = "bar", orientation = "h",
         marker = list(color = colours),
@@ -1783,6 +1933,9 @@ function(input, output, session) {
           yaxis = list(title = "", tickfont = list(size = 9)),
           margin = list(l = 150)
         )
+      # Task 4: cache widget for HTML download
+      qc_missing_plot_val(w)
+      w
     })
   })
 
@@ -1798,13 +1951,16 @@ function(input, output, session) {
       type_col <- if ("sample_type_factor" %in% names(df)) "sample_type_factor" else "sample_type"
       counts <- as.data.frame(table(df[[type_col]]), stringsAsFactors = FALSE)
       names(counts) <- c("type", "count")
-      plotly::plot_ly(
+      w <- plotly::plot_ly(
         data = counts, labels = ~type, values = ~count,
         type = "pie",
         textinfo = "label+percent",
         hovertemplate = "%{label}: %{value} samples (%{percent})<extra></extra>"
       ) |>
         plotly::layout(title = list(text = "Sample Types", font = list(size = 14)))
+      # Task 4: cache widget for HTML download
+      qc_sample_type_pie_val(w)
+      w
     })
   })
 
@@ -1819,7 +1975,7 @@ function(input, output, session) {
       shiny::req(df, "sample_plate_id" %in% names(df))
       counts <- as.data.frame(table(df$sample_plate_id), stringsAsFactors = FALSE)
       names(counts) <- c("plate", "count")
-      plotly::plot_ly(
+      w <- plotly::plot_ly(
         data = counts, x = ~plate, y = ~count,
         type = "bar",
         marker = list(color = "#377EB8"),
@@ -1830,6 +1986,9 @@ function(input, output, session) {
           yaxis = list(title = "Number of Samples"),
           title = list(text = "Samples per Plate", font = list(size = 14))
         )
+      # Task 4: cache widget for HTML download
+      qc_plate_bar_val(w)
+      w
     })
   })
 
@@ -2332,7 +2491,10 @@ function(input, output, session) {
   output$batch_plot_before <- plotly::renderPlotly({
     shiny::req(rv$bc_result, rv$bc_data, input$batch_selected_metabolite)
     tryCatch({
-      bc_drift_plot(rv$bc_data, input$batch_selected_metabolite, "Before")
+      w <- bc_drift_plot(rv$bc_data, input$batch_selected_metabolite, "Before")
+      # Task 4: cache widget for HTML download
+      batch_plot_before_val(w)
+      w
     }, error = function(e) {
       plotly::plot_ly() |>
         plotly::layout(annotations = list(list(
@@ -2346,7 +2508,10 @@ function(input, output, session) {
   output$batch_plot_after <- plotly::renderPlotly({
     shiny::req(rv$bc_result, input$batch_selected_metabolite)
     tryCatch({
-      bc_drift_plot(rv$bc_result$corrected_data, input$batch_selected_metabolite, "After")
+      w <- bc_drift_plot(rv$bc_result$corrected_data, input$batch_selected_metabolite, "After")
+      # Task 4: cache widget for HTML download
+      batch_plot_after_val(w)
+      w
     }, error = function(e) {
       plotly::plot_ly() |>
         plotly::layout(annotations = list(list(
@@ -2484,8 +2649,11 @@ function(input, output, session) {
   output$batch_pca_before <- plotly::renderPlotly({
     shiny::req(rv$bc_result, rv$bc_data)
     tryCatch({
-      bc_pca_plot(rv$bc_data, "Before Correction",
+      w <- bc_pca_plot(rv$bc_data, "Before Correction",
                   cached_entry = tryCatch(bc_pca_cache()$before, error = function(e) NULL))
+      # Task 4: cache widget for HTML download
+      batch_pca_before_val(w)
+      w
     }, error = function(e) {
       plotly::plot_ly() |>
         plotly::layout(annotations = list(list(
@@ -2499,8 +2667,11 @@ function(input, output, session) {
   output$batch_pca_after <- plotly::renderPlotly({
     shiny::req(rv$bc_result)
     tryCatch({
-      bc_pca_plot(rv$bc_result$corrected_data, "After Correction",
+      w <- bc_pca_plot(rv$bc_result$corrected_data, "After Correction",
                   cached_entry = tryCatch(bc_pca_cache()$after, error = function(e) NULL))
+      # Task 4: cache widget for HTML download
+      batch_pca_after_val(w)
+      w
     }, error = function(e) {
       plotly::plot_ly() |>
         plotly::layout(annotations = list(list(
@@ -2565,6 +2736,8 @@ function(input, output, session) {
         ggplot2::theme_bw() +
         ggplot2::theme(axis.text.y = ggplot2::element_text(size = 9))
 
+      # Task 4: cache ggplot for PNG download
+      batch_rsd_class_plot_val(p)
       plotly::ggplotly(p, tooltip = "text")
     }, error = function(e) {
       plotly::plot_ly() |>
@@ -2623,6 +2796,8 @@ function(input, output, session) {
         ) +
         ggplot2::theme_bw()
 
+      # Task 4: cache ggplot for PNG download
+      batch_rsd_plot_val(p)
       plotly::ggplotly(p) |> plotly::config(displayModeBar = FALSE)
     }, error = function(e) {
       plotly::plot_ly() |>
@@ -2781,7 +2956,9 @@ function(input, output, session) {
     shiny::req(transition_table_val())
     DT::datatable(
       transition_table_val(),
-      options  = list(pageLength = 15, scrollX = TRUE),
+      options  = list(pageLength = 15, scrollX = TRUE, dom = "Bfrtip",
+                      buttons = c("copy", "csv", "excel")),
+      extensions = "Buttons",
       rownames = FALSE,
       caption  = "Duplicate Q1/Q3 transitions that need correction"
     )
@@ -2902,7 +3079,9 @@ function(input, output, session) {
     shiny::req(compare_table_val())
     DT::datatable(
       compare_table_val(),
-      options  = list(pageLength = 15, scrollX = TRUE),
+      options  = list(pageLength = 15, scrollX = TRUE, dom = "Bfrtip",
+                      buttons = c("copy", "csv", "excel")),
+      extensions = "Buttons",
       rownames = FALSE,
       caption  = "Internal standards with no match in the concentration guide"
     )
@@ -2935,8 +3114,14 @@ function(input, output, session) {
 
   output$util_depcheck_table <- DT::renderDT({
     shiny::req(depcheck_result_val())
-    depcheck_result_val()
-  }, options = list(pageLength = 25, dom = "t"))
+    DT::datatable(
+      depcheck_result_val(),
+      options  = list(pageLength = 25, dom = "Bfrtip",
+                      buttons = c("copy", "csv", "excel")),
+      extensions = "Buttons",
+      rownames = FALSE
+    )
+  })
 
   # -- Results Explorer --------------------------------------------------------
 
@@ -3435,7 +3620,7 @@ function(input, output, session) {
     bin_colors <- ifelse(bin_mids > rsd_fail_threshold(), "#e11d48",
                   ifelse(bin_mids > rsd_warn_threshold(), "#d97706", "#059669"))
 
-    plotly::plot_ly(data = rsd_df, x = ~rsd, type = "histogram",
+    w <- plotly::plot_ly(data = rsd_df, x = ~rsd, type = "histogram",
       marker = list(color = bin_colors, line = list(color = "white", width = 0.5)),
       xbins = list(start = bins[1], end = utils::tail(bins, 1),
                    size = bins[2] - bins[1]),
@@ -3468,6 +3653,8 @@ function(input, output, session) {
                font = list(size = 10, color = "#e11d48"))
         )
       )
+    results_rsd_histogram_val(w)
+    w
   })
 
   # Pass/Fail Donut Chart
@@ -3487,7 +3674,7 @@ function(input, output, session) {
 
     colors <- c(Pass = "#059669", Warning = "#d97706", Fail = "#e11d48")
 
-    plotly::plot_ly(
+    w <- plotly::plot_ly(
       labels = names(counts), values = counts,
       type = "pie", hole = 0.55,
       marker = list(colors = colors[names(counts)],
@@ -3505,6 +3692,8 @@ function(input, output, session) {
                showarrow = FALSE)
         )
       )
+    results_passfail_donut_val(w)
+    w
   })
 
   # Lipid Class Summary Bar Chart
@@ -3561,7 +3750,7 @@ function(input, output, session) {
       }
     }
 
-    p |> results_plotly_layout(
+    w <- p |> results_plotly_layout(
       title  = results_title_style("Quality by Class"),
       barmode = "stack",
       xaxis  = c(results_axis_style, list(
@@ -3574,6 +3763,8 @@ function(input, output, session) {
                     font = list(size = 11, color = "#64748b")),
       margin = list(t = 50, r = 30, b = 60, l = 160)
     )
+    results_class_summary_val(w)
+    w
   })
 
   # -- Tab 2: RSD Explorer -----------------------------------------------------
@@ -3632,7 +3823,7 @@ function(input, output, session) {
     }
 
     max_val <- max(c(scat_df$before, scat_df$after), na.rm = TRUE) * 1.1
-    p |> results_plotly_layout(
+    w <- p |> results_plotly_layout(
       title = results_title_style("Batch Correction Effect (Before vs After RSD)"),
       xaxis = c(results_axis_style, list(
         title = list(text = "RSD Before (%)", font = list(size = 12, color = "#334155")),
@@ -3649,6 +3840,8 @@ function(input, output, session) {
       legend = list(orientation = "h", x = 0, y = -0.15,
                     font = list(size = 10, color = "#64748b"))
     )
+    results_rsd_scatter_val(w)
+    w
   })
 
   # RSD Bar Chart (filtered, with optional before/after)
@@ -3701,7 +3894,7 @@ function(input, output, session) {
     }
 
     max_rsd <- max(rsd_df$rsd, na.rm = TRUE)
-    p |> results_plotly_layout(
+    w <- p |> results_plotly_layout(
       title   = results_title_style("RSD by Metabolite"),
       barmode = "group",
       xaxis   = c(results_axis_style, list(
@@ -3733,6 +3926,8 @@ function(input, output, session) {
       legend = list(orientation = "h", x = 0, y = -0.08,
                     font = list(size = 10, color = "#64748b"))
     )
+    results_rsd_bar_val(w)
+    w
   })
 
   # Concentration vs RSD scatter
@@ -3780,7 +3975,7 @@ function(input, output, session) {
       )
     }
 
-    p |> results_plotly_layout(
+    w <- p |> results_plotly_layout(
       title = results_title_style("Mean Concentration vs RSD"),
       xaxis = c(results_axis_style, list(
         title = list(text = "Mean Concentration", font = list(size = 12, color = "#334155")),
@@ -3800,6 +3995,8 @@ function(input, output, session) {
       legend = list(orientation = "h", x = 0, y = -0.15,
                     font = list(size = 10, color = "#64748b"))
     )
+    results_conc_vs_rsd_val(w)
+    w
   })
 
   # -- Tab 3: Metabolite Deep Dive ---------------------------------------------
@@ -3886,7 +4083,7 @@ function(input, output, session) {
                                 met, ": %{y:.3f}<extra></extra>")
         )
       }
-      p |> results_plotly_layout(
+      w <- p |> results_plotly_layout(
         title     = results_title_style(paste0("Distribution: ", met)),
         yaxis     = c(results_axis_style, list(
           title = list(text = met, font = list(size = 12, color = "#334155")))),
@@ -3896,8 +4093,10 @@ function(input, output, session) {
                          font = list(size = 11, color = "#64748b")),
         showlegend = TRUE
       )
+      results_boxplot_val(w)
+      w
     } else {
-      plotly::plot_ly(y = df[[met]], type = "box",
+      w <- plotly::plot_ly(y = df[[met]], type = "box",
         boxpoints = "suspectedoutliers", jitter = 0.3,
         marker = list(color = results_palette[1], size = 4, opacity = 0.5),
         line = list(color = results_palette[1], width = 1.5),
@@ -3908,6 +4107,8 @@ function(input, output, session) {
         yaxis = c(results_axis_style, list(
           title = list(text = met, font = list(size = 12, color = "#334155"))))
       )
+      results_boxplot_val(w)
+      w
     }
   })
 
@@ -3987,7 +4188,7 @@ function(input, output, session) {
           hoverinfo = "skip", showlegend = TRUE)
       }
 
-      p |> results_plotly_layout(
+      w <- p |> results_plotly_layout(
         title  = results_title_style(paste0("Run Order: ", met)),
         xaxis  = c(results_axis_style, list(
           title = list(text = x_lab, font = list(size = 12, color = "#334155")))),
@@ -3997,8 +4198,10 @@ function(input, output, session) {
                       font = list(size = 11, color = "#64748b"),
                       itemsizing = "constant")
       )
+      results_runorder_val(w)
+      w
     } else {
-      plotly::plot_ly(
+      w <- plotly::plot_ly(
         x = x_vals, y = df[[met]], type = "scatter", mode = "markers",
         text = hover_name,
         marker = list(color = results_palette[1], size = 6, opacity = 0.6),
@@ -4011,6 +4214,8 @@ function(input, output, session) {
         yaxis = c(results_axis_style, list(
           title = list(text = met, font = list(size = 12, color = "#334155"))))
       )
+      results_runorder_val(w)
+      w
     }
   })
 
@@ -4055,7 +4260,9 @@ function(input, output, session) {
       }, error = function(e) NULL)
     }
     shiny::req(df, met %in% names(df))
-    build_runorder_scatter(df, met, "Before Correction")
+    w <- build_runorder_scatter(df, met, "Before Correction")
+    results_deep_before_val(w)
+    w
   })
 
   output$results_deep_after <- plotly::renderPlotly({
@@ -4063,7 +4270,9 @@ function(input, output, session) {
     shiny::req(rv$bc_result, met, nzchar(met))
     df <- rv$bc_result$corrected_data
     shiny::req(df, met %in% names(df))
-    build_runorder_scatter(df, met, "After Correction")
+    w <- build_runorder_scatter(df, met, "After Correction")
+    results_deep_after_val(w)
+    w
   })
 
   # -- Tab 4: Heatmap ----------------------------------------------------------
@@ -4126,7 +4335,7 @@ function(input, output, session) {
       paste0("Concentration Heatmap (", length(mets), " Metabolites)")
     }
 
-    plotly::plot_ly(
+    w <- plotly::plot_ly(
       x = colnames(mat), y = row_labels,
       z = mat, type = "heatmap",
       colorscale = list(
@@ -4152,6 +4361,8 @@ function(input, output, session) {
           title = "", tickfont = list(size = 8, color = "#64748b"))),
         margin = list(t = 50, r = 30, b = 130, l = 140)
       )
+    results_heatmap_val(w)
+    w
   })
 
   # -- Tab 5: Data Table --------------------------------------------------------
@@ -4164,7 +4375,7 @@ function(input, output, session) {
     display_df <- df[, c(meta, mets), drop = FALSE]
     DT::datatable(display_df, filter = "top",
       options = list(pageLength = 20, scrollX = TRUE, dom = "Bfrtip",
-                     buttons = c("copy", "csv")),
+                     buttons = c("copy", "csv", "excel")),
       extensions = "Buttons")
   }
 
@@ -4557,5 +4768,311 @@ function(input, output, session) {
                           "</p></body></html>"), file)
       })
     }
+  )
+
+  # ============================================================================
+  # Task 4: Explicit download handlers for all plots, tables, and consoles
+  # ============================================================================
+
+  # -- Helper: save a ggplot to PNG with graceful fallback --------------------
+  mst_ggsave_handler <- function(plot_val, filename_prefix, width = 10, height = 7) {
+    list(
+      filename = function() paste0(filename_prefix, "_", Sys.Date(), ".png"),
+      content = function(file) {
+        p <- plot_val()
+        tryCatch({
+          shiny::req(p)
+          ggplot2::ggsave(file, plot = p, width = width, height = height,
+                          units = "in", dpi = 150, device = "png")
+        }, error = function(e) {
+          # Fallback: write a minimal PNG-like text file so the download
+          # doesn't leave the browser hanging.
+          writeLines(paste0("# Export failed: ", e$message), file)
+        })
+      }
+    )
+  }
+
+  # -- Helper: save a plotly widget to self-contained HTML --------------------
+  mst_widget_handler <- function(widget_val, filename_prefix) {
+    list(
+      filename = function() paste0(filename_prefix, "_", Sys.Date(), ".html"),
+      content = function(file) {
+        w <- widget_val()
+        tryCatch({
+          shiny::req(w)
+          htmlwidgets::saveWidget(w, file, selfcontained = TRUE)
+        }, error = function(e) {
+          writeLines(paste0("<html><body><p>Export failed: ",
+                            htmltools::htmlEscape(e$message),
+                            "</p></body></html>"), file)
+        })
+      }
+    )
+  }
+
+  # -- QC plots ---------------------------------------------------------------
+
+  # PCA (ggplot-backed) -> PNG
+  h <- mst_ggsave_handler(qc_pca_plot_val, "qc_pca")
+  output$qc_download_pca_png <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Run Order (ggplot-backed) -> PNG
+  h <- mst_ggsave_handler(qc_runorder_plot_val, "qc_runorder", height = 6)
+  output$qc_download_runorder_png <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Control Chart (ggplot-backed) -> PNG
+  h <- mst_ggsave_handler(qc_controlchart_plot_val, "qc_controlchart", height = 6)
+  output$qc_download_controlchart_png <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # RSD Histogram (native plot_ly) -> HTML
+  h <- mst_widget_handler(qc_rsd_histogram_val, "qc_rsd_histogram")
+  output$qc_download_rsd_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Missing Values (native plot_ly) -> HTML
+  h <- mst_widget_handler(qc_missing_plot_val, "qc_missing_plot")
+  output$qc_download_missing_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Sample Type Pie (native plot_ly) -> HTML
+  h <- mst_widget_handler(qc_sample_type_pie_val, "qc_sample_type_pie")
+  output$qc_download_pie_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Plate Bar (native plot_ly) -> HTML
+  h <- mst_widget_handler(qc_plate_bar_val, "qc_plate_bar")
+  output$qc_download_plate_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # QC Summary table -> CSV
+  output$qc_download_summary_csv <- shiny::downloadHandler(
+    filename = function() paste0("qc_summary_", Sys.Date(), ".csv"),
+    content = function(file) {
+      tryCatch({
+        shiny::req(rv$qc_result)
+        df <- if (!is.null(rv$qc_result$summary_tables$projectOverview)) {
+          rv$qc_result$summary_tables$projectOverview
+        } else {
+          data.frame(Info = "No summary data available.")
+        }
+        readr::write_csv(df, file)
+      }, error = function(e) {
+        readr::write_csv(data.frame(Error = e$message, stringsAsFactors = FALSE), file)
+      })
+    }
+  )
+
+  # QC Filtered Metabolites table -> CSV
+  output$qc_download_filtered_csv <- shiny::downloadHandler(
+    filename = function() paste0("qc_filtered_metabolites_", Sys.Date(), ".csv"),
+    content = function(file) {
+      tryCatch({
+        shiny::req(rv$qc_result)
+        corrected <- corrected_data()
+        num_cols <- names(corrected)[vapply(corrected, is.numeric, logical(1))]
+        all_mets <- setdiff(num_cols, meta_cols)
+        failed_mets <- rv$qc_result$filters$failed_lipids %||% character(0)
+        failed_samples_list <- rv$qc_result$filters$failed_samples %||% character(0)
+        df <- data.frame(
+          Metabolite = all_mets,
+          Status = ifelse(all_mets %in% failed_mets, "failed", "passed"),
+          stringsAsFactors = FALSE
+        )
+        readr::write_csv(df, file)
+      }, error = function(e) {
+        readr::write_csv(data.frame(Error = e$message, stringsAsFactors = FALSE), file)
+      })
+    }
+  )
+
+  # QC console -> TXT
+  output$qc_download_log <- shiny::downloadHandler(
+    filename = function() paste0("qcCheckR_console_", Sys.Date(), ".txt"),
+    content = function(file) {
+      tryCatch({
+        writeLines(rv$qc_log %||% "", file)
+      }, error = function(e) {
+        writeLines(paste0("# Log export failed: ", e$message), file)
+      })
+    }
+  )
+
+  # -- Batch Correction plots and tables --------------------------------------
+
+  # Signal Drift Before (native plotly) -> HTML
+  h <- mst_widget_handler(batch_plot_before_val, "batch_drift_before")
+  output$batch_download_drift_before_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Signal Drift After (native plotly) -> HTML
+  h <- mst_widget_handler(batch_plot_after_val, "batch_drift_after")
+  output$batch_download_drift_after_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # PCA Before (native plotly) -> HTML
+  h <- mst_widget_handler(batch_pca_before_val, "batch_pca_before")
+  output$batch_download_pca_before_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # PCA After (native plotly) -> HTML
+  h <- mst_widget_handler(batch_pca_after_val, "batch_pca_after")
+  output$batch_download_pca_after_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # RSD Class Plot (ggplot-backed) -> PNG
+  h <- mst_ggsave_handler(batch_rsd_class_plot_val, "batch_rsd_class", height = 8)
+  output$batch_download_rsd_class_png <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # RSD per-metabolite plot (ggplot-backed) -> PNG
+  h <- mst_ggsave_handler(batch_rsd_plot_val, "batch_rsd_plot", width = 6, height = 5)
+  output$batch_download_rsd_png <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # RSD table -> CSV
+  output$batch_download_rsd_csv <- shiny::downloadHandler(
+    filename = function() paste0("batch_rsd_summary_", Sys.Date(), ".csv"),
+    content = function(file) {
+      tryCatch({
+        shiny::req(rv$bc_result)
+        readr::write_csv(rv$bc_result$correction_summary, file)
+      }, error = function(e) {
+        readr::write_csv(data.frame(Error = e$message, stringsAsFactors = FALSE), file)
+      })
+    }
+  )
+
+  # Corrected data table -> CSV (supplements existing batch_download)
+  output$batch_download_corrected_csv <- shiny::downloadHandler(
+    filename = function() paste0("batch_corrected_data_", Sys.Date(), ".csv"),
+    content = function(file) {
+      tryCatch({
+        shiny::req(rv$bc_result)
+        readr::write_csv(rv$bc_result$corrected_data, file)
+      }, error = function(e) {
+        readr::write_csv(data.frame(Error = e$message, stringsAsFactors = FALSE), file)
+      })
+    }
+  )
+
+  # Batch console -> TXT
+  output$batch_download_log <- shiny::downloadHandler(
+    filename = function() paste0("batchCorrectR_console_", Sys.Date(), ".txt"),
+    content = function(file) {
+      tryCatch({
+        writeLines(rv$batch_log %||% "", file)
+      }, error = function(e) {
+        writeLines(paste0("# Log export failed: ", e$message), file)
+      })
+    }
+  )
+
+  # -- Peak console -> TXT ----------------------------------------------------
+  output$peak_download_log <- shiny::downloadHandler(
+    filename = function() paste0("PeakForgeR_console_", Sys.Date(), ".txt"),
+    content = function(file) {
+      tryCatch({
+        writeLines(rv$peak_log %||% "", file)
+      }, error = function(e) {
+        writeLines(paste0("# Log export failed: ", e$message), file)
+      })
+    }
+  )
+
+  # -- Convert console -> TXT -------------------------------------------------
+  output$convert_download_log <- shiny::downloadHandler(
+    filename = function() paste0("msConvertR_console_", Sys.Date(), ".txt"),
+    content = function(file) {
+      tryCatch({
+        writeLines(rv$convert_log %||% "", file)
+      }, error = function(e) {
+        writeLines(paste0("# Log export failed: ", e$message), file)
+      })
+    }
+  )
+
+  # -- Results Explorer plots -> HTML (Gap A) ----------------------------------
+
+  # RSD Histogram (native plotly) -> HTML
+  h <- mst_widget_handler(results_rsd_histogram_val, "results_rsd_histogram")
+  output$results_download_rsd_histogram_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Pass/Fail Donut (native plotly) -> HTML
+  h <- mst_widget_handler(results_passfail_donut_val, "results_passfail_donut")
+  output$results_download_passfail_donut_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Class Summary Bar (native plotly) -> HTML
+  h <- mst_widget_handler(results_class_summary_val, "results_class_summary")
+  output$results_download_class_summary_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # RSD Scatter Before/After (native plotly) -> HTML
+  h <- mst_widget_handler(results_rsd_scatter_val, "results_rsd_scatter")
+  output$results_download_rsd_scatter_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # RSD Bar (native plotly) -> HTML
+  h <- mst_widget_handler(results_rsd_bar_val, "results_rsd_bar")
+  output$results_download_rsd_bar_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Concentration vs RSD (native plotly) -> HTML
+  h <- mst_widget_handler(results_conc_vs_rsd_val, "results_conc_vs_rsd")
+  output$results_download_conc_vs_rsd_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Boxplot (native plotly) -> HTML
+  h <- mst_widget_handler(results_boxplot_val, "results_boxplot")
+  output$results_download_boxplot_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Run Order (native plotly) -> HTML
+  h <- mst_widget_handler(results_runorder_val, "results_runorder")
+  output$results_download_runorder_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Deep Dive Before (native plotly) -> HTML
+  h <- mst_widget_handler(results_deep_before_val, "results_deep_before")
+  output$results_download_deep_before_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Deep Dive After (native plotly) -> HTML
+  h <- mst_widget_handler(results_deep_after_val, "results_deep_after")
+  output$results_download_deep_after_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
+  )
+
+  # Heatmap (native plotly) -> HTML
+  h <- mst_widget_handler(results_heatmap_val, "results_heatmap")
+  output$results_download_heatmap_html <- shiny::downloadHandler(
+    filename = h$filename, content = h$content
   )
 }

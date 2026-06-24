@@ -169,6 +169,43 @@ test_that("PK-034: find_peak_end_idx falls back to last crossing not full trace 
   expect_gte(result, peak_apex_idx)
 })
 
+# PK-034b: find_peak_end_idx notice is gated by MStargetR.verbose ----
+test_that("PK-034b: find_peak_end_idx notice is silent by default and emitted when verbose", {
+  # Construct a chromatogram with only 2 below-baseline points after the apex
+  # so the function falls into the "fewer than n_baseline_crossings" branch.
+  # intensities: apex at index 5; values 0.5 appear at indices 7 and 9 only
+  # (< baseline 1.0), so after_apex_crossings has length 2 < 3.
+  intensities <- c(1, 1, 5, 20, 50, 20, 1, 0.5, 1, 0.5)
+  rtime       <- seq_along(intensities) * 0.1
+  chrom       <- data.frame(rtime = rtime, intensity = intensities)
+  FUNC_mzR <- list(
+    plate1 = list(
+      file1.mzML = list(
+        mzR_chromatogram = list(chrom)
+      )
+    )
+  )
+  baseline_value <- 1.0  # indices 8 and 10 are 0.5, so 2 crossings after apex
+
+  # With default options (verbose = FALSE): no message emitted
+  old_opt <- getOption("MStargetR.verbose")
+  on.exit(options(MStargetR.verbose = old_opt), add = TRUE)
+
+  options(MStargetR.verbose = FALSE)
+  expect_silent(
+    MStargetR:::find_peak_end_idx(FUNC_mzR, "plate1", "file1.mzML", 1L,
+                                   which.max(intensities), baseline_value)
+  )
+
+  # With verbose = TRUE: message IS emitted
+  options(MStargetR.verbose = TRUE)
+  expect_message(
+    MStargetR:::find_peak_end_idx(FUNC_mzR, "plate1", "file1.mzML", 1L,
+                                   which.max(intensities), baseline_value),
+    "find_peak_end_idx: fewer than"
+  )
+})
+
 # PK-035: create_output warns and uses first row when guide_match > 1 ----
 test_that("PK-035: create_output warns on duplicate precursor_name in guide", {
   guide <- tibble::tibble(

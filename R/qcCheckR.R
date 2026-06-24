@@ -448,44 +448,53 @@ qcCheckR <- function(user_name,
   master_list$project_details$qcrlsc_shift <- qcrlsc_shift
   master_list$project_details$batch_column <- batch_column
 
-  ##data preparation----
-  master_list <- qcCheckR_transpose_data(master_list)
-  master_list <- qcCheckR_sort_data(master_list, date_order = date_order)
-  master_list <- qcCheckR_impute_data(master_list)
-  master_list <- qcCheckR_calculate_response_concentration(master_list)
-  master_list <- qcCheckR_statTarget_batch_correction(master_list)
-  #filtering----
-  master_list <- qcCheckR_set_qc(master_list)
-  master_list <- qcCheckR_sample_filter(master_list)
-  master_list <- qcCheckR_sil_IntStd_filter(master_list)
-  master_list <- qcCheckR_lipid_filter(master_list)
-  master_list <- qcCheckR_RSD_filter(master_list)
-  #summary report----
-  master_list <- qcCheckR_summary_report(master_list)
-  #plot generation----
-  master_list <- qcCheckR_plot_options(master_list)
-  master_list <- qcCheckR_PCA(master_list)
-  master_list <- qcCheckR_run_order_plots(master_list)
-  master_list <- qcCheckR_target_control_charts(master_list)
-  #exports----
-  master_list <- qcCheckR_export_all(master_list,
-                                     write_rda = write_rda,
-                                     qs_nthreads = qs_nthreads,
-                                     qs_compress_level = qs_compress_level)
-  #advanced plots (R-side parity with GUI)----
-  if (isTRUE(advanced_plots)) {
-    message("Writing advanced plots to all/figures/qcCheckR/ ...")
-    tryCatch({
-      plots <- qcCheckR_collect_plots(master_list)
-      save_figure_list(
-        plots,
-        project_dir = master_list$project_details$project_dir,
-        module = "qcCheckR"
-      )
-    }, error = function(e) {
-      warning("qcCheckR: advanced_plots write failed: ",
-              conditionMessage(e), call. = FALSE)
-    })
-  }
+  # Tee all R-side console output from this point to the per-project log file
+  # so the GUI/terminal and the on-disk log receive the same messages.
+  master_list <- mst_with_logging(
+    master_list$project_details$project_name,
+    project_directory,
+    {
+      ##data preparation----
+      master_list <- qcCheckR_transpose_data(master_list)
+      master_list <- qcCheckR_sort_data(master_list, date_order = date_order)
+      master_list <- qcCheckR_impute_data(master_list)
+      master_list <- qcCheckR_calculate_response_concentration(master_list)
+      master_list <- qcCheckR_statTarget_batch_correction(master_list)
+      #filtering----
+      master_list <- qcCheckR_set_qc(master_list)
+      master_list <- qcCheckR_sample_filter(master_list)
+      master_list <- qcCheckR_sil_IntStd_filter(master_list)
+      master_list <- qcCheckR_lipid_filter(master_list)
+      master_list <- qcCheckR_RSD_filter(master_list)
+      #summary report----
+      master_list <- qcCheckR_summary_report(master_list)
+      #plot generation----
+      master_list <- qcCheckR_plot_options(master_list)
+      master_list <- qcCheckR_PCA(master_list)
+      master_list <- qcCheckR_run_order_plots(master_list)
+      master_list <- qcCheckR_target_control_charts(master_list)
+      #exports----
+      master_list <- qcCheckR_export_all(master_list,
+                                         write_rda = write_rda,
+                                         qs_nthreads = qs_nthreads,
+                                         qs_compress_level = qs_compress_level)
+      #advanced plots (R-side parity with GUI)----
+      if (isTRUE(advanced_plots)) {
+        message("Writing advanced plots to all/figures/qcCheckR/ ...")
+        tryCatch({
+          plots <- qcCheckR_collect_plots(master_list)
+          save_figure_list(
+            plots,
+            project_dir = master_list$project_details$project_dir,
+            module = "qcCheckR"
+          )
+        }, error = function(e) {
+          warning("qcCheckR: advanced_plots write failed: ",
+                  conditionMessage(e), call. = FALSE)
+        })
+      }
+      master_list
+    }
+  )
   invisible(master_list)
 }#close of function

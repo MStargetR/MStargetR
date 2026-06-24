@@ -614,9 +614,11 @@ find_peak_end_idx <- function(FUNC_mzR,
     # available crossing rather than falling back to the full chromatogram end,
     # which would over-integrate. Log a notice so the caller can investigate.
     if (length(after_apex_crossings) > 0) {
-      message("find_peak_end_idx: fewer than ", n_baseline_crossings,
-              " baseline crossings after apex for idx_mzML=", idx_mzML,
-              ", idx_mrm=", idx_mrm, ". Using last available crossing.")
+      if (isTRUE(getOption("MStargetR.verbose", FALSE))) {
+        message("find_peak_end_idx: fewer than ", n_baseline_crossings,
+                " baseline crossings after apex for idx_mzML=", idx_mzML,
+                ", idx_mrm=", idx_mrm, ". Using last available crossing.")
+      }
       peak_end_idx <- after_apex_crossings[length(after_apex_crossings)]
     } else {
       peak_end_idx <- length(intensities)

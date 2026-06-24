@@ -645,6 +645,76 @@ log_error <- function(error_message, plateID, project_directory = getwd()) {
 }
 
 
+#' Tee R console output to the per-plate log file
+#'
+#' Evaluates \code{expr} while tee-ing stdout to the plate log file (the same
+#' file that docker/container output already uses), so that R-side
+#' \code{message()}, \code{warning()}, \code{print()}, and \code{cat()} calls
+#' from pipeline entry points are persisted without being silenced on the
+#' console.  Both the console \emph{and} the file receive every line.
+#'
+#' The log path mirrors the construction used in \code{log_error()}:
+#' \code{<project_directory>/MStargetR_logs/<plateID>_MStargetR_log.txt}.
+#'
+#' @keywords internal
+#' @param plateID A single character string identifying the plate (used to
+#'   derive the log file name).
+#' @param project_directory A single character string for the project directory.
+#'   Defaults to \code{getwd()}.
+#' @param expr An R expression to evaluate.  Its value is returned invisibly.
+#' @return The value of \code{expr}, invisibly.
+#' @examples
+#' \dontrun{
+#' result <- mst_with_logging("plateA", "/path/to/project", {
+#'   message("Processing plate A")
+#'   42L
+#' })
+#' }
+mst_with_logging <- function(plateID, project_directory = getwd(), expr) {
+  log_dir <- file.path(project_directory, "MStargetR_logs")
+  if (!dir.exists(log_dir)) {
+    dir.create(log_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+  log_file <- file.path(log_dir, paste0(plateID, "_MStargetR_log.txt"))
+
+  con <- tryCatch(file(log_file, open = "at", encoding = "UTF-8"),
+                  error = function(e) NULL)
+  if (is.null(con)) {
+    # If the connection cannot be opened, fall through without logging
+    return(invisible(force(expr)))
+  }
+
+  # Tee stdout/print output: split = TRUE keeps the console echo
+  sink(con, split = TRUE)
+  on.exit({
+    try(sink(NULL), silent = TRUE)
+    try(close(con), silent = TRUE)
+  }, add = TRUE)
+
+  # Capture messages and warnings: write a timestamped copy to the file then
+  # let them propagate normally so the console still displays them.
+  .write_to_con <- function(text) {
+    timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+    line <- paste0("[", timestamp, "] ", text)
+    try(writeLines(enc2utf8(line), con = con), silent = TRUE)
+  }
+
+  result <- withCallingHandlers(
+    expr,
+    message = function(m) {
+      .write_to_con(conditionMessage(m))
+      # Do NOT muffle -- let the message propagate to the console
+    },
+    warning = function(w) {
+      .write_to_con(paste("Warning:", conditionMessage(w)))
+      # Do NOT muffle -- let the warning propagate normally
+    }
+  )
+
+  invisible(result)
+}
+
+
 #' Validate qcCheckR mrm template list
 #'
 #' This function validates the mrm_template_list list by checking the column headers and ensuring there are no NA or NULL values in the SIL_guide and conc_guide files.

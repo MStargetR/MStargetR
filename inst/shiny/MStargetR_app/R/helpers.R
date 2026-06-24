@@ -983,3 +983,30 @@ mst_cleanup_pipeline <- function(handle, log_file) {
   }
   invisible(NULL)
 }
+
+#' Persist a console log string to <project_dir>/MStargetR_logs/.
+#'
+#' Called after async pipeline completion (Task 5) so the full session log
+#' is preserved alongside the pipeline output files.
+#'
+#' @param project_dir Character. Root project directory.
+#' @param pipeline_name Character. Used in the filename (e.g. "qcCheckR").
+#' @param log_text Character. Full console log to write.
+#' @return Invisible path written, or NULL on failure.
+#' @keywords internal
+mst_persist_log <- function(project_dir, pipeline_name, log_text) {
+  if (is.null(project_dir) || !nzchar(project_dir)) return(invisible(NULL))
+  if (is.null(log_text)) log_text <- ""
+  tryCatch({
+    log_dir <- file.path(project_dir, "MStargetR_logs")
+    if (!dir.exists(log_dir)) dir.create(log_dir, recursive = TRUE)
+    fname <- paste0(format(Sys.time(), "%Y%m%d_%H%M%S"), "_",
+                    pipeline_name, "_console.log")
+    out_path <- file.path(log_dir, fname)
+    writeLines(log_text, out_path)
+    invisible(out_path)
+  }, error = function(e) {
+    message("[mst_persist_log] Could not write log: ", conditionMessage(e))
+    invisible(NULL)
+  })
+}

@@ -927,11 +927,15 @@ msConvertR_execute_command <- function(commands, output_directory, plateIDs,
 
   # Collect results (blocks until all futures complete) then print per-plate
   # status in the main session so messages appear as each plate finishes.
+  # Each per-plate status message is also appended to the same log file that
+  # the docker output uses, so R-side output and container output are co-located.
   message("  Waiting for ", length(futures), " conversion(s) to finish...")
   raw_results <- lapply(futures, future::value)
   for (res in raw_results) {
-    message(sprintf("Finished conversion for %s - %s",
-                    res$plateID, if (res$success) "SUCCESS" else "FAILURE"))
+    mst_with_logging(res$plateID, output_directory,
+      message(sprintf("Finished conversion for %s - %s",
+                      res$plateID, if (res$success) "SUCCESS" else "FAILURE"))
+    )
   }
   results <- stats::setNames(
     lapply(raw_results, function(r) r$success),
@@ -949,8 +953,10 @@ msConvertR_execute_command <- function(commands, output_directory, plateIDs,
                               full.names = FALSE, recursive = FALSE)
       if (length(new_mzml) == 0L) {
         results[[pid]] <- FALSE
-        message("msConvertR: No .mzML files found for '", pid,
-                "' in '", mzml_dir, "' - marking as FAILURE.")
+        mst_with_logging(pid, output_directory,
+          message("msConvertR: No .mzML files found for '", pid,
+                  "' in '", mzml_dir, "' - marking as FAILURE.")
+        )
       }
     }
   }

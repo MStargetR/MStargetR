@@ -535,6 +535,11 @@ ui <- bslib::page_navbar(
             class = "card-body p-0",
             shiny::verbatimTextOutput("convert_console") |>
               htmltools::tagAppendAttributes(class = "console-output m-0")
+          ),
+          htmltools::tags$div(
+            class = "card-footer",
+            shiny::downloadButton("convert_download_log", "Download Log (.txt)",
+                                  class = "btn btn-sm btn-outline-secondary")
           )
         ),
 
@@ -703,6 +708,11 @@ ui <- bslib::page_navbar(
             class = "card-body p-0",
             shiny::verbatimTextOutput("peak_console") |>
               htmltools::tagAppendAttributes(class = "console-output m-0")
+          ),
+          htmltools::tags$div(
+            class = "card-footer",
+            shiny::downloadButton("peak_download_log", "Download Log (.txt)",
+                                  class = "btn btn-sm btn-outline-secondary")
           )
         ),
 
@@ -1012,6 +1022,11 @@ ui <- bslib::page_navbar(
             class = "card-body p-0",
             shiny::verbatimTextOutput("qc_console") |>
               htmltools::tagAppendAttributes(class = "console-output m-0")
+          ),
+          htmltools::tags$div(
+            class = "card-footer",
+            shiny::downloadButton("qc_download_log", "Download Log (.txt)",
+                                  class = "btn btn-sm btn-outline-secondary")
           )
         ),
 
@@ -1031,6 +1046,11 @@ ui <- bslib::page_navbar(
             title = htmltools::tagList(shiny::icon("table-cells"), "Summary"),
             htmltools::tags$div(
               class = "p-3",
+              htmltools::tags$div(
+                class = "d-flex gap-2 mb-2",
+                shiny::downloadButton("qc_download_summary_csv", "CSV",
+                                      class = "btn btn-sm btn-outline-secondary")
+              ),
               DT::DTOutput("qc_summary_table"),
               empty_state("Run QC Check to see the summary here.", "qc_summary_table")
             )
@@ -1039,6 +1059,11 @@ ui <- bslib::page_navbar(
             title = htmltools::tagList(shiny::icon("chart-line"), "PCA Plot"),
             htmltools::tags$div(
               class = "p-3",
+              htmltools::tags$div(
+                class = "d-flex gap-2 mb-2",
+                shiny::downloadButton("qc_download_pca_png", "PNG",
+                                      class = "btn btn-sm btn-outline-secondary")
+              ),
               plotly::plotlyOutput("qc_pca_plot", height = "700px"),
               empty_state("Run QC Check to see the PCA plot here.", "qc_pca_plot")
             )
@@ -1052,6 +1077,11 @@ ui <- bslib::page_navbar(
                 choices = c("PC1" = "PC1", "PC2" = "PC2", "PC3" = "PC3"),
                 selected = "PC1"
               ),
+              htmltools::tags$div(
+                class = "d-flex gap-2 mb-2",
+                shiny::downloadButton("qc_download_runorder_png", "PNG",
+                                      class = "btn btn-sm btn-outline-secondary")
+              ),
               plotly::plotlyOutput("qc_runorder_plot", height = "550px"),
               empty_state("Run QC Check to see run order plots here.", "qc_runorder_plot")
             )
@@ -1064,6 +1094,11 @@ ui <- bslib::page_navbar(
                 "qc_controlchart_metabolite", "Select Metabolite",
                 choices = NULL
               ),
+              htmltools::tags$div(
+                class = "d-flex gap-2 mb-2",
+                shiny::downloadButton("qc_download_controlchart_png", "PNG",
+                                      class = "btn btn-sm btn-outline-secondary")
+              ),
               plotly::plotlyOutput("qc_controlchart_plot", height = "550px"),
               empty_state("Run QC Check to see control charts here.", "qc_controlchart_plot")
             )
@@ -1072,6 +1107,11 @@ ui <- bslib::page_navbar(
             title = htmltools::tagList(shiny::icon("chart-pie"), "RSD Distribution"),
             htmltools::tags$div(
               class = "p-3",
+              htmltools::tags$div(
+                class = "d-flex gap-2 mb-2",
+                shiny::downloadButton("qc_download_rsd_html", "HTML",
+                                      class = "btn btn-sm btn-outline-secondary")
+              ),
               plotly::plotlyOutput("qc_rsd_histogram", height = "550px"),
               empty_state("Run QC Check to see the RSD distribution.", "qc_rsd_histogram")
             )
@@ -1080,6 +1120,11 @@ ui <- bslib::page_navbar(
             title = htmltools::tagList(shiny::icon("eye-slash"), "Missing Values"),
             htmltools::tags$div(
               class = "p-3",
+              htmltools::tags$div(
+                class = "d-flex gap-2 mb-2",
+                shiny::downloadButton("qc_download_missing_html", "HTML",
+                                      class = "btn btn-sm btn-outline-secondary")
+              ),
               plotly::plotlyOutput("qc_missing_plot", height = "550px"),
               empty_state("Run QC Check to see missing value patterns.", "qc_missing_plot")
             )
@@ -1088,6 +1133,13 @@ ui <- bslib::page_navbar(
             title = htmltools::tagList(shiny::icon("users"), "Sample Overview"),
             htmltools::tags$div(
               class = "p-3",
+              htmltools::tags$div(
+                class = "d-flex gap-2 mb-2",
+                shiny::downloadButton("qc_download_pie_html", "Pie HTML",
+                                      class = "btn btn-sm btn-outline-secondary"),
+                shiny::downloadButton("qc_download_plate_html", "Plate HTML",
+                                      class = "btn btn-sm btn-outline-secondary")
+              ),
               htmltools::tags$div(
                 class = "row mb-3",
                 htmltools::tags$div(
@@ -1106,6 +1158,11 @@ ui <- bslib::page_navbar(
             title = htmltools::tagList(shiny::icon("filter"), "Filtered Metabolites"),
             htmltools::tags$div(
               class = "p-3",
+              htmltools::tags$div(
+                class = "d-flex gap-2 mb-2",
+                shiny::downloadButton("qc_download_filtered_csv", "CSV",
+                                      class = "btn btn-sm btn-outline-secondary")
+              ),
               DT::DTOutput("qc_filtered_table"),
               empty_state("Run QC Check to see filtered metabolites here.", "qc_filtered_table")
             )
@@ -1114,7 +1171,7 @@ ui <- bslib::page_navbar(
 
         # Export buttons
         htmltools::tags$div(
-          class = "d-flex gap-3 mt-3",
+          class = "d-flex gap-3 mt-3 flex-wrap",
           shiny::downloadButton("qc_download_excel", "Export Excel",
                                 class = "btn btn-outline-secondary"),
           shiny::downloadButton("qc_download_report", "Export HTML Report",
@@ -1372,6 +1429,11 @@ ui <- bslib::page_navbar(
             class = "card-body p-0",
             shiny::verbatimTextOutput("batch_console") |>
               htmltools::tagAppendAttributes(class = "console-output m-0")
+          ),
+          htmltools::tags$div(
+            class = "card-footer",
+            shiny::downloadButton("batch_download_log", "Download Log (.txt)",
+                                  class = "btn btn-sm btn-outline-secondary")
           )
         ),
 
@@ -1384,6 +1446,13 @@ ui <- bslib::page_navbar(
             htmltools::tags$div(
               class = "p-3",
               shiny::uiOutput("batch_met_selector"),
+              htmltools::tags$div(
+                class = "d-flex gap-2 mb-2",
+                shiny::downloadButton("batch_download_drift_before_html", "Before HTML",
+                                      class = "btn btn-sm btn-outline-secondary"),
+                shiny::downloadButton("batch_download_drift_after_html", "After HTML",
+                                      class = "btn btn-sm btn-outline-secondary")
+              ),
               htmltools::tags$h6("Before Correction"),
               plotly::plotlyOutput("batch_plot_before", height = "400px"),
               htmltools::tags$hr(),
@@ -1402,6 +1471,13 @@ ui <- bslib::page_navbar(
             htmltools::tags$div(
               class = "p-3",
               shiny::uiOutput("batch_pca_sample_toggle"),
+              htmltools::tags$div(
+                class = "d-flex gap-2 mb-2",
+                shiny::downloadButton("batch_download_pca_before_html", "Before HTML",
+                                      class = "btn btn-sm btn-outline-secondary"),
+                shiny::downloadButton("batch_download_pca_after_html", "After HTML",
+                                      class = "btn btn-sm btn-outline-secondary")
+              ),
               htmltools::tags$h6("Before Correction"),
               plotly::plotlyOutput("batch_pca_before", height = "400px"),
               htmltools::tags$hr(),
@@ -1418,6 +1494,15 @@ ui <- bslib::page_navbar(
             title = htmltools::tagList(shiny::icon("percent"), "RSD Comparison"),
             htmltools::tags$div(
               class = "p-3",
+              htmltools::tags$div(
+                class = "d-flex gap-2 mb-2",
+                shiny::downloadButton("batch_download_rsd_class_png", "Class PNG",
+                                      class = "btn btn-sm btn-outline-secondary"),
+                shiny::downloadButton("batch_download_rsd_png", "Met PNG",
+                                      class = "btn btn-sm btn-outline-secondary"),
+                shiny::downloadButton("batch_download_rsd_csv", "RSD CSV",
+                                      class = "btn btn-sm btn-outline-secondary")
+              ),
               htmltools::tags$h6("Class Overview"),
               plotly::plotlyOutput("batch_rsd_class_plot", height = "400px"),
               htmltools::tags$p(class = "help-text",
@@ -1440,6 +1525,11 @@ ui <- bslib::page_navbar(
             title = htmltools::tagList(shiny::icon("table"), "Corrected Data"),
             htmltools::tags$div(
               class = "p-3",
+              htmltools::tags$div(
+                class = "d-flex gap-2 mb-2",
+                shiny::downloadButton("batch_download_corrected_csv", "CSV",
+                                      class = "btn btn-sm btn-outline-secondary")
+              ),
               DT::DTOutput("batch_corrected_table"),
               empty_state("Run Batch Correction to see corrected data.", "batch_corrected_table")
             )
@@ -1764,11 +1854,21 @@ ui <- bslib::page_navbar(
               class = "row mb-4",
               htmltools::tags$div(
                 class = "col-md-7",
+                htmltools::tags$div(
+                  class = "d-flex gap-2 mb-2",
+                  shiny::downloadButton("results_download_rsd_histogram_html",
+                                        "RSD Histogram (HTML)", class = "btn-sm btn-outline-secondary")
+                ),
                 plotly::plotlyOutput("results_rsd_histogram", height = "350px"),
                 empty_state("No data yet. Run the QC Check tab first, or select 'Uploaded file' to load your own data.", "results_rsd_histogram")
               ),
               htmltools::tags$div(
                 class = "col-md-5",
+                htmltools::tags$div(
+                  class = "d-flex gap-2 mb-2",
+                  shiny::downloadButton("results_download_passfail_donut_html",
+                                        "Pass/Fail Donut (HTML)", class = "btn-sm btn-outline-secondary")
+                ),
                 plotly::plotlyOutput("results_passfail_donut", height = "350px"),
                 empty_state("Pass/fail breakdown will appear once QC data is available.", "results_passfail_donut")
               )
@@ -1777,6 +1877,11 @@ ui <- bslib::page_navbar(
               class = "row",
               htmltools::tags$div(
                 class = "col-12",
+                htmltools::tags$div(
+                  class = "d-flex gap-2 mb-2",
+                  shiny::downloadButton("results_download_class_summary_html",
+                                        "Class Summary (HTML)", class = "btn-sm btn-outline-secondary")
+                ),
                 plotly::plotlyOutput("results_class_summary", height = "400px"),
                 empty_state("Class breakdown will appear once lipid class information is detected.", "results_class_summary")
               )
@@ -1789,13 +1894,28 @@ ui <- bslib::page_navbar(
           title = htmltools::tagList(shiny::icon("chart-simple"), "RSD Explorer"),
           htmltools::tags$div(
             class = "p-3",
+            htmltools::tags$div(
+              class = "d-flex gap-2 mb-2",
+              shiny::downloadButton("results_download_rsd_scatter_html",
+                                    "Before/After Scatter (HTML)", class = "btn-sm btn-outline-secondary")
+            ),
             shiny::uiOutput("results_rsd_scatter_ui"),
             htmltools::tags$div(
               class = "row mb-4",
               htmltools::tags$div(
                 class = "col-12",
+                htmltools::tags$div(
+                  class = "d-flex gap-2 mb-2",
+                  shiny::downloadButton("results_download_conc_vs_rsd_html",
+                                        "Conc vs RSD (HTML)", class = "btn-sm btn-outline-secondary")
+                ),
                 plotly::plotlyOutput("results_conc_vs_rsd", height = "400px")
               )
+            ),
+            htmltools::tags$div(
+              class = "d-flex gap-2 mb-2",
+              shiny::downloadButton("results_download_rsd_bar_html",
+                                    "RSD Bar (HTML)", class = "btn-sm btn-outline-secondary")
             ),
             plotly::plotlyOutput("results_rsd_bar", height = "650px"),
             empty_state("RSD bar chart will appear once QC data is loaded. Try the QC Check tab or upload a file.", "results_rsd_bar")
@@ -1823,6 +1943,17 @@ ui <- bslib::page_navbar(
               )
             ),
             shiny::uiOutput("results_metabolite_info"),
+            htmltools::tags$div(
+              class = "d-flex gap-2 mb-2",
+              shiny::downloadButton("results_download_boxplot_html",
+                                    "Boxplot (HTML)", class = "btn-sm btn-outline-secondary"),
+              shiny::downloadButton("results_download_runorder_html",
+                                    "Run Order (HTML)", class = "btn-sm btn-outline-secondary"),
+              shiny::downloadButton("results_download_deep_before_html",
+                                    "Before Correction (HTML)", class = "btn-sm btn-outline-secondary"),
+              shiny::downloadButton("results_download_deep_after_html",
+                                    "After Correction (HTML)", class = "btn-sm btn-outline-secondary")
+            ),
             htmltools::tags$div(
               class = "row mb-3",
               htmltools::tags$div(
@@ -1865,6 +1996,11 @@ ui <- bslib::page_navbar(
                   selected = "all", inline = TRUE
                 )
               )
+            ),
+            htmltools::tags$div(
+              class = "d-flex gap-2 mb-2",
+              shiny::downloadButton("results_download_heatmap_html",
+                                    "Heatmap (HTML)", class = "btn-sm btn-outline-secondary")
             ),
             plotly::plotlyOutput("results_heatmap", height = "650px"),
             empty_state("Heatmap will appear once data is loaded. Run QC Check, Batch Correction, or upload a file.", "results_heatmap")
