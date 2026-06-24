@@ -1599,7 +1599,7 @@ sessionInfo()
 #>  [9] textshaping_1.0.5 yaml_2.3.12       fastmap_1.2.0     readr_2.2.0      
 #> [13] R6_2.6.1          knitr_1.51        htmlwidgets_1.6.4 tibble_3.3.1     
 #> [17] desc_1.4.3        bslib_0.11.0      pillar_1.11.1     tzdb_0.5.0       
-#> [21] rlang_1.2.0       utf8_1.2.6        cachem_1.1.0      xfun_0.58        
+#> [21] rlang_1.2.0       utf8_1.2.6        cachem_1.1.0      xfun_0.59        
 #> [25] fs_2.1.0          sass_0.4.10       bit64_4.8.2       otel_0.2.0       
 #> [29] cli_3.6.6         pkgdown_2.2.0     magrittr_2.0.5    digest_0.6.39    
 #> [33] vroom_1.7.1       hms_1.1.4         lifecycle_1.0.5   vctrs_0.7.3      
