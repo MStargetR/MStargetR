@@ -1249,7 +1249,7 @@ test_that("save_plate_data initiates background save", {
 
 # --- Lines 1556-1560: archive_raw_files ---
 
-test_that("archive_raw_files calls archive_files for logs and raw_data", {
+test_that("archive_raw_files archives raw_data but leaves MStargetR_logs in place", {
   tmp_dir <- withr::local_tempdir()
 
   archived <- character(0)
@@ -1260,7 +1260,9 @@ test_that("archive_raw_files calls archive_files for logs and raw_data", {
 
   suppressMessages(archive_raw_files(tmp_dir))
 
-  expect_true("MStargetR_logs" %in% archived)
+  # MStargetR_logs must NOT be archived: per-plate msConvert/Docker logs stay
+  # in place so qcCheckR logs are written alongside them, not split into archive/.
+  expect_false("MStargetR_logs" %in% archived)
   expect_true("raw_data" %in% archived)
 })
 
@@ -2150,7 +2152,7 @@ test_that("save_plate_data saves via callr::r_bg on normal paths (lines 1510-153
 # archive_raw_files / archive_files (lines 1431-1432, 1555-1583)
 # ============================================================================
 
-test_that("archive_raw_files calls archive_files for logs and raw_data", {
+test_that("archive_raw_files archives raw_data but not MStargetR_logs", {
   tmp <- withr::local_tempdir()
 
   stub(archive_raw_files, "validate_project_directory", function(x, ...) x)
@@ -2161,7 +2163,7 @@ test_that("archive_raw_files calls archive_files for logs and raw_data", {
   })
 
   suppressMessages(archive_raw_files(tmp))
-  expect_true("MStargetR_logs" %in% archived_folders)
+  expect_false("MStargetR_logs" %in% archived_folders)
   expect_true("raw_data" %in% archived_folders)
 })
 

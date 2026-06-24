@@ -319,6 +319,21 @@ function(input, output, session) {
             )
           }
         }
+
+        # RAM trim: free the heavy master_list slots that the interactive GUI
+        # never reads, to shrink the in-memory session copy. The full object was
+        # already serialised to .qs2 by the background save above (callr::r_bg
+        # captures its args synchronously), so the on-disk result stays complete
+        # -- this only drops the live copy of the raw imported reports
+        # ($data$PeakForgeRReport) and the response stage ($data$response),
+        # which are large per-plate data frames consumed only during qcCheckR
+        # itself. Every GUI tab/plot/export reads $data$concentration,
+        # $data$peakArea$sorted, $pca, $control_charts, $filters, $summary_tables
+        # or $project_details -- none of which are touched here.
+        if (!is.null(rv$qc_result$data)) {
+          rv$qc_result$data$PeakForgeRReport <- NULL
+          rv$qc_result$data$response         <- NULL
+        }
       } else {
         rv$qc_log <- paste0(rv$qc_log %||% "",
                              "\n[error] ", result$message, "\n")
@@ -4811,49 +4826,52 @@ function(input, output, session) {
     )
   }
 
+  # -- Helper: register a download output from a handler list -----------------
+  # shiny::downloadHandler() captures `filename`/`content` as LAZY promises and
+  # never forces them. Writing `h <- mst_*_handler(...)` then
+  # `downloadHandler(filename = h$filename, content = h$content)` for every
+  # plot makes all those promises reference the same mutable `h` in the server
+  # frame, so at download time they ALL resolve to the last value assigned to
+  # `h` (the heatmap) -- which is why every plot export produced the heatmap.
+  # Passing the handler through this helper binds it to a fresh per-call frame,
+  # so each download resolves to its own handler.
+  mst_register_download <- function(output_id, handler) {
+    force(handler)
+    output[[output_id]] <- shiny::downloadHandler(
+      filename = handler$filename,
+      content  = handler$content
+    )
+  }
+
   # -- QC plots ---------------------------------------------------------------
 
   # PCA (ggplot-backed) -> PNG
-  h <- mst_ggsave_handler(qc_pca_plot_val, "qc_pca")
-  output$qc_download_pca_png <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("qc_download_pca_png",
+                        mst_ggsave_handler(qc_pca_plot_val, "qc_pca"))
 
   # Run Order (ggplot-backed) -> PNG
-  h <- mst_ggsave_handler(qc_runorder_plot_val, "qc_runorder", height = 6)
-  output$qc_download_runorder_png <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("qc_download_runorder_png",
+                        mst_ggsave_handler(qc_runorder_plot_val, "qc_runorder", height = 6))
 
   # Control Chart (ggplot-backed) -> PNG
-  h <- mst_ggsave_handler(qc_controlchart_plot_val, "qc_controlchart", height = 6)
-  output$qc_download_controlchart_png <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("qc_download_controlchart_png",
+                        mst_ggsave_handler(qc_controlchart_plot_val, "qc_controlchart", height = 6))
 
   # RSD Histogram (native plot_ly) -> HTML
-  h <- mst_widget_handler(qc_rsd_histogram_val, "qc_rsd_histogram")
-  output$qc_download_rsd_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("qc_download_rsd_html",
+                        mst_widget_handler(qc_rsd_histogram_val, "qc_rsd_histogram"))
 
   # Missing Values (native plot_ly) -> HTML
-  h <- mst_widget_handler(qc_missing_plot_val, "qc_missing_plot")
-  output$qc_download_missing_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("qc_download_missing_html",
+                        mst_widget_handler(qc_missing_plot_val, "qc_missing_plot"))
 
   # Sample Type Pie (native plot_ly) -> HTML
-  h <- mst_widget_handler(qc_sample_type_pie_val, "qc_sample_type_pie")
-  output$qc_download_pie_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("qc_download_pie_html",
+                        mst_widget_handler(qc_sample_type_pie_val, "qc_sample_type_pie"))
 
   # Plate Bar (native plot_ly) -> HTML
-  h <- mst_widget_handler(qc_plate_bar_val, "qc_plate_bar")
-  output$qc_download_plate_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("qc_download_plate_html",
+                        mst_widget_handler(qc_plate_bar_val, "qc_plate_bar"))
 
   # QC Summary table -> CSV
   output$qc_download_summary_csv <- shiny::downloadHandler(
@@ -4911,40 +4929,28 @@ function(input, output, session) {
   # -- Batch Correction plots and tables --------------------------------------
 
   # Signal Drift Before (native plotly) -> HTML
-  h <- mst_widget_handler(batch_plot_before_val, "batch_drift_before")
-  output$batch_download_drift_before_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("batch_download_drift_before_html",
+                        mst_widget_handler(batch_plot_before_val, "batch_drift_before"))
 
   # Signal Drift After (native plotly) -> HTML
-  h <- mst_widget_handler(batch_plot_after_val, "batch_drift_after")
-  output$batch_download_drift_after_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("batch_download_drift_after_html",
+                        mst_widget_handler(batch_plot_after_val, "batch_drift_after"))
 
   # PCA Before (native plotly) -> HTML
-  h <- mst_widget_handler(batch_pca_before_val, "batch_pca_before")
-  output$batch_download_pca_before_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("batch_download_pca_before_html",
+                        mst_widget_handler(batch_pca_before_val, "batch_pca_before"))
 
   # PCA After (native plotly) -> HTML
-  h <- mst_widget_handler(batch_pca_after_val, "batch_pca_after")
-  output$batch_download_pca_after_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("batch_download_pca_after_html",
+                        mst_widget_handler(batch_pca_after_val, "batch_pca_after"))
 
   # RSD Class Plot (ggplot-backed) -> PNG
-  h <- mst_ggsave_handler(batch_rsd_class_plot_val, "batch_rsd_class", height = 8)
-  output$batch_download_rsd_class_png <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("batch_download_rsd_class_png",
+                        mst_ggsave_handler(batch_rsd_class_plot_val, "batch_rsd_class", height = 8))
 
   # RSD per-metabolite plot (ggplot-backed) -> PNG
-  h <- mst_ggsave_handler(batch_rsd_plot_val, "batch_rsd_plot", width = 6, height = 5)
-  output$batch_download_rsd_png <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("batch_download_rsd_png",
+                        mst_ggsave_handler(batch_rsd_plot_val, "batch_rsd_plot", width = 6, height = 5))
 
   # RSD table -> CSV
   output$batch_download_rsd_csv <- shiny::downloadHandler(
@@ -5011,68 +5017,46 @@ function(input, output, session) {
   # -- Results Explorer plots -> HTML (Gap A) ----------------------------------
 
   # RSD Histogram (native plotly) -> HTML
-  h <- mst_widget_handler(results_rsd_histogram_val, "results_rsd_histogram")
-  output$results_download_rsd_histogram_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("results_download_rsd_histogram_html",
+                        mst_widget_handler(results_rsd_histogram_val, "results_rsd_histogram"))
 
   # Pass/Fail Donut (native plotly) -> HTML
-  h <- mst_widget_handler(results_passfail_donut_val, "results_passfail_donut")
-  output$results_download_passfail_donut_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("results_download_passfail_donut_html",
+                        mst_widget_handler(results_passfail_donut_val, "results_passfail_donut"))
 
   # Class Summary Bar (native plotly) -> HTML
-  h <- mst_widget_handler(results_class_summary_val, "results_class_summary")
-  output$results_download_class_summary_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("results_download_class_summary_html",
+                        mst_widget_handler(results_class_summary_val, "results_class_summary"))
 
   # RSD Scatter Before/After (native plotly) -> HTML
-  h <- mst_widget_handler(results_rsd_scatter_val, "results_rsd_scatter")
-  output$results_download_rsd_scatter_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("results_download_rsd_scatter_html",
+                        mst_widget_handler(results_rsd_scatter_val, "results_rsd_scatter"))
 
   # RSD Bar (native plotly) -> HTML
-  h <- mst_widget_handler(results_rsd_bar_val, "results_rsd_bar")
-  output$results_download_rsd_bar_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("results_download_rsd_bar_html",
+                        mst_widget_handler(results_rsd_bar_val, "results_rsd_bar"))
 
   # Concentration vs RSD (native plotly) -> HTML
-  h <- mst_widget_handler(results_conc_vs_rsd_val, "results_conc_vs_rsd")
-  output$results_download_conc_vs_rsd_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("results_download_conc_vs_rsd_html",
+                        mst_widget_handler(results_conc_vs_rsd_val, "results_conc_vs_rsd"))
 
   # Boxplot (native plotly) -> HTML
-  h <- mst_widget_handler(results_boxplot_val, "results_boxplot")
-  output$results_download_boxplot_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("results_download_boxplot_html",
+                        mst_widget_handler(results_boxplot_val, "results_boxplot"))
 
   # Run Order (native plotly) -> HTML
-  h <- mst_widget_handler(results_runorder_val, "results_runorder")
-  output$results_download_runorder_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("results_download_runorder_html",
+                        mst_widget_handler(results_runorder_val, "results_runorder"))
 
   # Deep Dive Before (native plotly) -> HTML
-  h <- mst_widget_handler(results_deep_before_val, "results_deep_before")
-  output$results_download_deep_before_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("results_download_deep_before_html",
+                        mst_widget_handler(results_deep_before_val, "results_deep_before"))
 
   # Deep Dive After (native plotly) -> HTML
-  h <- mst_widget_handler(results_deep_after_val, "results_deep_after")
-  output$results_download_deep_after_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("results_download_deep_after_html",
+                        mst_widget_handler(results_deep_after_val, "results_deep_after"))
 
   # Heatmap (native plotly) -> HTML
-  h <- mst_widget_handler(results_heatmap_val, "results_heatmap")
-  output$results_download_heatmap_html <- shiny::downloadHandler(
-    filename = h$filename, content = h$content
-  )
+  mst_register_download("results_download_heatmap_html",
+                        mst_widget_handler(results_heatmap_val, "results_heatmap"))
 }

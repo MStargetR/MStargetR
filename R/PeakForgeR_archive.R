@@ -11,6 +11,10 @@
 #'
 #' This function moves raw files (wiff and mzML) to an archive directory after processing is complete.
 #' Note: \code{msConvert_mzml_output} is intentionally not archived; it is retained in place for downstream use.
+#' \code{MStargetR_logs} is also intentionally \emph{not} archived: the per-plate
+#' msConvert/Docker logs written there must remain in place so the later
+#' qcCheckR console logs are written alongside them in the same
+#' \code{MStargetR_logs} folder, rather than being split off into \code{archive/}.
 #'
 #' @param project_directory Path to the directory for the project parsed from PeakForgeR.
 #' @return None. The function performs the archive operation and a message upon successful completion.
@@ -21,7 +25,8 @@
 #' }
 archive_raw_files <- function(project_directory) {
   project_directory <- validate_project_directory(project_directory)
-  archive_files(project_directory, "MStargetR_logs")
+  # MStargetR_logs is deliberately left in place (not archived) so the
+  # per-plate logs stay co-located with the qcCheckR logs written later.
   archive_files(project_directory, "raw_data")
   #archive_files(project_directory, "msConvert_mzml_output")
   message("\n PeakForgeR has finished running all plates.")
