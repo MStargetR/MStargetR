@@ -903,6 +903,24 @@ ui <- bslib::page_navbar(
           "(default 5000)."
         ),
 
+        shiny::selectInput(
+          "qc_date_order", "Acquired Date Order",
+          choices = c(
+            "Auto-detect" = "auto",
+            "Month-first (US, e.g. 6/04/2026 = Jun 4)" = "mdy",
+            "Day-first (UK/AU, e.g. 6/04/2026 = 4 Jun)" = "dmy",
+            "Year-first / ISO" = "ymd"
+          ),
+          selected = "auto"
+        ),
+        htmltools::tags$p(class = "help-text",
+          "How to read Skyline's AcquiredTime dates. Leave on Auto-detect; ",
+          "it only needs overriding when a cohort's dates are all ambiguous ",
+          "(every day and month <= 12) and no plate name or mzML ISO ",
+          "timestamp can break the tie. Pick the locale of the machine that ",
+          "exported the data."
+        ),
+
         htmltools::tags$hr(),
         htmltools::tags$h6(class = "fw-semibold", "Batch Correction Options"),
 

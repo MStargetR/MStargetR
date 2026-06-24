@@ -1640,6 +1640,7 @@ function(input, output, session) {
       mv_threshold      = input$qc_mv_threshold,
       lod_threshold     = safe_numeric(input$qc_lod_threshold, default = 5000,
                                        min = 0),
+      date_order        = input$qc_date_order %||% "auto",
       batch_method      = input$qc_batch_method,
       batch_ntree       = qc_ntree,
       batch_coCV        = input$qc_batch_coCV,
