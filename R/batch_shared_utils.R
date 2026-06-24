@@ -138,7 +138,7 @@ parse_sample_timestamp <- function(x, date_order = c("auto", "dmy", "mdy", "ymd"
   remaining <- !is.na(x) & nzchar(x)
   for (fmt in tryFormats) {
     if (!any(remaining)) break
-    attempt <- suppressWarnings(as.POSIXct(x[remaining], format = fmt))
+    attempt <- suppressWarnings(as.POSIXct(x[remaining], format = fmt, tz = "UTC"))
     hits <- !is.na(attempt)
     if (any(hits)) {
       idx <- which(remaining)[hits]

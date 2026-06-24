@@ -46,6 +46,32 @@ test_that("parse_sample_timestamp honours 12-hour AM/PM clocks with seconds", {
   })
 })
 
+test_that("parse_sample_timestamp parses slash formats as UTC regardless of session TZ", {
+  # Skyline AcquiredTime strings carry no timezone. They must be parsed as
+  # UTC so they stay aligned with the genuinely-UTC ISO startTimeStamp that
+  # mzR provides -- extract_run_order() prefers the mzR value and falls back
+  # to AcquiredTime per-sample, so a TZ-dependent parse would offset the two
+  # against each other within a single plate. Run under a non-UTC session TZ
+  # (Perth, UTC+8) so a missing tz="UTC" in the parser would surface as an
+  # 8-hour shift. Regression for the local-vs-UTC parse inconsistency.
+  withr::with_envvar(c(TZ = "Australia/Perth"), {
+    # Slash/24-hour: clock time must be read as UTC, not local+8.
+    mdy <- parse_sample_timestamp("06/20/2026 13:39:03", "mdy")
+    expect_equal(as.numeric(mdy),
+                 as.numeric(as.POSIXct("2026-06-20 13:39:03", tz = "UTC")))
+
+    # US 12-hour with the double-space padding artifact, parsed as UTC.
+    mdy_am <- parse_sample_timestamp("6/04/2026  10:25:03 AM", "mdy")
+    expect_equal(as.numeric(mdy_am),
+                 as.numeric(as.POSIXct("2026-06-04 10:25:03", tz = "UTC")))
+
+    # The slash-parsed AcquiredTime and the equivalent ISO startTimeStamp
+    # must resolve to the same instant, so a mixed-source column is coherent.
+    iso <- parse_sample_timestamp("2026-06-20T13:39:03Z", "auto")
+    expect_equal(as.numeric(mdy), as.numeric(iso))
+  })
+})
+
 test_that("parse_sample_timestamp leaves existing 24-hour formats unchanged", {
   withr::with_envvar(c(TZ = "UTC"), {
     expect_equal(
