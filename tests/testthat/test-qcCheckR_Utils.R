@@ -648,6 +648,28 @@ test_that("set_project_qc_type uses user-specified QC type when it passes", {
   })
 })
 
+test_that("set_project_qc_type keeps user QC when case differs from tag keys", {
+  suppressMessages({
+  # Regression: default ANPC QC_sample_label "LTR" is uppercase while tag
+  # keys are lowercase. A case-sensitive lookup used to miss and wrongly
+  # switch to another passing QC (e.g. vltr).
+  master_list <- list(
+    project_details = list(
+      qc_type = "LTR",
+      global_qc_pass = list(vltr = "pass", ltr = "pass"),
+      qc_passed = list(
+        plate1 = list(vltr = "pass", ltr = "pass"),
+        plate2 = list(vltr = "pass", ltr = "pass")
+      )
+    )
+  )
+
+  result <- set_project_qc_type(master_list)
+  # Resolves to the canonical lowercase key rather than switching to vltr.
+  expect_equal(result$project_details$qc_type, "ltr")
+  })
+})
+
 test_that("set_project_qc_type selects alternative QC type when user-specified fails", {
   suppressMessages({
   master_list <- list(

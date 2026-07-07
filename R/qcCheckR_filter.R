@@ -77,9 +77,13 @@ determine_qc_type <- function(master_list) {
     return(passed_qc[1])
 
   } else if (length(passed_qc) > 1) {
-    if (user_supplied_qc %in% passed_qc) {
+    # Match the user's choice against the passing tag keys case-insensitively,
+    # mirroring the tolower() comparisons used throughout qcCheckR_Utils.R, and
+    # return the canonical key as stored in global_qc_pass.
+    matched_qc <- passed_qc[tolower(passed_qc) == tolower(user_supplied_qc)]
+    if (length(matched_qc) >= 1) {
       message("Multiple valid QC types found. Reverting to default user choice.")
-      return(master_list$project_details$qc_type)
+      return(matched_qc[[1]])
     } else {
       # Return "unknown" here per the function's documented contract and
       # let the caller (qcCheckR_set_qc) emit the authoritative "STOPPING

@@ -718,10 +718,16 @@ set_project_qc_type <- function(master_list) {
   user_qc <- master_list$project_details$qc_type
   global_pass <- master_list$project_details$global_qc_pass
 
-  if (!is.null(global_pass[[user_qc]]) &&
-      global_pass[[user_qc]] == "pass") {
-    message("qcCheckeR has set QC to user-specified type: ", user_qc)
-    master_list$project_details$qc_type <- user_qc
+  # Match the user's QC choice against the (lowercase) tag keys
+  # case-insensitively, mirroring the tolower() comparisons used throughout
+  # qcCheckR_Utils.R. `matched_qc` is the canonical key as stored in
+  # global_pass, or NA if the user's choice is not present at all.
+  matched_qc <- names(global_pass)[tolower(names(global_pass)) == tolower(user_qc)]
+  matched_qc <- if (length(matched_qc) >= 1) matched_qc[[1]] else NA_character_
+
+  if (!is.na(matched_qc) && global_pass[[matched_qc]] == "pass") {
+    message("qcCheckeR has set QC to user-specified type: ", matched_qc)
+    master_list$project_details$qc_type <- matched_qc
   } else {
     warning("User-specified QC type ", user_qc, " did not pass QC checks.")
     passed_qcs <- names(global_pass)[global_pass == "pass"]

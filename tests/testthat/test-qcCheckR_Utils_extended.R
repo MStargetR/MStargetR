@@ -57,6 +57,20 @@ test_that("determine_qc_type: reverts to user choice when multiple pass and user
   expect_equal(result, "ltr")
 })
 
+test_that("determine_qc_type: reverts to user choice case-insensitively", {
+  # Regression: uppercase user QC ("LTR") vs lowercase tag keys ("ltr")
+  # must still match rather than falling through to 'unknown'.
+  master_list <- list(
+    project_details = list(
+      global_qc_pass = c(vltr = "pass", ltr = "pass"),
+      qc_type = "LTR"
+    )
+  )
+
+  result <- suppressMessages(determine_qc_type(master_list))
+  expect_equal(result, "ltr")
+})
+
 test_that("determine_qc_type: returns 'unknown' when multiple pass but user_qc not among them", {
   master_list <- list(
     project_details = list(
