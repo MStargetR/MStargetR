@@ -1,5 +1,37 @@
 # Changelog
 
+## MStargetR 1.5.0
+
+Released 2026-07-07
+([compare](https://github.com/MStargetR/MStargetR/compare/v1.4.0...v1.5.0)).
+
+### Bug Fixes
+
+- **ci:** resolve Bioconductor via bioconductor.org, not broken PPM
+  mirror
+  ([4aa7819](https://github.com/MStargetR/MStargetR/commit/4aa7819aa4e2b596646d97c88f3826e6fadf8798))
+- **ci:** route Bioconductor through Posit PPM mirror for archived
+  releases
+  ([ad3f969](https://github.com/MStargetR/MStargetR/commit/ad3f969e591cfd4f98d18e36aa2ddc080bf668e7))
+- **gui:** correct per-plot downloads, trim master_list RAM, keep logs
+  in place
+  ([31e10ef](https://github.com/MStargetR/MStargetR/commit/31e10ef77f9470a6b7f6f50b90f9f9d5072a9a85))
+- **qcCheckR:** match user QC choice case-insensitively
+  ([e4414b9](https://github.com/MStargetR/MStargetR/commit/e4414b9a4ffcab06f77d5976a3cfa82d4cf28c44))
+- quiet diagnostics, cross-tab project dir, universal export, full R
+  logging
+  ([87c7bcd](https://github.com/MStargetR/MStargetR/commit/87c7bcd58d93a2c6f8e59ed3350c1f4459ae5218))
+- **timestamps:** parse AcquiredTime slash formats as UTC, not
+  session-local
+  ([1189b19](https://github.com/MStargetR/MStargetR/commit/1189b1986056ec169866b98d6d2a3d47d17b4636))
+- **workflow:** pass mrm_template_list as named list and refresh params
+  ([edcc005](https://github.com/MStargetR/MStargetR/commit/edcc00553965461c0b973d985d053046c92cfed2))
+
+### Features
+
+- **shiny:** expose date_order selector in the QC tab
+  ([2982756](https://github.com/MStargetR/MStargetR/commit/2982756ef1085a79b15bbedaf6b26ea780995768))
+
 ## MStargetR 1.4.0
 
 Released 2026-06-12

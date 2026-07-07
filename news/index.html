@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">MStargetR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,9 +34,34 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/MStargetR/MStargetR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/MStargetR/MStargetR/blob/v1.5.0/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.5.0" id="mstargetr-150">MStargetR 1.5.0<a class="anchor" aria-label="anchor" href="#mstargetr-150"></a></h2>
+<p>Released 2026-07-07 (<a href="https://github.com/MStargetR/MStargetR/compare/v1.4.0...v1.5.0" class="external-link">compare</a>).</p>
+<div class="section level3">
+<h3 id="bug-fixes-1-5-0">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-1-5-0"></a></h3>
+<ul><li>
+<strong>ci:</strong> resolve Bioconductor via bioconductor.org, not broken PPM mirror (<a href="https://github.com/MStargetR/MStargetR/commit/4aa7819aa4e2b596646d97c88f3826e6fadf8798" class="external-link">4aa7819</a>)</li>
+<li>
+<strong>ci:</strong> route Bioconductor through Posit PPM mirror for archived releases (<a href="https://github.com/MStargetR/MStargetR/commit/ad3f969e591cfd4f98d18e36aa2ddc080bf668e7" class="external-link">ad3f969</a>)</li>
+<li>
+<strong>gui:</strong> correct per-plot downloads, trim master_list RAM, keep logs in place (<a href="https://github.com/MStargetR/MStargetR/commit/31e10ef77f9470a6b7f6f50b90f9f9d5072a9a85" class="external-link">31e10ef</a>)</li>
+<li>
+<strong>qcCheckR:</strong> match user QC choice case-insensitively (<a href="https://github.com/MStargetR/MStargetR/commit/e4414b9a4ffcab06f77d5976a3cfa82d4cf28c44" class="external-link">e4414b9</a>)</li>
+<li>quiet diagnostics, cross-tab project dir, universal export, full R logging (<a href="https://github.com/MStargetR/MStargetR/commit/87c7bcd58d93a2c6f8e59ed3350c1f4459ae5218" class="external-link">87c7bcd</a>)</li>
+<li>
+<strong>timestamps:</strong> parse AcquiredTime slash formats as UTC, not session-local (<a href="https://github.com/MStargetR/MStargetR/commit/1189b1986056ec169866b98d6d2a3d47d17b4636" class="external-link">1189b19</a>)</li>
+<li>
+<strong>workflow:</strong> pass mrm_template_list as named list and refresh params (<a href="https://github.com/MStargetR/MStargetR/commit/edcc00553965461c0b973d985d053046c92cfed2" class="external-link">edcc005</a>)</li>
+</ul></div>
+<div class="section level3">
+<h3 id="features-1-5-0">Features<a class="anchor" aria-label="anchor" href="#features-1-5-0"></a></h3>
+<ul><li>
+<strong>shiny:</strong> expose date_order selector in the QC tab (<a href="https://github.com/MStargetR/MStargetR/commit/2982756ef1085a79b15bbedaf6b26ea780995768" class="external-link">2982756</a>)</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.4.0" id="mstargetr-140">MStargetR 1.4.0<a class="anchor" aria-label="anchor" href="#mstargetr-140"></a></h2>
 <p>Released 2026-06-12 (<a href="https://github.com/MStargetR/MStargetR/compare/v1.3.0...v1.4.0" class="external-link">compare</a>).</p>
