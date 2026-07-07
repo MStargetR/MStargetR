@@ -1573,7 +1573,7 @@ install.packages(c("shiny", "bslib", "DT", "shinyWidgets", "htmltools"))
 ``` r
 
 sessionInfo()
-#> R version 4.6.0 (2026-04-24)
+#> R version 4.6.1 (2026-06-24)
 #> Platform: x86_64-pc-linux-gnu
 #> Running under: Ubuntu 24.04.4 LTS
 #> 
@@ -1594,15 +1594,15 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] bit_4.6.0         jsonlite_2.0.0    compiler_4.6.0    crayon_1.5.3     
-#>  [5] tidyselect_1.2.1  parallel_4.6.0    jquerylib_0.1.4   systemfonts_1.3.2
+#>  [1] bit_4.6.0         jsonlite_2.0.0    compiler_4.6.1    crayon_1.5.3     
+#>  [5] tidyselect_1.2.1  parallel_4.6.1    jquerylib_0.1.4   systemfonts_1.3.2
 #>  [9] textshaping_1.0.5 yaml_2.3.12       fastmap_1.2.0     readr_2.2.0      
 #> [13] R6_2.6.1          knitr_1.51        htmlwidgets_1.6.4 tibble_3.3.1     
 #> [17] desc_1.4.3        bslib_0.11.0      pillar_1.11.1     tzdb_0.5.0       
-#> [21] rlang_1.2.0       utf8_1.2.6        cachem_1.1.0      xfun_0.59        
+#> [21] rlang_1.3.0       utf8_1.2.6        cachem_1.1.0      xfun_0.59        
 #> [25] fs_2.1.0          sass_0.4.10       bit64_4.8.2       otel_0.2.0       
 #> [29] cli_3.6.6         pkgdown_2.2.0     magrittr_2.0.5    digest_0.6.39    
 #> [33] vroom_1.7.1       hms_1.1.4         lifecycle_1.0.5   vctrs_0.7.3      
 #> [37] evaluate_1.0.5    glue_1.8.1        ragg_1.5.2        rmarkdown_2.31   
-#> [41] tools_4.6.0       pkgconfig_2.0.3   htmltools_0.5.9
+#> [41] tools_4.6.1       pkgconfig_2.0.3   htmltools_0.5.9
 ```
