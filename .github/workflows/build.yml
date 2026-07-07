@@ -54,14 +54,17 @@ jobs:
             install.packages("BiocManager", lib = lib)
           bioc_ver <- BiocManager::version()
           message("R ", getRversion(), " -> Bioconductor ", bioc_ver)
-          # Route Bioconductor through the Posit Public Package Manager mirror.
-          # Once a Bioconductor release is archived (e.g. when oldrel-1 trails the
-          # current release), bioconductor.org 302-redirects to an http-only S3
-          # archive endpoint that R's available.packages() refuses to follow
-          # (https->http downgrade), so mzR/ropls/statTarget silently fail to
-          # install. PPM serves every Bioc release (current and archived) as
-          # binaries over clean HTTPS, avoiding the redirect.
-          options(BioC_mirror = "https://packagemanager.posit.co/bioconductor")
+          # Resolve Bioconductor through its canonical mirror (bioconductor.org),
+          # the BiocManager default. We previously pinned BioC_mirror to the Posit
+          # Public Package Manager to dodge an http-only archive redirect, but that
+          # mirror now returns HTTP 500 for current-release binaries (Bioc 3.23,
+          # macOS sonoma-arm64 and Windows), which broke every 'release' matrix row
+          # while archived 'oldrel' rows kept passing. bioconductor.org serves all
+          # of them over HTTPS -- and its archive endpoint now redirects to an HTTPS
+          # host (mghp.osn.xsede.org), so the old https->http downgrade that R's
+          # available.packages() refused to follow no longer occurs. CRAN still
+          # comes from PPM via setup-r's use-public-rspm, which is unaffected.
+          #
           # Include Bioconductor in repo list so remotes::install_deps() can
           # resolve mzR/ropls/statTarget/sva alongside CRAN deps in one pass.
           options(repos = BiocManager::repositories())
