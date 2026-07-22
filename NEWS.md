@@ -1,3 +1,11 @@
+## MStargetR 1.5.1
+
+Released 2026-07-22 ([compare](https://github.com/MStargetR/MStargetR/compare/v1.5.0...v1.5.1)).
+
+### Bug Fixes
+
+- **qcCheckR:** stop synthetic_qc inflating all_plates matchedLipidTargets ([46d7a59](https://github.com/MStargetR/MStargetR/commit/46d7a59acfb3ea41d670e122505127e9b26e0b81))
+
 ## MStargetR 1.5.0
 
 Released 2026-07-07 ([compare](https://github.com/MStargetR/MStargetR/compare/v1.4.0...v1.5.0)).
