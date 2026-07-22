@@ -1687,10 +1687,10 @@ test_that("adjust_qc_means excludes synthetic boundary QCs from corrected_means"
     ),
     corrected_data = list(
       data_transposed = tibble(
-        sample_type        = c("qc", "qc",   "sample"),
-        sample_type_factor = c("QC", "QC",   "Sample"),
-        synthetic_qc       = c(FALSE, TRUE,  FALSE),
-        metabolite1        = c(12,    1000,  60)
+        sample_type         = c("qc", "qc",   "sample"),
+        sample_type_factor  = c("QC", "QC",   "Sample"),
+        sample_synthetic_qc = c(FALSE, TRUE,  FALSE),
+        metabolite1         = c(12,    1000,  60)
       )
     )
   )
@@ -1827,7 +1827,7 @@ test_that("integrate_corrected_data drops synthetic boundary QC rows", {
                        "SYNTHETIC_QC_leading_plate2", "S3"),
     sample_ID      = c(NA_character_, "ID1", "ID2", NA_character_, "ID3"),
     sample_plate_id = c(NA, "plate1", "plate1", NA, "plate2"),
-    synthetic_qc    = c(TRUE, FALSE, FALSE, TRUE, FALSE),
+    sample_synthetic_qc = c(TRUE, FALSE, FALSE, TRUE, FALSE),
     sample_type     = c("qc", "qc", "sample", "qc", "qc"),
     sample_type_factor = c("QC", "QC", "Sample", "QC", "QC"),
     metabolite1     = c(99, 1, 2, 99, 3)
@@ -1837,12 +1837,16 @@ test_that("integrate_corrected_data drops synthetic boundary QC rows", {
   result <- integrate_corrected_data(master_list, FUNC_list)
 
   expect_named(result$data$concentration$corrected, c("plate1", "plate2"))
-  # No NA-batch group, no synthetic rows in any output slot.
+  # No NA-batch group, no synthetic rows in any output slot. The
+  # sample_synthetic_qc flag column is retained as sample_* metadata (all FALSE
+  # once the synthetic rows are removed).
   for (slot in list(result$data$concentration$corrected,
                     result$data$peakArea$statTargetProcessed,
                     result$data$concentration$statTargetProcessed)) {
     expect_false(any(grepl("SYNTHETIC", unlist(lapply(slot, `[[`, "sample_name")))))
     expect_false(any(is.na(names(slot))))
+    expect_true(all(vapply(slot, function(d) "sample_synthetic_qc" %in% colnames(d), logical(1))))
+    expect_false(any(unlist(lapply(slot, `[[`, "sample_synthetic_qc"))))
   }
   expect_equal(nrow(result$data$concentration$corrected$plate1), 2)
   expect_equal(nrow(result$data$concentration$corrected$plate2), 1)

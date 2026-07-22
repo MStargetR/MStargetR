@@ -430,13 +430,21 @@ transpose_and_merge_corrected <- function(FUNC_list) {
     dplyr::rename(sample = name) %>%
     dplyr::left_join(FUNC_list$PhenoFile$template_sample_id, by = "sample") %>%
     dplyr::left_join(FUNC_list$master_data %>% dplyr::select(dplyr::contains("sample")), by = "sample_name") %>%
-    dplyr::select(-sample, -batch, -class, -order)
+    dplyr::select(-sample, -batch, -class, -order) %>%
+    # Rename the pheno boundary-QC flag to the canonical sample_* convention so
+    # it is grouped with the other sample metadata and excluded from lipid /
+    # metabolite counts (e.g. the inter-plate matchedLipidTargets tally, which
+    # strips sample_* columns). The raw pheno `class` is dropped above; the
+    # canonical three-way `sample_class` arrives via the master_data join.
+    dplyr::rename(dplyr::any_of(c(sample_synthetic_qc = "synthetic_qc")))
 
-  #reorder columns to follow FUNC_list$master_data
+  #reorder columns to follow FUNC_list$master_data; surface sample_synthetic_qc
+  #and sample_class immediately after sample_data_source.
   metadata_cols <- c("sample_run_index", "sample_name", "sample_timestamp",
                      "sample_plate_id", "sample_plate_order", "sample_matrix",
                      "sample_type", "sample_type_factor", "sample_type_factor_rev",
-                     "sample_data_source", "sample_ID")
+                     "sample_data_source", "sample_synthetic_qc", "sample_class",
+                     "sample_ID")
   transposed <- transposed %>%
     dplyr::select(dplyr::any_of(metadata_cols), dplyr::everything())
 
@@ -479,8 +487,8 @@ adjust_qc_means <- function(FUNC_list, master_list) {
   # cause of >100x ratios tripping the clamp in bc_compute_mean_ratios.
   corrected_qc <- FUNC_list$corrected_data$data_transposed %>%
     dplyr::filter(sample_type == "qc")
-  if ("synthetic_qc" %in% colnames(corrected_qc)) {
-    corrected_qc <- corrected_qc[!as_logical_na_false(corrected_qc$synthetic_qc), , drop = FALSE]
+  if ("sample_synthetic_qc" %in% colnames(corrected_qc)) {
+    corrected_qc <- corrected_qc[!as_logical_na_false(corrected_qc$sample_synthetic_qc), , drop = FALSE]
   }
   # statTarget may legitimately drop metabolites during signal correction
   # (Frule, coCV, missingness, all-NA QCs). Fall back to the intersection
@@ -553,8 +561,11 @@ integrate_corrected_data <- function(master_list, FUNC_list) {
   # downstream loop tries to filter() on an NA batch, yielding a 0-row
   # frame, then errors with "replacement has 1 row, data has 0" when
   # assigning sample_data_source.
-  if ("synthetic_qc" %in% colnames(corrected)) {
-    corrected <- corrected[!as_logical_na_false(corrected$synthetic_qc), , drop = FALSE]
+  if ("sample_synthetic_qc" %in% colnames(corrected)) {
+    # Drop the synthetic boundary QC rows (flagged TRUE). The column itself is
+    # retained as sample_* metadata: it is now correctly excluded from lipid /
+    # metabolite counts, so it no longer inflates matchedLipidTargets.
+    corrected <- corrected[!as_logical_na_false(corrected$sample_synthetic_qc), , drop = FALSE]
   }
   corrected <- corrected[!is.na(corrected$sample_plate_id), , drop = FALSE]
   if ("sample_ID" %in% colnames(corrected)) {
