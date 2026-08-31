@@ -69,6 +69,7 @@
 <p>MStargetR provides a complete, end-to-end pipeline for processing targeted multiple reaction monitoring (MRM) liquid chromatography–mass spectrometry (LC-MS) data. It takes raw vendor files as input and produces quality-controlled, batch-corrected concentration data ready for downstream statistical analysis. The package is designed for metabolomics researchers who need a reproducible, automated workflow that handles multi-plate and multi-method experiments.</p>
 <p>Cross-platform support is achieved through Docker, which encapsulates the vendor file conversion and peak integration steps so that the same workflow runs on Windows, macOS, and Linux. An interactive Shiny application is also included for users who prefer a graphical interface over scripting.</p>
 <p>The core pipeline consists of three stages: (1) conversion of proprietary vendor files to open mzML format via ProteoWizard, (2) retention time optimisation and peak picking/integration via Skyline, and (3) quality control assessment with batch and signal drift correction. Each stage is exposed as an independent function that can be used on its own or combined into a single script.</p>
+<p><img src="reference/figures/architecture.png" alt="MStargetR pipeline architecture: vendor raw files pass through msConvertR, PeakForgeR and qcCheckR to produce HTML, Excel and .qs2 outputs" width="100%"></p>
 <div class="section level2">
 <h2 id="key-features">Key Features<a class="anchor" aria-label="anchor" href="#key-features"></a>
 </h2>
@@ -94,7 +95,7 @@
 </h2>
 <ul>
 <li>
-<strong>R</strong> &gt;= 4.1.0</li>
+<strong>R</strong> &gt;= 4.1.0. Download and install from <a href="https://cran.r-project.org/" class="external-link uri">https://cran.r-project.org/</a>.</li>
 <li>
 <strong>Container runtime</strong> for <code><a href="reference/msConvertR.html">msConvertR()</a></code> and <code><a href="reference/PeakForgeR.html">PeakForgeR()</a></code>:
 <ul>
@@ -105,7 +106,7 @@
 </ul>
 </li>
 <li>
-<strong>Bioconductor dependencies</strong> – the packages <code>mzR</code>, <code>ropls</code>, and <code>statTarget</code> are installed automatically when using the helper installation function below. <code>sva</code> is also required when using <code>method = "ComBat"</code> in <code><a href="reference/batchCorrectR.html">batchCorrectR()</a></code> and can be installed with <code>BiocManager::install("sva")</code>.</li>
+<strong>Bioconductor dependencies</strong> – the packages <code>mzR</code>, <code>ropls</code>, and <code>statTarget</code> are installed automatically when using the helper installation function below. <code>sva</code> is additionally required for ComBat correction (<code>batch_method = "ComBat"</code> in <code><a href="reference/qcCheckR.html">qcCheckR()</a></code>, or <code>method = "ComBat"</code> in <code><a href="reference/batchCorrectR.html">batchCorrectR()</a></code>). It is only a suggested dependency, so install it separately with <code>BiocManager::install("sva")</code>.</li>
 <li>
 <strong>Minimum 8 GB RAM</strong> recommended for processing large datasets.</li>
 </ul>

@@ -27,6 +27,10 @@ and (3) quality control assessment with batch and signal drift
 correction. Each stage is exposed as an independent function that can be
 used on its own or combined into a single script.
 
+![MStargetR pipeline architecture: vendor raw files pass through
+msConvertR, PeakForgeR and qcCheckR to produce HTML, Excel and .qs2
+outputs](reference/figures/architecture.png)
+
 ## Key Features
 
 - **Vendor file conversion** –
@@ -69,7 +73,8 @@ used on its own or combined into a single script.
 
 ## Requirements
 
-- **R** \>= 4.1.0
+- **R** \>= 4.1.0. Download and install from
+  <https://cran.r-project.org/>.
 - **Container runtime** for
   [`msConvertR()`](https://mstargetr.github.io/MStargetR/reference/msConvertR.md)
   and
@@ -81,10 +86,13 @@ used on its own or combined into a single script.
     `enable_HPC = TRUE`, see “Running on HPC” below).
 - **Bioconductor dependencies** – the packages `mzR`, `ropls`, and
   `statTarget` are installed automatically when using the helper
-  installation function below. `sva` is also required when using
-  `method = "ComBat"` in
-  [`batchCorrectR()`](https://mstargetr.github.io/MStargetR/reference/batchCorrectR.md)
-  and can be installed with `BiocManager::install("sva")`.
+  installation function below. `sva` is additionally required for ComBat
+  correction (`batch_method = "ComBat"` in
+  [`qcCheckR()`](https://mstargetr.github.io/MStargetR/reference/qcCheckR.md),
+  or `method = "ComBat"` in
+  [`batchCorrectR()`](https://mstargetr.github.io/MStargetR/reference/batchCorrectR.md)).
+  It is only a suggested dependency, so install it separately with
+  `BiocManager::install("sva")`.
 - **Minimum 8 GB RAM** recommended for processing large datasets.
 
 **Apple Silicon limitation:** Devices with Apple silicon (M1, M2, M3,
