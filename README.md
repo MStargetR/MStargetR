@@ -28,6 +28,8 @@ and (3) quality control assessment with batch and signal drift
 correction. Each stage is exposed as an independent function that can be
 used on its own or combined into a single script.
 
+<img src="man/figures/architecture.png" alt="MStargetR pipeline architecture: vendor raw files pass through msConvertR, PeakForgeR and qcCheckR to produce HTML, Excel and .qs2 outputs" width="100%" />
+
 ## Key Features
 
 - **Vendor file conversion** – `msConvertR()` converts proprietary
@@ -62,7 +64,8 @@ used on its own or combined into a single script.
 
 ## Requirements
 
-- **R** \>= 4.1.0
+- **R** \>= 4.1.0. Download and install from
+  <https://cran.r-project.org/>.
 - **Container runtime** for `msConvertR()` and `PeakForgeR()`:
   - **Docker Desktop** on workstations (default). Download from
     <https://www.docker.com/get-started/>. Ensure Docker is running in
@@ -71,8 +74,10 @@ used on its own or combined into a single script.
     `enable_HPC = TRUE`, see "Running on HPC" below).
 - **Bioconductor dependencies** – the packages `mzR`, `ropls`, and
   `statTarget` are installed automatically when using the helper
-  installation function below. `sva` is also required when using
-  `method = "ComBat"` in `batchCorrectR()` and can be installed with
+  installation function below. `sva` is additionally required for ComBat
+  correction (`batch_method = "ComBat"` in `qcCheckR()`, or
+  `method = "ComBat"` in `batchCorrectR()`). It is only a suggested
+  dependency, so install it separately with
   `BiocManager::install("sva")`.
 - **Minimum 8 GB RAM** recommended for processing large datasets.
 
