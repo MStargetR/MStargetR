@@ -68,7 +68,11 @@ Archive Raw Files</p>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>This function moves raw files (wiff and mzML) to an archive directory after processing is complete.
-Note: <code>msConvert_mzml_output</code> is intentionally not archived; it is retained in place for downstream use.</p>
+Note: <code>msConvert_mzml_output</code> is intentionally not archived; it is retained in place for downstream use.
+<code>MStargetR_logs</code> is also intentionally <em>not</em> archived: the per-plate
+msConvert/Docker logs written there must remain in place so the later
+qcCheckR console logs are written alongside them in the same
+<code>MStargetR_logs</code> folder, rather than being split off into <code>archive/</code>.</p>
     </div>
 
     <div class="section level2">
