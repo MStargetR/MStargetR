@@ -21,7 +21,14 @@ value replaces the report's \code{AcquiredTime} for that sample.}
 fallback path; see that function for accepted values.}
 }
 \value{
-A data frame containing the sample names, timestamps, and other relevant information.
+A data frame containing the sample names, timestamps, and other
+relevant information. The \code{sample_matrix} column is always present
+and always populated: it is derived from the \code{_SER_}, \code{_PLA_}
+and \code{_URI_} tokens in the file name (case-insensitive) and takes the
+values \code{"SER"}, \code{"PLA"} or \code{"URI"} accordingly. Any sample
+whose name carries none of those tokens is assigned the sentinel
+\code{"UNK"} rather than \code{NA}, so the column never becomes all-NA
+and is never pruned downstream.
 }
 \description{
 Builds the per-plate run order frame used downstream by qcCheckR. mzML

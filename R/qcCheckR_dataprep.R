@@ -221,7 +221,14 @@ qcCheckR_sort_data <- function(master_list,
 #'   value replaces the report's \code{AcquiredTime} for that sample.
 #' @param date_order Forwarded to \code{parse_sample_timestamp} for the
 #'   fallback path; see that function for accepted values.
-#' @return A data frame containing the sample names, timestamps, and other relevant information.
+#' @return A data frame containing the sample names, timestamps, and other
+#'   relevant information. The \code{sample_matrix} column is always present
+#'   and always populated: it is derived from the \code{_SER_}, \code{_PLA_}
+#'   and \code{_URI_} tokens in the file name (case-insensitive) and takes the
+#'   values \code{"SER"}, \code{"PLA"} or \code{"URI"} accordingly. Any sample
+#'   whose name carries none of those tokens is assigned the sentinel
+#'   \code{"UNK"} rather than \code{NA}, so the column never becomes all-NA
+#'   and is never pruned downstream.
 extract_run_order <- function(report, plate_id, mzR_entries = NULL,
                               date_order = "auto") {
   extracted_data <- report %>%
@@ -299,7 +306,7 @@ extract_run_order <- function(report, plate_id, mzR_entries = NULL,
         stringr::str_detect(sample_name, "(?i)_SER_") ~ "SER",
         stringr::str_detect(sample_name, "(?i)_PLA_") ~ "PLA",
         stringr::str_detect(sample_name, "(?i)_URI_") ~ "URI",
-        TRUE ~ NA_character_
+        TRUE ~ "UNK"
       )
     )
 
@@ -828,12 +835,14 @@ finalise_sorted_data <- function(master_list) {
 
 
   # Drop all-NA columns, but always keep exact metadata column names so that
-  # (a) a sample_ID column that is all-NA is preserved and (b) metabolite names
-  # that happen to contain the substring "sample" are not incorrectly retained.
+  # (a) a sample_ID column that is all-NA is preserved, (b) sample_matrix is
+  # preserved even for frames that did not come through extract_run_order (which
+  # always populates it, falling back to "UNK"), and (c) metabolite names that
+  # happen to contain the substring "sample" are not incorrectly retained.
   .metadata_cols <- c(
     "sample_run_index", "sample_name", "sample_type", "sample_type_factor",
     "sample_type_factor_rev", "sample_class", "sample_plate_id",
-    "sample_timestamp", "sample_data_source"
+    "sample_matrix", "sample_timestamp", "sample_data_source"
   )
   master_list$data$peakArea$sorted <- lapply(
     master_list$data$peakArea$sorted,

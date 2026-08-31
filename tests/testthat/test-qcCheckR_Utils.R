@@ -417,7 +417,7 @@ test_that("extract_run_order filters out missing timestamps", {
   expect_equal(result$sample_name, "sample1")
 })
 
-test_that("extract_run_order handles unknown matrix types", {
+test_that("extract_run_order labels unknown matrix types \"UNK\", not NA", {
   input <- tibble(
     FileName = c("sample_XYZ_01.mzML"),
     AcquiredTime = c("2023-01-01 10:00:00")
@@ -425,7 +425,21 @@ test_that("extract_run_order handles unknown matrix types", {
 
   result <- extract_run_order(input, plate_id = "PlateC")
 
-  expect_true(is.na(result$sample_matrix))
+  expect_true("sample_matrix" %in% names(result))
+  expect_equal(result$sample_matrix, "UNK")
+})
+
+test_that("extract_run_order mixes detected and unknown matrices on one plate", {
+  input <- tibble(
+    FileName = c("sample_PLA_01.mzML", "sample_XYZ_02.mzML"),
+    AcquiredTime = c("2023-01-01 09:00:00", "2023-01-01 10:00:00")
+  )
+
+  result <- extract_run_order(input, plate_id = "PlateD")
+
+  expect_true("sample_matrix" %in% names(result))
+  expect_equal(result$sample_matrix, c("PLA", "UNK"))  # Sorted by time
+  expect_false(anyNA(result$sample_matrix))
 })
 
 test_that("assign_sample_type assigns correct types based on sample_tags", {
