@@ -20,6 +20,10 @@ Archive Raw Files
 \details{
 This function moves raw files (wiff and mzML) to an archive directory after processing is complete.
 Note: \code{msConvert_mzml_output} is intentionally not archived; it is retained in place for downstream use.
+\code{MStargetR_logs} is also intentionally \emph{not} archived: the per-plate
+msConvert/Docker logs written there must remain in place so the later
+qcCheckR console logs are written alongside them in the same
+\code{MStargetR_logs} folder, rather than being split off into \code{archive/}.
 }
 \examples{
 \dontrun{

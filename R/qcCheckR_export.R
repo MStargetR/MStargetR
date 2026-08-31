@@ -439,21 +439,34 @@ create_user_guide <- function(master_list) {
 #' @param master_list A list containing project details and data.
 #' @return A tibble containing the formatted RSD table with rounded values and transposed structure.
 format_rsd_table <- function(master_list) {
-  if (is.null(master_list$filters$rsd) || nrow(master_list$filters$rsd) == 0) {
+  rsd <- master_list$filters$rsd
+  if (is.null(rsd) || nrow(rsd) == 0) {
     return(tibble::tibble())
   }
-  master_list$filters$rsd %>%
-    dplyr::mutate(dplyr::across(!dplyr::contains("data"), ~ round(.x, 2))) %>%
-    tibble::add_column(data = paste0(.$dataSource, ".", .$dataBatch),
-               .before = 1) %>%
-    dplyr::select(-dataSource, -dataBatch) %>%
-    t() %>%
-    as.data.frame() %>%
-    tibble::rownames_to_column() %>%
-    stats::setNames(.[1, ]) %>%
-    dplyr::filter(data != "data") %>%
-    tibble::as_tibble(.name_repair = "minimal") %>%
-    dplyr::mutate(dplyr::across(!dplyr::contains("data"), as.numeric))
+
+  # Metabolite columns become the rows of the exported sheet; the
+  # dataSource.dataBatch keys become its columns.
+  value_cols <- setdiff(names(rsd), c("dataSource", "dataBatch"))
+  if (length(value_cols) == 0) {
+    # Placeholder-only table (no batch produced usable %RSDs). Same contract as
+    # the empty guard above: an empty sheet rather than a malformed one.
+    return(tibble::tibble())
+  }
+
+  # QC-H8: build the header explicitly instead of transposing and promoting
+  # row 1 to column names. The old approach inherited whatever keys
+  # filters$rsd carried, so a duplicated dataSource.dataBatch pair aborted the
+  # whole XLSX export with "Can't transform a data frame with duplicate names".
+  # dedupe_rsd_keys() should have removed duplicates upstream; make.unique()
+  # keeps this function total regardless of who calls it.
+  labels <- make.unique(paste0(rsd$dataSource, ".", rsd$dataBatch))
+
+  values <- as.matrix(rsd[, value_cols, drop = FALSE])
+  storage.mode(values) <- "double"
+
+  out <- tibble::as_tibble(round(t(values), 2), .name_repair = "minimal")
+  names(out) <- labels
+  tibble::add_column(out, data = value_cols, .before = 1)
 }
 
 #' Filter Concentration Data

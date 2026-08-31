@@ -658,7 +658,7 @@ test_that("calculate_rsd: empty input list returns a single placeholder NA row",
 })
 
 test_that("calculate_rsd: all batches skipped still returns labelled NA row (QC-H6)", {
-  # Batch with no QC samples after filter -> every batch gets `next`ed.
+  # Batch with no QC samples after filter -> every batch yields a placeholder.
   batches <- list(
     b1 = tibble::tibble(sample_name = c("S1", "S2"),
                         sample_class = c("sample", "sample"),
@@ -670,7 +670,9 @@ test_that("calculate_rsd: all batches skipped still returns labelled NA row (QC-
     data_batches = batches
   )
   expect_equal(result$V1, "concentration")
-  expect_equal(result$V2, "allBatches")
+  # QC-H8: labelled with the batch it stands in for, not a hard-coded
+  # "allBatches" that would collide with the real allBatches row.
+  expect_equal(result$V2, "b1")
 })
 
 test_that("calculate_rsd: <3 non-NA QC points yield NA_real_ (QC-C3)", {

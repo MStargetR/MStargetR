@@ -283,9 +283,11 @@ test_that("calculate_rsd: batches with no QC samples yield placeholder (QC-H6)",
 
   result <- calculate_rsd(master_list, "peakArea", list(batch1 = batch_data))
   # QC-H6: emits a labelled NA placeholder row rather than silently producing 0.
+  # QC-H8: the placeholder carries the batch name it stands in for, not a
+  # hard-coded "allBatches" (which collided with the real allBatches row).
   expect_equal(nrow(result), 1)
   expect_equal(result$V1, "peakArea")
-  expect_equal(result$V2, "allBatches")
+  expect_equal(result$V2, "batch1")
 })
 
 test_that("calculate_rsd: excludes failed samples (QC-C3 requires >= 3 non-NA)", {
@@ -317,10 +319,135 @@ test_that("calculate_rsd: NULL or empty batches yield placeholder (QC-H6)", {
     batch2 = tibble()
   ))
 
-  # QC-H6: labelled NA placeholder row instead of silent zero-row tibble.
+  # QC-H6/H8: one labelled NA placeholder row per supplied batch name.
+  expect_equal(nrow(result), 2)
+  expect_equal(result$V1, c("peakArea", "peakArea"))
+  expect_equal(result$V2, c("batch1", "batch2"))
+})
+
+test_that("calculate_rsd: unnamed batch list still falls back to allBatches (QC-H8)", {
+  master_list <- list(filters = list(failed_samples = character()))
+
+  result <- calculate_rsd(master_list, "peakArea", list())
   expect_equal(nrow(result), 1)
-  expect_equal(result$V1, "peakArea")
   expect_equal(result$V2, "allBatches")
+})
+
+test_that("calculate_rsd: placeholder is batch-labelled when all QCs failed (QC-H8)", {
+  # Reproduces the v3_serum condition: every QC injection on the plate is in
+  # failed_samples, so no QC rows survive and the batch yields a placeholder.
+  batch_data <- tibble(
+    sample_name = c("QC1", "QC2", "QC3", "S1"),
+    sample_class = c("qc", "qc", "qc", "sample"),
+    sample_type = c("qc", "qc", "qc", "sample"),
+    feature_A = c(100, 110, 105, 200)
+  )
+
+  master_list <- list(
+    filters = list(failed_samples = c("QC1", "QC2", "QC3"))
+  )
+
+  expect_warning(
+    result <- calculate_rsd(master_list, "peakArea", list(P1 = batch_data)),
+    "no QC injections remain"
+  )
+  expect_equal(nrow(result), 1)
+  expect_equal(result$V2, "P1")
+  expect_false("feature_A" %in% names(result))
+})
+
+test_that("calculate_rsd: per-batch and allBatches calls cannot collide (QC-H8)", {
+  # The exact shape qcCheckR_RSD_filter() produces: one call over the plate
+  # list, one over an explicit list(allBatches = ...). Both used to return
+  # "allBatches" when no QCs survived, producing duplicate keys.
+  batch_data <- tibble(
+    sample_name = c("QC1", "S1"),
+    sample_class = c("qc", "sample"),
+    sample_type = c("qc", "sample"),
+    feature_A = c(100, 200)
+  )
+  master_list <- list(filters = list(failed_samples = "QC1"))
+
+  per_plate <- suppressWarnings(
+    calculate_rsd(master_list, "peakArea", list(P1 = batch_data))
+  )
+  all_batches <- suppressWarnings(
+    calculate_rsd(master_list, "peakArea", list(allBatches = batch_data))
+  )
+
+  keys <- paste0(c(per_plate$V1, all_batches$V1), ".",
+                 c(per_plate$V2, all_batches$V2))
+  expect_equal(anyDuplicated(keys), 0L)
+})
+
+# --- QC-H8: dedupe_rsd_keys ---
+test_that("dedupe_rsd_keys: collapses duplicate keys, keeping the richest row", {
+  rsd <- tibble(
+    dataSource = c("peakArea", "peakArea"),
+    dataBatch = c("allBatches", "allBatches"),
+    feature_A = c(NA_real_, 12.5)
+  )
+
+  expect_warning(out <- dedupe_rsd_keys(rsd), "duplicate RSD key")
+  expect_equal(nrow(out), 1)
+  expect_equal(out$feature_A, 12.5)
+})
+
+test_that("dedupe_rsd_keys: leaves unique keys untouched", {
+  rsd <- tibble(
+    dataSource = c("peakArea", "peakArea"),
+    dataBatch = c("P1", "allBatches"),
+    feature_A = c(1, 2)
+  )
+
+  expect_silent(out <- dedupe_rsd_keys(rsd))
+  expect_identical(out, rsd)
+})
+
+# --- QC-H8: format_rsd_table ---
+test_that("format_rsd_table: metabolites become rows, keys become columns", {
+  master_list <- list(filters = list(rsd = tibble(
+    dataSource = c("peakArea", "peakArea"),
+    dataBatch = c("P1", "allBatches"),
+    feature_A = c(12.345, 15.678),
+    feature_B = c(1.111, 2.222)
+  )))
+
+  out <- format_rsd_table(master_list)
+  expect_equal(names(out), c("data", "peakArea.P1", "peakArea.allBatches"))
+  expect_equal(out$data, c("feature_A", "feature_B"))
+  expect_equal(out$peakArea.P1, c(12.35, 1.11))
+  expect_equal(out$peakArea.allBatches, c(15.68, 2.22))
+})
+
+test_that("format_rsd_table: duplicate keys no longer abort the export (QC-H8)", {
+  # The v3_serum crash: dplyr::filter() rejected the duplicate-named frame with
+  # "Can't transform a data frame with duplicate names".
+  master_list <- list(filters = list(rsd = tibble(
+    dataSource = c("peakArea", "peakArea"),
+    dataBatch = c("allBatches", "allBatches"),
+    feature_A = c(10, 20)
+  )))
+
+  out <- format_rsd_table(master_list)
+  expect_equal(nrow(out), 1)
+  expect_equal(anyDuplicated(names(out)), 0L)
+})
+
+test_that("format_rsd_table: placeholder-only table returns an empty tibble", {
+  master_list <- list(filters = list(rsd = tibble(
+    dataSource = c("peakArea", "concentration"),
+    dataBatch = c("P1", "allBatches")
+  )))
+
+  out <- format_rsd_table(master_list)
+  expect_equal(nrow(out), 0)
+  expect_equal(ncol(out), 0)
+})
+
+test_that("format_rsd_table: NULL / empty RSD table returns an empty tibble", {
+  expect_equal(nrow(format_rsd_table(list(filters = list(rsd = NULL)))), 0)
+  expect_equal(nrow(format_rsd_table(list(filters = list(rsd = tibble())))), 0)
 })
 
 test_that("calculate_rsd: excludes SIL columns from RSD computation", {
@@ -382,13 +509,15 @@ test_that("calculate_rsd: empty input returns labelled placeholder (QC-H6)", {
   expect_true("V1" %in% names(res_empty))
   expect_equal(res_empty$V1, "concentration[statTarget]")
   expect_equal(res_empty$V2, "allBatches")
-  # List of NULL/empty batches must still return a placeholder, not zeros.
+  # List of NULL/empty batches must still return placeholders, not zeros.
+  # QC-H8: one row per supplied batch name so the rows cannot collide with the
+  # allBatches row qcCheckR_RSD_filter() requests separately.
   res_null <- calculate_rsd(
     master_list, "concentration[statTarget]",
     list(batch1 = NULL, batch2 = tibble())
   )
-  expect_equal(res_null$V1, "concentration[statTarget]")
-  expect_equal(res_null$V2, "allBatches")
+  expect_equal(res_null$V1, rep("concentration[statTarget]", 2))
+  expect_equal(res_null$V2, c("batch1", "batch2"))
 })
 
 # --- qcCheckR_RSD_filter ---
@@ -407,6 +536,7 @@ test_that("qcCheckR_RSD_filter: processes multiple data sources and renames colu
     ),
     data = list(
       peakArea = list(
+        sorted = list(batch1 = qc_data),
         imputed = list(batch1 = qc_data)
       ),
       concentration = list(
@@ -423,6 +553,9 @@ test_that("qcCheckR_RSD_filter: processes multiple data sources and renames colu
   # Should have rows from multiple sources: peakArea(per-batch + allBatches),
   # concentration(per-batch + allBatches), concentration[statTarget](per-batch + allBatches)
   expect_true(nrow(result$filters$rsd) > 0)
+  # QC-H8: the per-batch and allBatches rows must stay distinguishable.
+  keys <- paste0(result$filters$rsd$dataSource, ".", result$filters$rsd$dataBatch)
+  expect_equal(anyDuplicated(keys), 0L)
 })
 
 

@@ -256,7 +256,57 @@ qcCheckR_sample_filter <- function(master_list) {
   message("  Sample filter: ", n_failed, "/", n_total,
           " samples flagged for removal.")
 
+  # QC-H8: flagging every QC injection on a plate silently disables %RSD
+  # (calculate_rsd() excludes failed_samples before selecting QC rows), which
+  # in turn disables RSD-based feature filtering and empties the QC sheets.
+  # Report it here, where the cause is still visible.
+  report_flagged_qcs(master_list)
+
   return(master_list)
+}
+
+#' Report QC injections lost to the sample filter
+#'
+#' Counts how many of the samples flagged by [qcCheckR_sample_filter()] are QC
+#' injections, and warns per plate when every QC injection on that plate was
+#' flagged. Without QCs, `calculate_rsd()` cannot compute %RSD for that plate.
+#' @keywords internal
+#' @param master_list A list containing project details and filter results.
+#' @return `invisible(NULL)`, called for its messages / warnings.
+report_flagged_qcs <- function(master_list) {
+  flags <- master_list$filters$samples.missingValues
+  qc_type <- master_list$project_details$qc_type
+  if (is.null(flags) || !nrow(flags) || is.null(qc_type) ||
+      !all(c("sample_type_factor", "sample_plate_id", "sample.flag") %in% names(flags))) {
+    return(invisible(NULL))
+  }
+
+  # Mirrors the sample_class == "qc" rule in finalise_sorted_data().
+  is_qc <- tolower(as.character(flags$sample_type_factor)) %in% tolower(qc_type)
+  if (!any(is_qc)) return(invisible(NULL))
+
+  n_qc_failed <- sum(is_qc & flags$sample.flag == 1)
+  if (n_qc_failed > 0) {
+    message("    of which ", n_qc_failed, "/", sum(is_qc),
+            " were '", qc_type, "' QC injection(s).")
+  }
+
+  for (plate in unique(flags$sample_plate_id[is_qc])) {
+    on_plate <- is_qc & flags$sample_plate_id == plate
+    if (all(flags$sample.flag[on_plate] == 1)) {
+      warning(
+        "qcCheckR_sample_filter: all ", sum(on_plate), " QC injection(s) on plate '",
+        plate, "' were flagged for removal (",
+        paste(utils::head(flags$sample_name[on_plate], 5), collapse = ", "),
+        "). %RSD cannot be computed for this plate and RSD-based feature ",
+        "filtering will be skipped. Consider relaxing 'mv_sample_threshold' ",
+        "or reviewing these injections.",
+        call. = FALSE
+      )
+    }
+  }
+
+  invisible(NULL)
 }
 
 #.----
@@ -774,6 +824,12 @@ qcCheckR_RSD_filter <- function(master_list) {
       dplyr::rename(dataSource = V1, dataBatch = V2) %>%
       dplyr::mutate(dplyr::across(!dplyr::contains("data"), as.numeric)) %>%
       dplyr::mutate(dplyr::across(!dplyr::contains("data"), \(x) round(x, 2)))
+
+    # QC-H8: downstream consumers (format_rsd_table(), the summary report and
+    # the Shiny QC tab) key on dataSource.dataBatch, so the pair must be
+    # unique. A duplicate always means an upstream bug, so warn rather than
+    # dropping rows silently.
+    master_list$filters$rsd <- dedupe_rsd_keys(master_list$filters$rsd)
   }
 
   # Update script log
@@ -786,6 +842,46 @@ qcCheckR_RSD_filter <- function(master_list) {
 }
 
 ###Sub Functions ----
+#' Enforce unique (dataSource, dataBatch) keys on the RSD table
+#'
+#' `format_rsd_table()`, `generate_plate_summary()` and the Shiny QC tab all key
+#' on `paste0(dataSource, ".", dataBatch)`. Duplicated keys turn into duplicated
+#' column names in the exported XLSX sheet, which dplyr rejects outright. When a
+#' key repeats, keep the most informative row (the one with the most non-NA
+#' %RSD values) and warn, since a duplicate signals an upstream labelling bug.
+#' @keywords internal
+#' @param rsd The `master_list$filters$rsd` tibble (already renamed to
+#'   `dataSource` / `dataBatch`).
+#' @return `rsd` with one row per (dataSource, dataBatch) pair, in the original
+#'   row order.
+dedupe_rsd_keys <- function(rsd) {
+  if (is.null(rsd) || nrow(rsd) == 0) return(rsd)
+  if (!all(c("dataSource", "dataBatch") %in% names(rsd))) return(rsd)
+
+  keys <- paste0(rsd$dataSource, ".", rsd$dataBatch)
+  if (!anyDuplicated(keys)) return(rsd)
+
+  warning(
+    "qcCheckR_RSD_filter: duplicate RSD key(s) detected and collapsed: ",
+    paste(sQuote(unique(keys[duplicated(keys)])), collapse = ", "),
+    ". The row with the most %RSD values was kept for each key.",
+    call. = FALSE
+  )
+
+  value_cols <- setdiff(names(rsd), c("dataSource", "dataBatch"))
+  n_values <- if (length(value_cols) == 0) {
+    rep(0L, nrow(rsd))
+  } else {
+    rowSums(!is.na(as.matrix(rsd[, value_cols, drop = FALSE])))
+  }
+
+  # Rank most-informative-first within each key, then restore input order so
+  # the per-plate rows keep appearing before their allBatches counterpart.
+  keep <- order(match(keys, unique(keys)), -n_values, seq_len(nrow(rsd)))
+  keep <- keep[!duplicated(keys[keep])]
+  rsd[sort(keep), , drop = FALSE]
+}
+
 #'Calculate RSD for a given data source and batch list
 #'
 #'This function calculates the relative standard deviation (RSD) for each feature in the provided data batches.
@@ -800,35 +896,65 @@ calculate_rsd <- function(master_list, source_name, data_batches) {
   # QC-H6: if the entire input list is empty (e.g. statTargetProcessed was
   # never populated), emit a single placeholder row of NA_real_ so that
   # downstream consumers can see the stage ran but produced no usable RSDs.
+  # "allBatches" is only used here, where there is genuinely no batch name to
+  # attribute the placeholder to.
   if (length(data_batches) == 0 || is.null(names(data_batches))) {
     placeholder <- tibble::tibble(V1 = source_name, V2 = "allBatches")
     return(placeholder)
   }
 
+  # QC-H8: placeholders must be labelled with the batch they stand in for.
+  # qcCheckR_RSD_filter() calls this function twice per data source (once with
+  # the per-plate list, once with an explicit list(allBatches = ...)); a
+  # placeholder hard-coded to "allBatches" collides with the row from the
+  # explicit call, and the duplicated dataSource.dataBatch key later aborts
+  # format_rsd_table() with "Can't transform a data frame with duplicate names".
+  placeholder_row <- function(batch_name) {
+    tibble::tibble(V1 = source_name, V2 = batch_name)
+  }
+
   for (batch_name in names(data_batches)) {
     batch_df <- data_batches[[batch_name]]
-    if (is.null(batch_df) || nrow(batch_df) == 0 || !"sample_name" %in% colnames(batch_df))
+    if (is.null(batch_df) || nrow(batch_df) == 0 || !"sample_name" %in% colnames(batch_df)) {
+      rsd_results[[batch_name]] <- placeholder_row(batch_name)
       next
+    }
 
     # Prefer sample_class (three-way: qc / sample / other) when present so
     # that blanks / SIL / non-chosen QCs are not treated as QCs. Fall back
     # to legacy sample_type == "qc" when older pipelines feed this code.
     if ("sample_class" %in% colnames(batch_df)) {
-      data <- batch_df %>%
-        dplyr::filter(!.data$sample_name %in% master_list$filters$failed_samples) %>%
-        dplyr::filter(.data$sample_class == "qc")
+      qc_rows <- batch_df %>% dplyr::filter(.data$sample_class == "qc")
     } else {
-      data <- batch_df %>%
-        dplyr::filter(!.data$sample_name %in% master_list$filters$failed_samples) %>%
-        dplyr::filter(.data$sample_type %in% c("qc"))
+      qc_rows <- batch_df %>% dplyr::filter(.data$sample_type %in% c("qc"))
     }
+    data <- qc_rows %>%
+      dplyr::filter(!.data$sample_name %in% master_list$filters$failed_samples)
+
+    # QC-H8: losing every QC injection to the sample filter silently produces
+    # an all-NA RSD table, which in turn disables RSD-based feature filtering
+    # and empties the QC.lipidQcRsd sheet. Say so here, where the cause is
+    # still visible, rather than letting it surface as an export error.
+    if (nrow(qc_rows) > 0 && nrow(data) == 0) {
+      warning(
+        "calculate_rsd: no QC injections remain for source '", source_name,
+        "', batch '", batch_name, "': all ", nrow(qc_rows),
+        " QC injection(s) were flagged by the sample filter ",
+        "(master_list$filters$failed_samples). %RSD cannot be computed for ",
+        "this batch and RSD-based feature filtering will be skipped.",
+        call. = FALSE
+      )
+    }
+
     meta_cols <- grep("^sample_", colnames(data), value = TRUE)
     sil_cols  <- grep("^SIL[_. ]", colnames(data), value = TRUE, ignore.case = TRUE)
     data <- data %>%
       dplyr::select(-dplyr::any_of(c(meta_cols, sil_cols)))
 
-    if (nrow(data) == 0)
+    if (nrow(data) == 0) {
+      rsd_results[[batch_name]] <- placeholder_row(batch_name)
       next
+    }
 
     # QC-C3: compute RSD on the raw (non-imputed) data using pairwise NA
     # drop. Require >= 3 non-NA QC points per metabolite; NA_real_ otherwise.
@@ -850,8 +976,8 @@ calculate_rsd <- function(master_list, source_name, data_batches) {
       dplyr::mutate(dplyr::across(names(rsd_values), as.numeric))
   }
 
-  # QC-H6: if every batch was skipped (empty / malformed input), still
-  # return a labelled NA row so downstream consumers see the stage ran.
+  # QC-H6: if there were no usable batch names at all, still return a labelled
+  # NA row so downstream consumers see the stage ran.
   if (length(rsd_results) == 0) {
     return(tibble::tibble(V1 = source_name, V2 = "allBatches"))
   }
