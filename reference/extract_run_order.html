@@ -95,7 +95,14 @@ fallback path; see that function for accepted values.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame containing the sample names, timestamps, and other relevant information.</p>
+    <p>A data frame containing the sample names, timestamps, and other
+relevant information. The <code>sample_matrix</code> column is always present
+and always populated: it is derived from the <code>_SER_</code>, <code>_PLA_</code>
+and <code>_URI_</code> tokens in the file name (case-insensitive) and takes the
+values <code>"SER"</code>, <code>"PLA"</code> or <code>"URI"</code> accordingly. Any sample
+whose name carries none of those tokens is assigned the sentinel
+<code>"UNK"</code> rather than <code>NA</code>, so the column never becomes all-NA
+and is never pruned downstream.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

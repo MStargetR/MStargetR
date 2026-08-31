@@ -41,4 +41,9 @@ extract_run_order(report, plate_id, mzR_entries = NULL, date_order = "auto")
 ## Value
 
 A data frame containing the sample names, timestamps, and other relevant
-information.
+information. The `sample_matrix` column is always present and always
+populated: it is derived from the `_SER_`, `_PLA_` and `_URI_` tokens in
+the file name (case-insensitive) and takes the values `"SER"`, `"PLA"`
+or `"URI"` accordingly. Any sample whose name carries none of those
+tokens is assigned the sentinel `"UNK"` rather than `NA`, so the column
+never becomes all-NA and is never pruned downstream.
