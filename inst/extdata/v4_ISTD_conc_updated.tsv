@@ -1,4 +1,4 @@
-SIL_source	ISTD	MW	ug/mL 	uM 	In solution x500 diluted 	In solution ug/mL	For plasma dilution correction x9 	concentration_factor 	SIL_name
+SIL_source	ISTD	MW	ug/mL	uM	In solution x500 diluted	In solution ug/mL	For plasma dilution correction x9	concentration_factor	SIL_name
 UltimateSPLASH	SIL_14:1 cholesteryl-d7 ester	601.5815	25	41.56	0.083	0.05	0.75	0.75	SIL_CE(14:1)-d7
 UltimateSPLASH	SIL_16:1 cholesteryl-d7 ester	629.6128	50	79.41	0.159	0.1	1.43	1.43	SIL_CE(16:1)-d7
 UltimateSPLASH	SIL_18:1 cholesteryl-d7 ester	657.6441	75	114.04	0.228	0.15	2.05	2.05	SIL_CE(18:1)-d7
@@ -21,8 +21,8 @@ Avanti	SIL_Oleic Acid-d9	291.517	2.5	8.58	0.017	0.005	0.15	0.15	SIL_FFA(18:1)-d9
 Cayman Chemical	SIL_Linoleic Acid-d11	291.5	2.5	8.58	0.017	0.005	0.15	0.15	SIL_FFA(18:2)-d11
 Cayman Chemical	SIL_Arachidonic Acid-d5	309.5	2.5	8.08	0.016	0.005	0.15	0.15	SIL_FFA(20:4)-d5
 Cayman Chemical	SIL_Palmitic Acid-d5	261.5	2.5	9.56	0.019	0.005	0.17	0.17	SIL_FFA(16:0)-d5
-SphingoSPLASH	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	693.071	6.93	10	0.02	0.01386	0.18	0.18	SIL_HCER(15:0)-d7
-SphingoSPLASH	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	855.212	8.55	10	0.02	0.0171	0.18	0.18	SIL_LCER(15:0)-d7
+SphingoSPLASH	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	693.071	6.93	10	0.02	0.01386	0.18	0.18	SIL_HCER(15:0)-d7
+SphingoSPLASH	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	855.212	8.55	10	0.02	0.0171	0.18	0.18	SIL_LCER(15:0)-d7
 UltimateSPLASH	SIL_15:0 Lyso PC-d5	486.3482	25	51.4	0.103	0.05	0.93	0.93	SIL_LPC(15:0)-d5
 UltimateSPLASH	SIL_17:0 Lyso PC-d5	514.3795	50	97.2	0.194	0.1	1.75	1.75	SIL_LPC(17:0)-d5
 UltimateSPLASH	SIL_19:0 Lyso PC-d5	542.4108	25	46.09	0.092	0.05	0.83	0.83	SIL_LPC(19:0)-d5

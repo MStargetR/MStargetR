@@ -1,4 +1,4 @@
-Molecule List Name	Precursor Name	Precursor Mz	Precursor Charge	Product Mz	Product Charge	Explicit Retention Time	Explicit Retention Time Window	Note	Source_ID	Source 	control_chart
+Molecule List Name	Precursor Name	Precursor Mz	Precursor Charge	Product Mz	Product Charge	Explicit Retention Time	Explicit Retention Time Window	Note	Source_ID	Source	control_chart
 CAR	CAR(8:0)	288.217	1	85.028	1	0.72	0.5	SIL_CAR(8:0)-d9	SIL_CAR(8:0)-d9	CarnitineSPLASH	TRUE
 CAR	CAR(8:1)	286.32	1	84.71	1	0.7	0.5	SIL_CAR(8:0)-d9	SIL_CAR(8:0)-d9	CarnitineSPLASH	FALSE
 CAR	CAR(9:0)	302.233	1	85.028	1	0.76	0.5	SIL_CAR(8:0)-d9	SIL_CAR(8:0)-d9	CarnitineSPLASH	FALSE
@@ -411,31 +411,31 @@ FA	SIL_FFA(18:0)-d4	287.492	-1	287.492	-1	4.2	0.5	NA	NA	Cayman Chemical	FALSE
 FA	SIL_FFA(18:1)-d9	290.304	-1	290.304	-1	3.72	0.5	NA	NA	Cayman Chemical	FALSE
 FA	SIL_FFA(18:2)-d11	290.492	-1	290.492	-1	3.17	0.5	NA	NA	Cayman Chemical	FALSE
 FA	SIL_FFA(20:4)-d5	308.492	-1	308.492	-1	3.08	0.5	NA	NA	Cayman Chemical	FALSE
-HexCer	HexCer(d18:1/14:0)	672.5	1	264.4	1	5.85	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-HexCer	HexCer(d18:1/16:0)	700.7	1	264.4	1	6.7	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-HexCer	HexCer(d18:1/18:0)	728.8	1	264.4	1	7.75	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-HexCer	HexCer(d18:1/18:1)	726.7	1	264.4	1	6.91	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-HexCer	HexCer(d18:1/20:0)	756.7	1	264.4	1	8.8	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-HexCer	HexCer(d18:1/20:1)	754.7	1	264.4	1	8.53	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-HexCer	HexCer(d18:1/22:0)	784.9	1	264.4	1	9.94	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-HexCer	HexCer(d18:1/22:1)	782.8	1	264.4	1	8.78	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-HexCer	HexCer(d18:1/24:0)	812.9	1	264.4	1	10.45	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-HexCer	HexCer(d18:1/24:1)	810.9	1	264.4	1	9.9	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-HexCer	HexCer(d18:1/26:0)	840.9	1	264.4	1	10.7	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-HexCer	HexCer(d18:1/26:1)	838.9	1	264.4	1	10.41	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+HexCer	HexCer(d18:1/14:0)	672.5	1	264.4	1	5.85	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+HexCer	HexCer(d18:1/16:0)	700.7	1	264.4	1	6.7	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+HexCer	HexCer(d18:1/18:0)	728.8	1	264.4	1	7.75	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+HexCer	HexCer(d18:1/18:1)	726.7	1	264.4	1	6.91	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+HexCer	HexCer(d18:1/20:0)	756.7	1	264.4	1	8.8	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+HexCer	HexCer(d18:1/20:1)	754.7	1	264.4	1	8.53	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+HexCer	HexCer(d18:1/22:0)	784.9	1	264.4	1	9.94	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+HexCer	HexCer(d18:1/22:1)	782.8	1	264.4	1	8.78	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+HexCer	HexCer(d18:1/24:0)	812.9	1	264.4	1	10.45	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+HexCer	HexCer(d18:1/24:1)	810.9	1	264.4	1	9.9	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+HexCer	HexCer(d18:1/26:0)	840.9	1	264.4	1	10.7	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+HexCer	HexCer(d18:1/26:1)	838.9	1	264.4	1	10.41	0.5	SIL_HCER(15:0)-d7	SIL_C15 Glucosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
 HexCer	SIL_HCER(15:0)-d7	710.69	1	193.08	1	5.7	0.5	NA	NA	SphingoSPLASH	FALSE
-LacCer	LacCer(d18:1/14:0)	834.9	1	264.4	1	5.6	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-LacCer	LacCer(d18:1/16:0)	862.9	1	264.4	1	6.4	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-LacCer	LacCer(d18:1/18:0)	890.2	1	264.4	1	7.36	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-LacCer	LacCer(d18:1/18:1)	888.2	1	264.4	1	6.6	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-LacCer	LacCer(d18:1/20:0)	918.2	1	264.4	1	8.36	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-LacCer	LacCer(d18:1/20:1)	916.2	1	264.4	1	7.35	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-LacCer	LacCer(d18:1/22:0)	946.2	1	264.4	1	9.62	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-LacCer	LacCer(d18:1/22:1)	944.2	1	264.4	1	8.47	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-LacCer	LacCer(d18:1/24:0)	974.8	1	264.4	1	10.3	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-LacCer	LacCer(d18:1/24:1)	972.9	1	264.4	1	9.55	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-LacCer	LacCer(d18:1/26:0)	1002.4	1	264.4	1	10.3	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
-LacCer	LacCer(d18:1/26:1)	1000.4	1	264.4	1	10.3	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(?) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+LacCer	LacCer(d18:1/14:0)	834.9	1	264.4	1	5.6	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+LacCer	LacCer(d18:1/16:0)	862.9	1	264.4	1	6.4	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+LacCer	LacCer(d18:1/18:0)	890.2	1	264.4	1	7.36	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+LacCer	LacCer(d18:1/18:1)	888.2	1	264.4	1	6.6	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+LacCer	LacCer(d18:1/20:0)	918.2	1	264.4	1	8.36	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+LacCer	LacCer(d18:1/20:1)	916.2	1	264.4	1	7.35	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+LacCer	LacCer(d18:1/22:0)	946.2	1	264.4	1	9.62	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+LacCer	LacCer(d18:1/22:1)	944.2	1	264.4	1	8.47	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+LacCer	LacCer(d18:1/24:0)	974.8	1	264.4	1	10.3	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+LacCer	LacCer(d18:1/24:1)	972.9	1	264.4	1	9.55	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+LacCer	LacCer(d18:1/26:0)	1002.4	1	264.4	1	10.3	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
+LacCer	LacCer(d18:1/26:1)	1000.4	1	264.4	1	10.3	0.5	SIL_LCER(15:0)-d7	SIL_C15 Lactosyl(β) Ceramide-D7 (d18:1-D7/15:0)	SphingoSPLASH	FALSE
 LacCer	SIL_LCER(15:0)-d7	855.81	1	513.6	1	5.95	0.5	NA	NA	SphingoSPLASH	FALSE
 LPA	LPA(12:0)	353.173	-1	153.1	-1	0.47	0.5	SIL_LPA(16:0)-d9	SIL_LPA(16:0)-d9	Cayman Chemical	FALSE
 LPA	LPA(13:0)	367.189	-1	153.1	-1	0.54	0.5	SIL_LPA(16:0)-d9	SIL_LPA(16:0)-d9	Cayman Chemical	FALSE
