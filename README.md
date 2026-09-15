@@ -28,7 +28,9 @@ and (3) quality control assessment with batch and signal drift
 correction. Each stage is exposed as an independent function that can be
 used on its own or combined into a single script.
 
-<img src="man/figures/architecture.png" alt="MStargetR pipeline architecture: vendor raw files pass through msConvertR, PeakForgeR and qcCheckR to produce HTML, Excel and .qs2 outputs" width="100%" />
+<a href="https://raw.githubusercontent.com/MStargetR/MStargetR/main/man/figures/architecture.png" target="_blank" title="Click to enlarge" class="zoomable-figure"><img src="man/figures/architecture.png" alt="MStargetR pipeline architecture: vendor raw files pass through msConvertR, PeakForgeR and qcCheckR to produce HTML, Excel and .qs2 outputs" width="100%" /></a>
+
+*Click the diagram to enlarge.*
 
 ## Key Features
 

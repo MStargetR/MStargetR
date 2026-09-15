@@ -24,4 +24,8 @@ export default defineConfig([
       'no-unused-vars': ['error', { caughtErrors: 'none' }],
     },
   },
+  {
+    files: ['pkgdown/**/*.js'],
+    languageOptions: { globals: globals.browser },
+  },
 ]);
