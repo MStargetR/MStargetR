@@ -1,0 +1,65 @@
+/* Zoomable README figures: see pkgdown/extra.js */
+a.zoomable-figure img {
+  cursor: zoom-in;
+}
+
+body.mst-lightbox-open {
+  overflow: hidden;
+}
+
+.mst-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: rgba(15, 20, 25, 0.92);
+}
+
+.mst-lightbox img {
+  max-width: 96vw;
+  max-height: 88vh;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  transform-origin: center center;
+  touch-action: none;
+  user-select: none;
+  cursor: zoom-in;
+}
+
+.mst-lightbox-close {
+  position: absolute;
+  top: calc(0.75rem + env(safe-area-inset-top, 0px));
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mst-lightbox-close:hover,
+.mst-lightbox-close:focus-visible {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.mst-lightbox-hint {
+  position: absolute;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.5);
+  color: #ddd;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
