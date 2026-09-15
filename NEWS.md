@@ -1,3 +1,15 @@
+## MStargetR 1.5.2
+
+Released 2026-09-15 ([compare](https://github.com/MStargetR/MStargetR/compare/v1.5.1...v1.5.2)).
+
+### Bug Fixes
+
+- **ci:** retry dependency install until packages load and require sva ([116e76f](https://github.com/MStargetR/MStargetR/commit/116e76f30f9f5d34df180bd789f2b7bdde4563b6))
+- **qcCheckR:** populate sample_matrix with "UNK" when it cannot be detected ([34896dd](https://github.com/MStargetR/MStargetR/commit/34896dd7187a428da4ce6ebc4098edc80488bb04))
+- **qcCheckR:** stop duplicate RSD keys aborting the XLSX export ([ce8c0ca](https://github.com/MStargetR/MStargetR/commit/ce8c0cad38b7696c9e11fdc67bde853689bd8520))
+- **v4-method:** restore beta characters lost to ANSI re-save and trim header whitespace ([5e98886](https://github.com/MStargetR/MStargetR/commit/5e988869bd476151b9d320a01695b1d14d2d83e7))
+- **v4-method:** update v4 MRM template and ISTD concentration files ([52f8e63](https://github.com/MStargetR/MStargetR/commit/52f8e63a70c8f4bc460a6bb3b6c757965b844f72))
+
 ## MStargetR 1.5.1
 
 Released 2026-07-22 ([compare](https://github.com/MStargetR/MStargetR/compare/v1.5.0...v1.5.1)).
